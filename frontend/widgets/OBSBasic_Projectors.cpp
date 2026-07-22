@@ -173,6 +173,11 @@ OBSProjector *OBSBasic::OpenProjector(obs_source_t *source, int monitor, Project
 	return projector;
 }
 
+OBSProjector *OBSBasic::OpenPresenterProjector(obs_source_t *source, int monitor)
+{
+	return OpenProjector(source, monitor, ProjectorType::Source);
+}
+
 void OBSBasic::OpenPreviewProjector()
 {
 	int monitor = sender()->property("monitor").toInt();

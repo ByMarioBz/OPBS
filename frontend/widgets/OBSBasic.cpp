@@ -18,6 +18,7 @@
 ******************************************************************************/
 
 #include "OBSBasic.hpp"
+#include "PresenterPanel.hpp"
 #include "ui-config.h"
 
 #include "ColorSelect.hpp"
@@ -1146,6 +1147,9 @@ void OBSBasic::OBSInit()
 
 	loaded = true;
 
+	presenterPanel = new PresenterPanel(this);
+	presenterPanel->Initialize();
+
 	previewEnabled = config_get_bool(App()->GetUserConfig(), "BasicWindow", "PreviewEnabled");
 
 	if (!previewEnabled && !IsPreviewProgramMode()) {
@@ -1420,6 +1424,9 @@ OBSBasic::~OBSBasic() {}
 
 void OBSBasic::applicationShutdown() noexcept
 {
+	if (presenterPanel) {
+		presenterPanel->Shutdown();
+	}
 	/* clear out UI event queue */
 	QApplication::sendPostedEvents(nullptr);
 #ifndef __APPLE__

@@ -57,6 +57,7 @@ class OBSBasicTransform;
 class OBSLogViewer;
 class OBSMissingFiles;
 class OBSProjector;
+class PresenterPanel;
 class VolumeControl;
 #ifdef YOUTUBE_ENABLED
 class YouTubeAppDock;
@@ -948,6 +949,7 @@ private:
 	QPointer<QMenu> previewProjector;
 	QPointer<QMenu> previewProjectorSource;
 	QPointer<QMenu> previewProjectorMain;
+	QPointer<PresenterPanel> presenterPanel;
 
 	void updateMultiviewProjectorMenu();
 	void ClearProjectors();
@@ -971,6 +973,7 @@ private slots:
 
 public:
 	void DeleteProjector(OBSProjector *projector);
+	OBSProjector *OpenPresenterProjector(obs_source_t *source, int monitor);
 
 	static QList<QString> GetProjectorMenuMonitorsFormatted();
 	template<typename Receiver, typename... Args>
