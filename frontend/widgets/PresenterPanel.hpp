@@ -28,6 +28,7 @@ class QPixmap;
 class QProgressBar;
 class QSlider;
 class QTimer;
+class QToolButton;
 class OBSBasic;
 class OBSProjector;
 class OBSQTDisplay;
@@ -67,6 +68,7 @@ class PresenterPanel : public QWidget {
 	QPointer<QProgressBar> meterRight;
 	QPointer<QSlider> mediaVolumeSlider;
 	QPointer<QSlider> timelineSlider;
+	QPointer<QToolButton> playPauseButton;
 	QPointer<QCheckBox> stageToggle;
 	QPointer<QAction> screensAction;
 	QPointer<QAction> soundAction;
@@ -83,6 +85,7 @@ class PresenterPanel : public QWidget {
 	int outputGain = 0;
 	bool initialized = false;
 	bool stageShowing = false;
+	bool stageActive = false;
 	bool stageEnabled = false;
 	bool timelineDragging = false;
 	bool restoring = false;
@@ -101,6 +104,12 @@ class PresenterPanel : public QWidget {
 	void ApplyAudioSettings();
 	void DetachAudioFilters();
 	void RefreshTimeline();
+	void TogglePlayPause();
+	void PlayMedia();
+	void PauseMedia();
+	void StopMedia();
+	void NextMedia();
+	void PreviousMedia();
 	void ReorderEntriesFromList();
 	void LoadSettings();
 	void SaveSettings();

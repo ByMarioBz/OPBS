@@ -46,6 +46,7 @@
 #include <QPushButton>
 #include <QScreen>
 #include <QSettings>
+#include <QShortcut>
 #include <QSlider>
 #include <QSplitter>
 #include <QStatusBar>
@@ -174,6 +175,10 @@ void PresenterPanel::BuildInterface()
 		QSlider::groove:horizontal { height: 6px; background: #303643; border-radius: 3px; }
 		QSlider::handle:horizontal { background: #7b6cff; width: 15px; margin: -5px 0; border-radius: 7px; }
 		QCheckBox#presenterStageToggle { spacing: 7px; color: #d7dbea; }
+		QToolButton#presenterTransport { background: #252a35; color: #f4f6fb; border: 1px solid #373e4c;
+			border-radius: 7px; min-width: 38px; min-height: 30px; font-size: 16px; font-weight: 700; }
+		QToolButton#presenterTransport:hover { background: #313747; border-color: #7b6cff; }
+		QToolButton#presenterTransport:disabled { color: #666d7b; background: #20242c; }
 	)" );
 
 	auto *root = new QVBoxLayout(this);
@@ -244,6 +249,39 @@ void PresenterPanel::BuildInterface()
 		}
 		timelineDragging = false;
 	});
+
+	auto *transportRow = new QHBoxLayout();
+	transportRow->addStretch();
+	auto makeTransportButton = [previewFrame, transportRow](const QString &text, const QString &tip) {
+		auto *button = new QToolButton(previewFrame);
+		button->setObjectName("presenterTransport");
+		button->setText(text);
+		button->setToolTip(tip);
+		transportRow->addWidget(button);
+		return button;
+	};
+	auto *previousButton = makeTransportButton("⏮", tr("Anterior (tecla multimedia anterior)"));
+	playPauseButton = makeTransportButton("▶", tr("Reproducir / pausar (tecla multimedia)"));
+	auto *stopButton = makeTransportButton("■", tr("Detener (tecla multimedia detener)"));
+	auto *nextButton = makeTransportButton("⏭", tr("Siguiente (tecla multimedia siguiente)"));
+	transportRow->addStretch();
+	previewLayout->addLayout(transportRow);
+	connect(previousButton, &QToolButton::clicked, this, &PresenterPanel::PreviousMedia);
+	connect(playPauseButton, &QToolButton::clicked, this, &PresenterPanel::TogglePlayPause);
+	connect(stopButton, &QToolButton::clicked, this, &PresenterPanel::StopMedia);
+	connect(nextButton, &QToolButton::clicked, this, &PresenterPanel::NextMedia);
+
+	auto addMediaShortcut = [this](Qt::Key key, auto handler) {
+		auto *shortcut = new QShortcut(QKeySequence(key), main);
+		shortcut->setContext(Qt::ApplicationShortcut);
+		connect(shortcut, &QShortcut::activated, this, handler);
+	};
+	addMediaShortcut(Qt::Key_MediaPlay, [this]() { PlayMedia(); });
+	addMediaShortcut(Qt::Key_MediaPause, [this]() { PauseMedia(); });
+	addMediaShortcut(Qt::Key_MediaTogglePlayPause, [this]() { TogglePlayPause(); });
+	addMediaShortcut(Qt::Key_MediaStop, [this]() { StopMedia(); });
+	addMediaShortcut(Qt::Key_MediaPrevious, [this]() { PreviousMedia(); });
+	addMediaShortcut(Qt::Key_MediaNext, [this]() { NextMedia(); });
 
 	auto *audioRow = new QHBoxLayout();
 	auto *audioLabel = new QLabel(tr("Audio"), previewFrame);
@@ -379,8 +417,12 @@ void PresenterPanel::Initialize()
 	connect(preview, &OBSQTDisplay::DisplayCreated, this, [this](OBSQTDisplay *display) {
 		obs_display_add_draw_callback(display->GetDisplay(), PresenterPanel::RenderPreview, this);
 	});
-	obs_source_inc_showing(obs_scene_get_source(stageScene));
+	obs_source_t *stageSource = obs_scene_get_source(stageScene);
+	obs_source_inc_showing(stageSource);
 	stageShowing = true;
+	// La escena privada necesita estar activa para que OBS procese el audio de sus fuentes.
+	obs_source_inc_active(stageSource);
+	stageActive = true;
 	audioMeter = obs_volmeter_create(OBS_FADER_LOG);
 	if (audioMeter)
 		obs_volmeter_add_callback(audioMeter, PresenterPanel::AudioMeterUpdated, this);
@@ -424,6 +466,10 @@ void PresenterPanel::Shutdown()
 			obs_source_dec_showing(entry->source);
 	}
 	entries.clear();
+	if (stageScene && stageActive) {
+		obs_source_dec_active(obs_scene_get_source(stageScene));
+		stageActive = false;
+	}
 	if (stageScene && stageShowing) {
 		obs_source_dec_showing(obs_scene_get_source(stageScene));
 		stageShowing = false;
@@ -622,14 +668,91 @@ void PresenterPanel::RefreshTimeline()
 	if (!activeSource) {
 		timelineSlider->setEnabled(false);
 		timeLabel->setText("0:00 / 0:00");
+		if (playPauseButton)
+			playPauseButton->setText("▶");
 		return;
 	}
 	const int64_t duration = obs_source_media_get_duration(activeSource);
 	const int64_t time = obs_source_media_get_time(activeSource);
+	const obs_media_state state = obs_source_media_get_state(activeSource);
+	if (playPauseButton)
+		playPauseButton->setText(state == OBS_MEDIA_STATE_PLAYING ? "⏸" : "▶");
 	timelineSlider->setEnabled(duration > 0);
 	if (!timelineDragging && duration > 0)
 		timelineSlider->setValue(int(std::clamp<int64_t>(time * 1000 / duration, 0, 1000)));
 	timeLabel->setText(QString("%1 / %2").arg(FormatTime(time), FormatTime(duration)));
+}
+
+void PresenterPanel::TogglePlayPause()
+{
+	if (!activeSource)
+		return;
+	if (obs_source_media_get_state(activeSource) == OBS_MEDIA_STATE_PLAYING)
+		PauseMedia();
+	else
+		PlayMedia();
+}
+
+void PresenterPanel::PlayMedia()
+{
+	if (!activeSource)
+		return;
+	const obs_media_state state = obs_source_media_get_state(activeSource);
+	if (state == OBS_MEDIA_STATE_STOPPED || state == OBS_MEDIA_STATE_ENDED || state == OBS_MEDIA_STATE_NONE)
+		obs_source_media_restart(activeSource);
+	else
+		obs_source_media_play_pause(activeSource, false);
+	RefreshTimeline();
+}
+
+void PresenterPanel::PauseMedia()
+{
+	if (activeSource) {
+		obs_source_media_play_pause(activeSource, true);
+		RefreshTimeline();
+	}
+}
+
+void PresenterPanel::StopMedia()
+{
+	if (!activeSource)
+		return;
+	obs_source_media_stop(activeSource);
+	timelineSlider->setValue(0);
+	meterLeft->setValue(0);
+	meterRight->setValue(0);
+	RefreshTimeline();
+}
+
+void PresenterPanel::NextMedia()
+{
+	if (!mediaList || mediaList->count() == 0)
+		return;
+	const int current = mediaList->currentRow();
+	const int next = current < 0 ? 0 : (current + 1) % mediaList->count();
+	QListWidgetItem *item = mediaList->item(next);
+	for (const auto &entry : entries) {
+		if (entry->item == item) {
+			ActivateMedia(entry.get());
+			return;
+		}
+	}
+}
+
+void PresenterPanel::PreviousMedia()
+{
+	if (!mediaList || mediaList->count() == 0)
+		return;
+	const int current = mediaList->currentRow();
+	const int previous = current < 0 ? mediaList->count() - 1
+					 : (current - 1 + mediaList->count()) % mediaList->count();
+	QListWidgetItem *item = mediaList->item(previous);
+	for (const auto &entry : entries) {
+		if (entry->item == item) {
+			ActivateMedia(entry.get());
+			return;
+		}
+	}
 }
 
 void PresenterPanel::AudioMeterUpdated(void *data, const float[], const float peak[], const float[])
