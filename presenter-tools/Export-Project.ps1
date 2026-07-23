@@ -18,7 +18,8 @@ try {
     New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null
     $Stamp = Get-Date -Format 'yyyyMMdd-HHmm'
     $Bundle = Join-Path $OutputDirectory "PresentadorMultimedia-$Stamp.bundle"
-    git bundle create $Bundle --all
+    # Export product branches and tags, but omit editor/assistant implementation refs.
+    git bundle create $Bundle --branches --tags
     if ($LASTEXITCODE -ne 0) { throw 'No se pudo crear el Git bundle.' }
     git bundle verify $Bundle
     if ($LASTEXITCODE -ne 0) { throw 'La verificación del Git bundle falló.' }
