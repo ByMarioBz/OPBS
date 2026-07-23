@@ -82,6 +82,7 @@ class PresenterPanel : public QWidget {
 	QPointer<QAction> soundAction;
 	QPointer<QWidget> originalCentralWidget;
 	QPointer<QTimer> timelineTimer;
+	QPointer<QTimer> seekTimer;
 	std::vector<std::unique_ptr<MediaEntry>> entries;
 	std::vector<FolderEntry> folders;
 	QString currentFolderId = "general";
@@ -100,10 +101,12 @@ class PresenterPanel : public QWidget {
 	bool timelineDragging = false;
 	bool restoring = false;
 	qint64 seekGuardUntil = 0;
+	int64_t cachedDuration = 0;
 	int pendingSeekValue = -1;
 
 	static void RenderPreview(void *data, uint32_t cx, uint32_t cy);
 	static void AudioMeterUpdated(void *data, const float magnitude[], const float peak[], const float inputPeak[]);
+	static void MediaStarted(void *data, calldata_t *calldata);
 	void BuildInterface();
 	void BuildTopMenu();
 	void AddMediaFile(const QString &path, const QString &folderId = QString(), bool save = true);
@@ -118,6 +121,8 @@ class PresenterPanel : public QWidget {
 	void ApplyAudioSettings();
 	void DetachAudioFilters();
 	void RefreshTimeline();
+	void SeekToPendingPosition();
+	void RebuildAudioMonitor(bool resetDevice = false);
 	void TogglePlayPause();
 	void PlayMedia();
 	void PauseMedia();

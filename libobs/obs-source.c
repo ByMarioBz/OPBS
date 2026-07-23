@@ -5867,6 +5867,18 @@ void obs_source_media_set_time(obs_source_t *source, int64_t ms)
 	pthread_mutex_unlock(&source->media_actions_mutex);
 }
 
+void obs_source_media_set_time_immediate(obs_source_t *source, int64_t ms)
+{
+	if (!data_valid(source, "obs_source_media_set_time_immediate"))
+		return;
+	if ((source->info.output_flags & OBS_SOURCE_CONTROLLABLE_MEDIA) == 0)
+		return;
+	if (!source->info.media_set_time)
+		return;
+
+	source->info.media_set_time(source->context.data, ms);
+}
+
 enum obs_media_state obs_source_media_get_state(obs_source_t *source)
 {
 	if (!data_valid(source, "obs_source_media_get_state"))

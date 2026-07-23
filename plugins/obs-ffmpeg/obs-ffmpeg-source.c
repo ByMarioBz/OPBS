@@ -46,6 +46,7 @@ struct ffmpeg_source {
 	bool is_local_file;
 	bool is_hw_decoding;
 	bool full_decode;
+	bool audio_only;
 	bool is_clear_on_media_end;
 	bool restart_on_activate;
 	bool close_when_inactive;
@@ -309,6 +310,7 @@ static void ffmpeg_source_open(struct ffmpeg_source *s)
 			.reconnecting = s->reconnecting,
 			.request_preload = s->is_stinger,
 			.full_decode = s->full_decode,
+			.audio_only = s->audio_only,
 		};
 
 		s->media = media_playback_create(&info);
@@ -456,6 +458,7 @@ static void ffmpeg_source_update(void *data, obs_data_t *settings)
 	s->input_format = input_format ? bstrdup(input_format) : NULL;
 	s->is_hw_decoding = is_hw_decoding;
 	s->full_decode = obs_data_get_bool(settings, "full_decode");
+	s->audio_only = obs_data_get_bool(settings, "audio_only");
 	s->is_clear_on_media_end = obs_data_get_bool(settings, "clear_on_media_end");
 	s->restart_on_activate = !astrcmpi_n(input, RIST_PROTO, sizeof(RIST_PROTO) - 1)
 					 ? false

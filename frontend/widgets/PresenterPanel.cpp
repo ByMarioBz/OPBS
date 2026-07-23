@@ -15,6 +15,7 @@
 
 #include <OBSApp.hpp>
 #include <components/Multiview.hpp>
+#include <components/AbsoluteSlider.hpp>
 #include <utility/ThumbnailManager.hpp>
 #include <utility/ThumbnailView.hpp>
 #include <utility/display-helpers.hpp>
@@ -320,7 +321,7 @@ void PresenterPanel::BuildInterface()
 	previewLayout->addWidget(currentMedia);
 
 	auto *timelineRow = new QHBoxLayout();
-	timelineSlider = new QSlider(Qt::Horizontal, previewFrame);
+	timelineSlider = new AbsoluteSlider(Qt::Horizontal, previewFrame);
 	timelineSlider->setRange(0, 1000);
 	timelineSlider->setEnabled(false);
 	timeLabel = new QLabel("0:00 / 0:00", previewFrame);
@@ -328,17 +329,32 @@ void PresenterPanel::BuildInterface()
 	timelineRow->addWidget(timelineSlider, 1);
 	timelineRow->addWidget(timeLabel);
 	previewLayout->addLayout(timelineRow);
-	connect(timelineSlider, &QSlider::sliderPressed, this, [this]() { timelineDragging = true; });
+	connect(timelineSlider, &QSlider::sliderPressed, this, [this]() {
+		timelineDragging = true;
+		pendingSeekValue = timelineSlider->value();
+	});
+	connect(timelineSlider, &QSlider::sliderMoved, this, [this](int value) {
+		if (!activeSource)
+			return;
+		pendingSeekValue = value;
+		seekGuardUntil = QDateTime::currentMSecsSinceEpoch() + 1500;
+		const int64_t observedDuration = obs_source_media_get_duration(activeSource);
+		if (observedDuration > 0)
+			cachedDuration = observedDuration;
+		const int64_t duration = cachedDuration;
+		if (duration > 0)
+			timeLabel->setText(QString("%1 / %2").arg(FormatTime(duration * value / 1000), FormatTime(duration)));
+	});
 	connect(timelineSlider, &QSlider::sliderReleased, this, [this]() {
-		if (activeSource) {
-			const int64_t duration = obs_source_media_get_duration(activeSource);
-			if (duration > 0) {
-				pendingSeekValue = timelineSlider->value();
-				seekGuardUntil = QDateTime::currentMSecsSinceEpoch() + 1200;
-				obs_source_media_set_time(activeSource, duration * timelineSlider->value() / 1000);
-			}
-		}
+		seekTimer->stop();
+		pendingSeekValue = timelineSlider->value();
+		const int value = pendingSeekValue;
+		const int64_t duration = cachedDuration;
+		OBSSource source = activeSource;
 		timelineDragging = false;
+		seekGuardUntil = QDateTime::currentMSecsSinceEpoch() + 1500;
+		if (source && duration > 0)
+			obs_source_media_set_time_immediate(source, duration * value / 1000);
 	});
 
 	auto *transportRow = new QHBoxLayout();
@@ -510,6 +526,9 @@ void PresenterPanel::BuildInterface()
 	timelineTimer = new QTimer(this);
 	timelineTimer->setInterval(250);
 	connect(timelineTimer, &QTimer::timeout, this, &PresenterPanel::RefreshTimeline);
+	seekTimer = new QTimer(this);
+	seekTimer->setSingleShot(true);
+	connect(seekTimer, &QTimer::timeout, this, &PresenterPanel::SeekToPendingPosition);
 }
 
 void PresenterPanel::BuildTopMenu()
@@ -573,6 +592,10 @@ void PresenterPanel::Initialize()
 		obs_volmeter_add_callback(audioMeter, PresenterPanel::AudioMeterUpdated, this);
 	initialized = true;
 	LoadSettings();
+	// El presentador usa únicamente el monitor de su fuente activa. Las entradas
+	// globales de OBS (escritorio y micrófono) pueden bloquear ese mismo dispositivo.
+	for (uint32_t channel = 1; channel < 6; ++channel)
+		obs_set_output_source(channel, nullptr);
 	timelineTimer->start();
 }
 
@@ -722,11 +745,15 @@ bool PresenterPanel::EnsureSource(MediaEntry *entry)
 	if (entry->isImage) {
 		obs_data_set_string(settings, "file", entry->path.toUtf8().constData());
 	} else {
+		const QString suffix = QFileInfo(entry->path).suffix().toLower();
+		const bool audioOnly = QStringList{"mp3", "aac", "ogg", "wav", "flac", "m4a", "wma"}.contains(suffix);
 		obs_data_set_bool(settings, "is_local_file", true);
 		obs_data_set_string(settings, "local_file", entry->path.toUtf8().constData());
 		obs_data_set_bool(settings, "restart_on_activate", false);
-		obs_data_set_bool(settings, "close_when_inactive", true);
+		obs_data_set_bool(settings, "close_when_inactive", false);
 		obs_data_set_bool(settings, "clear_on_media_end", true);
+		obs_data_set_bool(settings, "full_decode", audioOnly);
+		obs_data_set_bool(settings, "audio_only", audioOnly);
 	}
 	sourceType = obs_get_latest_input_type_id(sourceType);
 	if (!sourceType)
@@ -757,6 +784,7 @@ void PresenterPanel::ActivateMedia(MediaEntry *entry)
 		obs_volmeter_detach_source(audioMeter);
 	DetachAudioFilters();
 	if (activeSource) {
+		signal_handler_disconnect(obs_source_get_signal_handler(activeSource), "media_started", MediaStarted, this);
 		obs_source_media_stop(activeSource);
 		obs_source_set_monitoring_type(activeSource, OBS_MONITORING_TYPE_NONE);
 	}
@@ -770,6 +798,8 @@ void PresenterPanel::ActivateMedia(MediaEntry *entry)
 		ReleaseSource(previousEntry);
 	activeEntry = entry;
 	activeSource = entry->source;
+	cachedDuration = 0;
+	pendingSeekValue = -1;
 	activeItem = obs_scene_add(stageScene, activeSource);
 	if (!activeItem)
 		return;
@@ -780,11 +810,18 @@ void PresenterPanel::ActivateMedia(MediaEntry *entry)
 	const struct vec2 position = {size.x / 2.0f, size.y / 2.0f};
 	obs_sceneitem_set_bounds(activeItem, &size);
 	obs_sceneitem_set_pos(activeItem, &position);
-	obs_source_set_monitoring_type(activeSource, OBS_MONITORING_TYPE_MONITOR_ONLY);
 	ApplyAudioSettings();
 	if (audioMeter)
 		obs_volmeter_attach_source(audioMeter, activeSource);
+	signal_handler_disconnect(obs_source_get_signal_handler(activeSource), "media_started", MediaStarted, this);
+	signal_handler_connect(obs_source_get_signal_handler(activeSource), "media_started", MediaStarted, this);
 	obs_source_media_restart(activeSource);
+	RebuildAudioMonitor(true);
+	OBSSource monitoredSource = activeSource;
+	QTimer::singleShot(500, this, [this, monitoredSource]() {
+		if (activeSource.Get() == monitoredSource.Get())
+			RebuildAudioMonitor();
+	});
 	if (!entry->isImage && !entry->thumbnailView) {
 		entry->thumbnailView = App()->thumbnails()->createView(mediaList, entry->source);
 		connect(entry->thumbnailView, &ThumbnailView::updated, mediaList,
@@ -851,7 +888,10 @@ void PresenterPanel::RefreshTimeline()
 			playPauseButton->setIcon(style()->standardIcon(QStyle::SP_MediaPlay));
 		return;
 	}
-	const int64_t duration = obs_source_media_get_duration(activeSource);
+	const int64_t observedDuration = obs_source_media_get_duration(activeSource);
+	if (observedDuration > 0)
+		cachedDuration = observedDuration;
+	const int64_t duration = cachedDuration;
 	const int64_t time = obs_source_media_get_time(activeSource);
 	const obs_media_state state = obs_source_media_get_state(activeSource);
 	if (playPauseButton)
@@ -866,6 +906,45 @@ void PresenterPanel::RefreshTimeline()
 		timelineSlider->setValue(int(std::clamp<int64_t>(time * 1000 / duration, 0, 1000)));
 	}
 	timeLabel->setText(QString("%1 / %2").arg(FormatTime(time), FormatTime(duration)));
+}
+
+void PresenterPanel::SeekToPendingPosition()
+{
+	if (!activeSource || pendingSeekValue < 0)
+		return;
+	const int64_t observedDuration = obs_source_media_get_duration(activeSource);
+	if (observedDuration > 0)
+		cachedDuration = observedDuration;
+	const int64_t duration = cachedDuration;
+	if (duration <= 0)
+		return;
+	obs_source_media_set_time_immediate(activeSource, duration * pendingSeekValue / 1000);
+	seekGuardUntil = QDateTime::currentMSecsSinceEpoch() + 1200;
+}
+
+void PresenterPanel::RebuildAudioMonitor(bool resetDevice)
+{
+	if (!activeSource)
+		return;
+	if (resetDevice && !audioDeviceId.isEmpty()) {
+		const char *runtimeName = nullptr;
+		const char *runtimeId = nullptr;
+		obs_get_audio_monitoring_device(&runtimeName, &runtimeId);
+		if (audioDeviceId == QString::fromUtf8(runtimeId ? runtimeId : ""))
+			obs_set_audio_monitoring_device("Default", "default");
+		obs_set_audio_monitoring_device(audioDeviceName.toUtf8().constData(), audioDeviceId.toUtf8().constData());
+	}
+	obs_source_set_monitoring_type(activeSource, OBS_MONITORING_TYPE_NONE);
+	obs_source_set_monitoring_type(activeSource, OBS_MONITORING_TYPE_MONITOR_ONLY);
+	obs_reset_audio_monitoring();
+}
+
+void PresenterPanel::MediaStarted(void *data, calldata_t *)
+{
+	auto *panel = static_cast<PresenterPanel *>(data);
+	if (!panel)
+		return;
+	QMetaObject::invokeMethod(panel, [panel]() { panel->RebuildAudioMonitor(); }, Qt::QueuedConnection);
 }
 
 void PresenterPanel::TogglePlayPause()
@@ -1059,10 +1138,7 @@ void PresenterPanel::ShowSoundDialog()
 	}
 	audioDeviceName = newDeviceName;
 	audioDeviceId = newDeviceId;
-	if (activeSource) {
-		obs_source_set_monitoring_type(activeSource, OBS_MONITORING_TYPE_NONE);
-		obs_source_set_monitoring_type(activeSource, OBS_MONITORING_TYPE_MONITOR_ONLY);
-	}
+	RebuildAudioMonitor();
 	outputVolume = volume->value();
 	outputGain = gain->value();
 	selectedEffect = effect->currentData().toString();

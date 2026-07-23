@@ -1564,6 +1564,10 @@ EXPORT void obs_source_media_previous(obs_source_t *source);
 EXPORT int64_t obs_source_media_get_duration(obs_source_t *source);
 EXPORT int64_t obs_source_media_get_time(obs_source_t *source);
 EXPORT void obs_source_media_set_time(obs_source_t *source, int64_t ms);
+
+/** Sets media time immediately. Intended for interactive local-media scrubbers
+ * that already run on the UI thread and must not wait behind queued pause/play actions. */
+EXPORT void obs_source_media_set_time_immediate(obs_source_t *source, int64_t ms);
 EXPORT enum obs_media_state obs_source_media_get_state(obs_source_t *source);
 EXPORT void obs_source_media_started(obs_source_t *source);
 EXPORT void obs_source_media_ended(obs_source_t *source);

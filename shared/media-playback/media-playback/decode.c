@@ -146,6 +146,13 @@ bool mp_decode_init(mp_media_t *m, enum AVMediaType type, bool hw)
 	if (ret < 0)
 		return false;
 	stream = d->stream = m->fmt->streams[ret];
+	/* Attached cover art is a static video stream. In fully decoded audio
+	 * sources it prevents the playback clock from advancing correctly after
+	 * a seek, so let the audio stream own the clock. */
+	if (type == AVMEDIA_TYPE_VIDEO && m->full_decode && (stream->disposition & AV_DISPOSITION_ATTACHED_PIC)) {
+		d->stream = NULL;
+		return false;
+	}
 	id = stream->codecpar->codec_id;
 
 	if (type == AVMEDIA_TYPE_VIDEO)
