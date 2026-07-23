@@ -24,14 +24,14 @@ pueden dejar de existir. Para una prueba limpia se recomienda volver a importarl
 Con el árbol de trabajo limpio:
 
 ```powershell
-.\presenter-tools\Export-Project.ps1
+.\presenter-tools\Export-Project.cmd
 ```
 
 Esto crea en la carpeta padre un archivo `.bundle` con todas las ramas y etiquetas locales. Para incluir también la
 aplicación ya compilada:
 
 ```powershell
-.\presenter-tools\Export-Project.ps1 -IncludePortableApp
+.\presenter-tools\Export-Project.cmd -IncludePortableApp
 ```
 
 El `.bundle` es el respaldo principal porque conserva la historia y no depende de una cuenta en línea. También se
@@ -81,7 +81,7 @@ reducir dependencias (`ENABLE_BROWSER=OFF`). VLC es opcional; sin una instalaci�
 La vía recomendada es el script del proyecto:
 
 ```powershell
-.\presenter-tools\Build-Presenter.ps1
+.\presenter-tools\Build-Presenter.cmd
 ```
 
 Configura `build_x64` cuando sea necesario y compila `obs-studio` como `RelWithDebInfo`. Se usa un solo trabajo de
@@ -103,8 +103,8 @@ reutilizar un `CMakeCache.txt` creado en otra ruta o computadora.
 ## 6. Empaquetar y ejecutar
 
 ```powershell
-.\presenter-tools\Package-Presenter.ps1
-.\presenter-tools\Run-Presenter.ps1
+.\presenter-tools\Package-Presenter.cmd
+.\presenter-tools\Run-Presenter.cmd
 ```
 
 El empaquetado copia el contenido ejecutable de `build_x64/rundir/RelWithDebInfo` a
@@ -113,7 +113,7 @@ El empaquetado copia el contenido ejecutable de `build_x64/rundir/RelWithDebInfo
 Para una sesión diagnóstica sin complementos no esenciales:
 
 ```powershell
-.\presenter-tools\Run-Presenter.ps1 -SafeMode
+.\presenter-tools\Run-Presenter.cmd -SafeMode
 ```
 
 ## 7. IDEs
@@ -137,7 +137,7 @@ Crear un commit por unidad funcional. Antes de confirmar:
 
 ```powershell
 git diff --check
-.\presenter-tools\Build-Presenter.ps1
+.\presenter-tools\Build-Presenter.cmd
 ```
 
 Para incorporar una versión nueva de OBS, crear primero una rama específica, actualizar `obs-public`, resolver la

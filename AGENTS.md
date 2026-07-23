@@ -27,9 +27,9 @@ Antes de modificar el proyecto, leer completos:
 ```powershell
 git status --short
 git diff --check
-.\presenter-tools\Build-Presenter.ps1
-.\presenter-tools\Package-Presenter.ps1
-.\presenter-tools\Run-Presenter.ps1
+.\presenter-tools\Build-Presenter.cmd
+.\presenter-tools\Package-Presenter.cmd
+.\presenter-tools\Run-Presenter.cmd
 ```
 
 Después de la prueba funcional, documentar el resultado y crear un commit descriptivo. No mezclar una actualización
