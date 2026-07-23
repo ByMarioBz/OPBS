@@ -43,6 +43,7 @@
 #include <QLineEdit>
 #include <QListWidget>
 #include <QMenuBar>
+#include <QMenu>
 #include <QMessageBox>
 #include <QMimeData>
 #include <QPainter>
@@ -72,6 +73,7 @@ namespace {
 constexpr int kThumbnailWidth = 256;
 constexpr int kThumbnailHeight = 144;
 const QStringList imageExtensions = {"bmp", "gif", "jpeg", "jpg", "png", "tga", "webp"};
+const QStringList audioExtensions = {"mp3", "aac", "ogg", "wav", "flac", "m4a", "wma"};
 
 class PresenterMediaList final : public QListWidget {
 public:
@@ -267,6 +269,7 @@ void PresenterPanel::BuildInterface()
 		QToolButton#presenterTransport { background: #252a35; color: #f4f6fb; border: 1px solid #373e4c;
 			border-radius: 7px; min-width: 38px; min-height: 30px; font-size: 16px; font-weight: 700; }
 		QToolButton#presenterTransport:hover { background: #313747; border-color: #7b6cff; }
+		QToolButton#presenterTransport:checked { background: #6d5dfc; border-color: #8d82ff; color: white; }
 		QToolButton#presenterTransport:disabled { color: #666d7b; background: #20242c; }
 	)" );
 
@@ -370,6 +373,7 @@ void PresenterPanel::BuildInterface()
 		button->setIcon(previewFrame->style()->standardIcon(icon));
 		button->setIconSize(QSize(20, 20));
 		button->setToolTip(tip);
+		button->setAccessibleName(tip);
 		transportRow->addWidget(button);
 		return button;
 	};
@@ -377,12 +381,21 @@ void PresenterPanel::BuildInterface()
 	playPauseButton = makeTransportButton(QStyle::SP_MediaPlay, tr("Reproducir / pausar (tecla multimedia)"));
 	auto *stopButton = makeTransportButton(QStyle::SP_MediaStop, tr("Detener (tecla multimedia detener)"));
 	auto *nextButton = makeTransportButton(QStyle::SP_MediaSkipForward, tr("Siguiente (tecla multimedia siguiente)"));
+	loopButton = makeTransportButton(QStyle::SP_BrowserReload, tr("Repetir continuamente el archivo actual"));
+	loopButton->setCheckable(true);
+	loopButton->setEnabled(false);
 	transportRow->addStretch();
 	previewLayout->addLayout(transportRow);
 	connect(previousButton, &QToolButton::clicked, this, &PresenterPanel::PreviousMedia);
 	connect(playPauseButton, &QToolButton::clicked, this, &PresenterPanel::TogglePlayPause);
 	connect(stopButton, &QToolButton::clicked, this, &PresenterPanel::StopMedia);
 	connect(nextButton, &QToolButton::clicked, this, &PresenterPanel::NextMedia);
+	connect(loopButton, &QToolButton::toggled, this, [this](bool enabled) {
+		loopCurrent = enabled;
+		ApplyLoopSetting();
+		if (!restoring)
+			SaveSettings();
+	});
 
 	auto addMediaShortcut = [this](Qt::Key key, auto handler) {
 		auto *shortcut = new QShortcut(QKeySequence(key), main);
@@ -538,12 +551,22 @@ void PresenterPanel::BuildInterface()
 
 void PresenterPanel::BuildTopMenu()
 {
+	auto *editMenu = main->menuBar()->addMenu(tr("Editar"));
+	editMenuAction = editMenu->menuAction();
+	fitToScreenAction = editMenu->addAction(tr("Activar ajustar a tamaño de pantalla"));
+	fitToScreenAction->setCheckable(true);
 	screensAction = main->menuBar()->addAction(tr("Pantallas"));
 	soundAction = main->menuBar()->addAction(tr("Sonido"));
+	connect(fitToScreenAction, &QAction::toggled, this, [this](bool enabled) {
+		fitContentToScreen = enabled;
+		ApplyActiveItemBounds();
+		if (!restoring)
+			SaveSettings();
+	});
 	connect(screensAction, &QAction::triggered, this, &PresenterPanel::ShowScreensDialog);
 	connect(soundAction, &QAction::triggered, this, &PresenterPanel::ShowSoundDialog);
 	for (QAction *action : main->menuBar()->actions())
-		action->setVisible(action == screensAction || action == soundAction);
+		action->setVisible(action == editMenuAction || action == screensAction || action == soundAction);
 
 	connect(qApp, &QGuiApplication::screenAdded, this, [this]() {
 		ResolveSelectedMonitor();
@@ -751,12 +774,13 @@ bool PresenterPanel::EnsureSource(MediaEntry *entry)
 		obs_data_set_string(settings, "file", entry->path.toUtf8().constData());
 	} else {
 		const QString suffix = QFileInfo(entry->path).suffix().toLower();
-		const bool audioOnly = QStringList{"mp3", "aac", "ogg", "wav", "flac", "m4a", "wma"}.contains(suffix);
+		const bool audioOnly = audioExtensions.contains(suffix);
 		obs_data_set_bool(settings, "is_local_file", true);
 		obs_data_set_string(settings, "local_file", entry->path.toUtf8().constData());
 		obs_data_set_bool(settings, "restart_on_activate", false);
 		obs_data_set_bool(settings, "close_when_inactive", false);
 		obs_data_set_bool(settings, "clear_on_media_end", true);
+		obs_data_set_bool(settings, "looping", loopCurrent);
 		/* Full decode uses OBS' frame cache, whose clock is designed around
 		 * preloaded visual media.  Stream music normally so its timeline is
 		 * driven by real audio playback time. */
@@ -811,13 +835,15 @@ void PresenterPanel::ActivateMedia(MediaEntry *entry)
 	activeItem = obs_scene_add(stageScene, activeSource);
 	if (!activeItem)
 		return;
-	obs_sceneitem_set_bounds_type(activeItem, OBS_BOUNDS_SCALE_INNER);
 	obs_sceneitem_set_bounds_alignment(activeItem, OBS_ALIGN_CENTER);
 	obs_sceneitem_set_alignment(activeItem, OBS_ALIGN_CENTER);
 	const struct vec2 size = {(float)obs_source_get_width(obs_scene_get_source(stageScene)), (float)obs_source_get_height(obs_scene_get_source(stageScene))};
 	const struct vec2 position = {size.x / 2.0f, size.y / 2.0f};
 	obs_sceneitem_set_bounds(activeItem, &size);
 	obs_sceneitem_set_pos(activeItem, &position);
+	ApplyActiveItemBounds();
+	if (loopButton)
+		loopButton->setEnabled(!entry->isImage);
 	ApplyAudioSettings();
 	if (audioMeter)
 		obs_volmeter_attach_source(audioMeter, activeSource);
@@ -842,6 +868,26 @@ void PresenterPanel::ActivateMedia(MediaEntry *entry)
 	mediaList->setCurrentItem(entry->item);
 	currentMedia->setText(QFileInfo(entry->path).fileName());
 	RefreshTimeline();
+}
+
+void PresenterPanel::ApplyLoopSetting()
+{
+	if (!activeSource || !activeEntry || activeEntry->isImage)
+		return;
+	OBSDataAutoRelease settings = obs_source_get_settings(activeSource);
+	obs_data_set_bool(settings, "looping", loopCurrent);
+	obs_source_update(activeSource, settings);
+}
+
+void PresenterPanel::ApplyActiveItemBounds()
+{
+	if (!activeItem)
+		return;
+	const QString suffix = activeEntry ? QFileInfo(activeEntry->path).suffix().toLower() : QString();
+	const bool visualContent = activeEntry && !audioExtensions.contains(suffix);
+	obs_sceneitem_set_bounds_type(activeItem,
+				      fitContentToScreen && visualContent ? OBS_BOUNDS_STRETCH : OBS_BOUNDS_SCALE_INNER);
+	obs_sceneitem_force_update_transform(activeItem);
 }
 
 void PresenterPanel::ApplyAudioSettings()
@@ -1302,7 +1348,19 @@ void PresenterPanel::LoadSettings()
 	audioDeviceId = settings.value("audio/deviceId").toString();
 	selectedMonitorName = settings.value("stage/monitorName").toString();
 	stageEnabled = settings.value("stage/enabled", false).toBool();
+	loopCurrent = settings.value("playback/loopCurrent", false).toBool();
+	fitContentToScreen = settings.value("view/fitContentToScreen", false).toBool();
 	mediaVolumeSlider->setValue(mediaVolume);
+	if (loopButton) {
+		loopButton->blockSignals(true);
+		loopButton->setChecked(loopCurrent);
+		loopButton->blockSignals(false);
+	}
+	if (fitToScreenAction) {
+		fitToScreenAction->blockSignals(true);
+		fitToScreenAction->setChecked(fitContentToScreen);
+		fitToScreenAction->blockSignals(false);
+	}
 	const QByteArray geometry = settings.value("window/geometry").toByteArray();
 	if (!geometry.isEmpty())
 		main->restoreGeometry(geometry);
@@ -1388,6 +1446,8 @@ void PresenterPanel::SaveSettings()
 	settings.setValue("library/currentFolder", SelectedFolderId());
 	settings.setValue("stage/monitorName", selectedMonitorName);
 	settings.setValue("stage/enabled", stageEnabled);
+	settings.setValue("playback/loopCurrent", loopCurrent);
+	settings.setValue("view/fitContentToScreen", fitContentToScreen);
 	settings.setValue("audio/mediaVolume", mediaVolume);
 	settings.setValue("audio/outputVolume", outputVolume);
 	settings.setValue("audio/gain", outputGain);

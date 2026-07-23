@@ -10,8 +10,10 @@ integrar funciones de forma gradual.
 - Tarjetas con nombre y miniatura; una selección sustituye inmediatamente al contenido anterior.
 - Vista previa local y escenario a pantalla completa sobre un monitor elegido.
 - Interruptor rápido para activar o apagar la salida de escenario.
-- Controles anterior, reproducir/pausar, detener y siguiente, más teclas multimedia mientras la aplicación está activa.
+- Controles anterior, reproducir/pausar, detener, siguiente y repetición continua del archivo actual, más teclas
+  multimedia mientras la aplicación está activa.
 - Línea de tiempo, medidores estéreo y volumen del contenido.
+- Menú `Editar` con ajuste opcional de fotos y videos al área completa 16:9; la preferencia se conserva.
 - Ventanas `Pantallas` y `Sonido`; se conservan monitor, dispositivo, volumen, ganancia y efecto seleccionados.
 - Posición y tamaño de la ventana principal persistentes.
 - Ejecución portátil en `dist/PresentadorMultimedia`, sin alterar una instalación normal de OBS.

@@ -59,6 +59,10 @@ build_x64/rundir/RelWithDebInfo/obs-plugins/64bit/obs-ffmpeg.dll
 - Audio: medidores estéreo activos y duración detectada.
 - Se reprodujo el fallo de MP3 con portada y se verificó la corrección final: salto hacia adelante de `0:10` a `2:27`,
   avance hasta `2:38`, salto hacia atrás a `0:59` y avance posterior hasta `1:11`, sin regresar al inicio.
+- Repetición individual: una canción situada en `3:13 / 3:15` volvió al inicio y continuó hasta `0:10` con el botón
+  activado; al desactivarlo, el mismo final detuvo el medio y regresó a `0:00`.
+- Interfaz: `Editar` aparece antes de `Pantallas`, su opción de ajuste 16:9 puede marcarse y desmarcarse, y el control de
+  repetición queda deshabilitado para imágenes.
 - La selección guardada `Auriculares (BT3280)` devolvió desde Windows el error `88890004`, correspondiente a un
   dispositivo invalidado/no disponible durante esa sesión. No confundirlo con un fallo del mezclador.
 

@@ -77,7 +77,10 @@ class PresenterPanel : public QWidget {
 	QPointer<QSlider> mediaVolumeSlider;
 	QPointer<QSlider> timelineSlider;
 	QPointer<QToolButton> playPauseButton;
+	QPointer<QToolButton> loopButton;
 	QPointer<QCheckBox> stageToggle;
+	QPointer<QAction> editMenuAction;
+	QPointer<QAction> fitToScreenAction;
 	QPointer<QAction> screensAction;
 	QPointer<QAction> soundAction;
 	QPointer<QWidget> originalCentralWidget;
@@ -98,6 +101,8 @@ class PresenterPanel : public QWidget {
 	bool stageShowing = false;
 	bool stageActive = false;
 	bool stageEnabled = false;
+	bool loopCurrent = false;
+	bool fitContentToScreen = false;
 	bool timelineDragging = false;
 	bool restoring = false;
 	qint64 seekGuardUntil = 0;
@@ -119,6 +124,8 @@ class PresenterPanel : public QWidget {
 	void ShowScreensDialog();
 	void ShowSoundDialog();
 	void ApplyAudioSettings();
+	void ApplyLoopSetting();
+	void ApplyActiveItemBounds();
 	void DetachAudioFilters();
 	void RefreshTimeline();
 	void SeekToPendingPosition();
