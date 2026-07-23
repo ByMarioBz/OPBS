@@ -9,6 +9,8 @@ integrar funciones de forma gradual.
 - Biblioteca persistente dividida en `Multimedia` y `Presentación`; esta última incluye las bibliotecas independientes
   `Biblia` y `Presentaciones`.
 - Carpetas multimedia con búsqueda local, arrastrar y soltar, reordenamiento y carga diferida.
+- Buscador bíblico por texto o referencia, selector de traducciones locales y cuadrícula limitada de resultados para
+  mantener el rendimiento con biblias completas.
 - Tarjetas con nombre y miniatura; una selección sustituye inmediatamente al contenido anterior.
 - Vista previa local y escenario a pantalla completa sobre un monitor elegido.
 - Interruptor rápido para activar o apagar la salida de escenario.
@@ -38,6 +40,7 @@ git diff obs-original...feature/media-presenter
 
 - Preparar otro equipo y transferir el historial: `PRESENTADOR_CONTINUIDAD.md`.
 - Entender componentes, datos y flujo de reproducción: `PRESENTADOR_ARQUITECTURA.md`.
+- Cargar traducciones y revisar el formato de versículos: `BIBLIAS.md`.
 - Revisar decisiones, commits, pruebas y trabajo pendiente: `PRESENTADOR_HISTORIAL.md`.
 - Reglas para asistentes y colaboradores: `../AGENTS.md`.
 

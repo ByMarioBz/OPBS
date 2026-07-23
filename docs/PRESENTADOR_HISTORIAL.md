@@ -66,6 +66,9 @@ build_x64/rundir/RelWithDebInfo/obs-plugins/64bit/obs-ffmpeg.dll
 - Biblioteca: las carpetas existentes aparecen bajo `Multimedia`; se comprobaron las selecciones independientes y
   vacías de `Presentación > Biblia` y `Presentación > Presentaciones`, incluida la restauración de la sección elegida
   después de cerrar y volver a abrir la aplicación.
+- Biblia: el archivo Reina Valera 1960 cargó `31,104` registros. La consulta `Apocalipsis 22:20` y la consulta por
+  contenido `Ciertamente vengo en breve` devolvieron la misma tarjeta con la referencia y el texto correctos. También
+  se comprobó la lista desplegable de traducciones.
 - La selección guardada `Auriculares (BT3280)` devolvió desde Windows el error `88890004`, correspondiente a un
   dispositivo invalidado/no disponible durante esa sesión. No confundirlo con un fallo del mezclador.
 

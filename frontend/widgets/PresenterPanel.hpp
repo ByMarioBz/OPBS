@@ -19,6 +19,7 @@
 
 class QAction;
 class QCheckBox;
+class QComboBox;
 class QDragEnterEvent;
 class QDropEvent;
 class QLabel;
@@ -52,6 +53,11 @@ class PresenterPanel : public QWidget {
 		QString id;
 		QString name;
 	};
+	struct BibleVerse {
+		QString text;
+		QString reference;
+		QString searchableText;
+	};
 
 	OBSBasic *main;
 	OBSScene stageScene;
@@ -67,7 +73,11 @@ class PresenterPanel : public QWidget {
 	QPointer<QListWidget> mediaList;
 	QPointer<QListWidget> folderList;
 	QPointer<QListWidget> presentationFolderList;
+	QPointer<QListWidget> bibleResultsList;
 	QPointer<QLineEdit> searchEdit;
+	QPointer<QLineEdit> bibleSearchEdit;
+	QPointer<QComboBox> bibleSelector;
+	QPointer<QWidget> bibleControls;
 	QPointer<QLabel> emptyState;
 	QPointer<QLabel> mediaCount;
 	QPointer<QLabel> currentMedia;
@@ -89,7 +99,9 @@ class PresenterPanel : public QWidget {
 	QPointer<QTimer> seekTimer;
 	std::vector<std::unique_ptr<MediaEntry>> entries;
 	std::vector<FolderEntry> folders;
+	std::vector<BibleVerse> bibleVerses;
 	QString currentFolderId = "general";
+	QString currentBiblePath;
 	QString selectedMonitorName;
 	QString audioDeviceName;
 	QString audioDeviceId;
@@ -140,6 +152,10 @@ class PresenterPanel : public QWidget {
 	void ReorderEntriesFromList();
 	void ReorderFoldersFromList();
 	void ApplyLibraryFilter();
+	void ApplyBibleFilter();
+	void LoadBibleCatalog(const QString &preferredPath = QString());
+	void LoadBibleTranslation(int index);
+	QString BibleDirectoryPath() const;
 	void CreateFolder();
 	void RenameFolder();
 	void MoveMediaToFolder(const QStringList &paths, const QString &folderId);

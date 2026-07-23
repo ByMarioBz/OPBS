@@ -32,6 +32,7 @@
 #include <QDockWidget>
 #include <QDragEnterEvent>
 #include <QDragMoveEvent>
+#include <QFile>
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QFrame>
@@ -52,11 +53,13 @@
 #include <QScreen>
 #include <QScrollBar>
 #include <QSettings>
+#include <QSignalBlocker>
 #include <QShortcut>
 #include <QSlider>
 #include <QSplitter>
 #include <QStatusBar>
 #include <QStyle>
+#include <QTextStream>
 #include <QTimer>
 #include <QToolButton>
 #include <QUrl>
@@ -72,6 +75,7 @@
 namespace {
 constexpr int kThumbnailWidth = 256;
 constexpr int kThumbnailHeight = 144;
+constexpr int kBibleResultLimit = 250;
 constexpr auto kBibleFolderId = "presentation-bible";
 constexpr auto kPresentationsFolderId = "presentation-slides";
 const QStringList imageExtensions = {"bmp", "gif", "jpeg", "jpg", "png", "tga", "webp"};
@@ -225,6 +229,39 @@ QString FormatTime(int64_t milliseconds)
 	return hours > 0 ? QString("%1:%2:%3").arg(hours).arg(minutes, 2, 10, QChar('0')).arg(seconds, 2, 10, QChar('0'))
 			 : QString("%1:%2").arg(minutes).arg(seconds, 2, 10, QChar('0'));
 }
+
+QString NormalizeBibleText(const QString &value)
+{
+	const QString decomposed = value.normalized(QString::NormalizationForm_D).toCaseFolded();
+	QString normalized;
+	normalized.reserve(decomposed.size());
+	for (const QChar character : decomposed) {
+		const QChar::Category category = character.category();
+		if (category != QChar::Mark_NonSpacing && category != QChar::Mark_SpacingCombining &&
+		    category != QChar::Mark_Enclosing)
+			normalized.append(character);
+	}
+	return normalized.simplified();
+}
+
+QString BibleDisplayName(const QString &path)
+{
+	QString name = QFileInfo(path).completeBaseName();
+	name.replace('_', ' ');
+	name.replace('-', ' ');
+	if (name.startsWith("biblia ", Qt::CaseInsensitive))
+		name.remove(0, 7);
+	if (NormalizeBibleText(name) == QStringLiteral("reina valera 1960"))
+		return QStringLiteral("Reina Valera 1960");
+	const QStringList words = name.simplified().split(' ', Qt::SkipEmptyParts);
+	QStringList titleWords;
+	for (QString word : words) {
+		if (!word.isEmpty())
+			word[0] = word[0].toUpper();
+		titleWords.push_back(word);
+	}
+	return titleWords.join(' ');
+}
 } // namespace
 
 PresenterPanel::PresenterPanel(OBSBasic *main_) : QWidget(main_), main(main_)
@@ -266,6 +303,15 @@ void PresenterPanel::BuildInterface()
 		QLineEdit#presenterSearch { background: #20242d; color: #eef0f6; border: 1px solid #303643;
 			border-radius: 7px; padding: 8px 11px; }
 		QLineEdit#presenterSearch:focus { border-color: #7b6cff; }
+		#presenterBibleControls { background: #15181f; border: 1px solid #2a2e38; border-radius: 8px; }
+		QComboBox#presenterBibleSelector { background: #20242d; color: #eef0f6; border: 1px solid #303643;
+			border-radius: 7px; padding: 8px 11px; min-width: 190px; }
+		QComboBox#presenterBibleSelector::drop-down { border: 0; width: 28px; }
+		QListWidget#presenterBibleList { background: transparent; border: 0; outline: 0; }
+		QListWidget#presenterBibleList::item { background: #20242d; color: #eef0f6; border: 1px solid #303643;
+			border-radius: 9px; padding: 12px; }
+		QListWidget#presenterBibleList::item:hover { border-color: #6d5dfc; background: #252a35; }
+		QListWidget#presenterBibleList::item:selected { border: 2px solid #7b6cff; background: #29263d; }
 		QProgressBar#presenterMeter { background: #252a33; border: 0; border-radius: 3px; max-height: 7px; }
 		QProgressBar#presenterMeter::chunk { background: #42d17c; border-radius: 3px; }
 		QSlider::groove:horizontal { height: 6px; background: #303643; border-radius: 3px; }
@@ -469,7 +515,9 @@ void PresenterPanel::BuildInterface()
 	folderList = foldersWidget;
 	foldersWidget->setObjectName("presenterFolderList");
 	foldersWidget->setSelectionMode(QAbstractItemView::SingleSelection);
-	folderLayout->addWidget(foldersWidget, 1);
+	foldersWidget->setMinimumHeight(220);
+	foldersWidget->setMaximumHeight(390);
+	folderLayout->addWidget(foldersWidget);
 	auto *folderButtons = new QHBoxLayout();
 	auto *addFolder = new QToolButton(folderPanel);
 	addFolder->setText("+");
@@ -497,8 +545,25 @@ void PresenterPanel::BuildInterface()
 	addPresentationFolder(QString::fromLatin1(kBibleFolderId), tr("Biblia"));
 	addPresentationFolder(QString::fromLatin1(kPresentationsFolderId), tr("Presentaciones"));
 	folderLayout->addWidget(presentationsWidget);
+	folderLayout->addStretch(1);
 	libraryBody->addWidget(folderPanel);
 	auto *mediaArea = new QVBoxLayout();
+	auto *bibleToolbar = new QFrame(library);
+	bibleControls = bibleToolbar;
+	bibleToolbar->setObjectName("presenterBibleControls");
+	auto *bibleToolbarLayout = new QHBoxLayout(bibleToolbar);
+	bibleToolbarLayout->setContentsMargins(10, 8, 10, 8);
+	bibleSearchEdit = new QLineEdit(bibleToolbar);
+	bibleSearchEdit->setObjectName("presenterSearch");
+	bibleSearchEdit->setPlaceholderText(tr("Buscar texto o referencia bíblica…"));
+	bibleSearchEdit->setClearButtonEnabled(true);
+	bibleSelector = new QComboBox(bibleToolbar);
+	bibleSelector->setObjectName("presenterBibleSelector");
+	bibleSelector->setToolTip(tr("Biblia seleccionada"));
+	bibleToolbarLayout->addWidget(bibleSearchEdit, 1);
+	bibleToolbarLayout->addWidget(bibleSelector);
+	bibleToolbar->hide();
+	mediaArea->addWidget(bibleToolbar);
 	emptyState = new QLabel(tr("Arrastra aquí imágenes, videos o audio para comenzar"), library);
 	emptyState->setObjectName("presenterEmpty");
 	emptyState->setAlignment(Qt::AlignCenter);
@@ -529,6 +594,19 @@ void PresenterPanel::BuildInterface()
 	connect(list->verticalScrollBar(), &QScrollBar::valueChanged, this,
 		[this]() { QTimer::singleShot(0, this, &PresenterPanel::LoadVisibleThumbnails); });
 	mediaArea->addWidget(list, 1);
+	bibleResultsList = new QListWidget(library);
+	bibleResultsList->setObjectName("presenterBibleList");
+	bibleResultsList->setViewMode(QListView::IconMode);
+	bibleResultsList->setResizeMode(QListView::Adjust);
+	bibleResultsList->setMovement(QListView::Static);
+	bibleResultsList->setWrapping(true);
+	bibleResultsList->setWordWrap(true);
+	bibleResultsList->setUniformItemSizes(true);
+	bibleResultsList->setGridSize(QSize(310, 165));
+	bibleResultsList->setSpacing(8);
+	bibleResultsList->setSelectionMode(QAbstractItemView::SingleSelection);
+	bibleResultsList->hide();
+	mediaArea->addWidget(bibleResultsList, 1);
 	searchEdit = new QLineEdit(library);
 	searchEdit->setObjectName("presenterSearch");
 	searchEdit->setPlaceholderText(tr("Buscar en esta carpeta…"));
@@ -571,6 +649,18 @@ void PresenterPanel::BuildInterface()
 	presentationsWidget->mediaMoved =
 		[this](const QStringList &paths, const QString &folderId) { MoveMediaToFolder(paths, folderId); };
 	connect(searchEdit, &QLineEdit::textChanged, this, [this]() { ApplyLibraryFilter(); });
+	connect(bibleSearchEdit, &QLineEdit::textChanged, this, [this](const QString &query) {
+		QTimer::singleShot(140, this, [this, query]() {
+			if (bibleSearchEdit && bibleSearchEdit->text() == query)
+				ApplyBibleFilter();
+		});
+	});
+	connect(bibleSelector, qOverload<int>(&QComboBox::currentIndexChanged), this, [this](int index) {
+		LoadBibleTranslation(index);
+		ApplyBibleFilter();
+		if (!restoring)
+			SaveSettings();
+	});
 
 	splitter->addWidget(previewFrame);
 	splitter->addWidget(library);
@@ -1303,6 +1393,20 @@ void PresenterPanel::ApplyLibraryFilter()
 	if (!mediaList)
 		return;
 	const QString folderId = SelectedFolderId();
+	const bool bibleMode = folderId == QString::fromLatin1(kBibleFolderId);
+	if (bibleControls)
+		bibleControls->setVisible(bibleMode);
+	if (bibleResultsList)
+		bibleResultsList->setVisible(bibleMode);
+	if (searchEdit)
+		searchEdit->setVisible(!bibleMode);
+	if (bibleMode) {
+		mediaList->hide();
+		ApplyBibleFilter();
+		return;
+	}
+	if (bibleResultsList)
+		bibleResultsList->hide();
 	const QString query = searchEdit ? searchEdit->text().trimmed() : QString();
 	int visible = 0;
 	for (const auto &entry : entries) {
@@ -1321,6 +1425,132 @@ void PresenterPanel::ApplyLibraryFilter()
 	emptyState->setText(query.isEmpty() ? tr("Arrastra aquí imágenes, videos o audio para comenzar")
 					 : tr("No hay resultados en esta carpeta"));
 	QTimer::singleShot(0, this, &PresenterPanel::LoadVisibleThumbnails);
+}
+
+void PresenterPanel::ApplyBibleFilter()
+{
+	if (!bibleResultsList || SelectedFolderId() != QString::fromLatin1(kBibleFolderId))
+		return;
+	bibleResultsList->clear();
+	const QString query = NormalizeBibleText(bibleSearchEdit ? bibleSearchEdit->text() : QString());
+	if (currentBiblePath.isEmpty() || bibleVerses.empty()) {
+		mediaCount->setText(tr("0 versículos"));
+		emptyState->setText(tr("No hay biblias cargadas"));
+		emptyState->show();
+		bibleResultsList->hide();
+		return;
+	}
+	if (query.isEmpty()) {
+		mediaCount->setText(tr("%1 versículos").arg(bibleVerses.size()));
+		emptyState->setText(tr("Escribe una palabra, frase o referencia para buscar en la Biblia"));
+		emptyState->show();
+		bibleResultsList->hide();
+		return;
+	}
+
+	int matches = 0;
+	for (const BibleVerse &verse : bibleVerses) {
+		if (!verse.searchableText.contains(query))
+			continue;
+		++matches;
+		if (bibleResultsList->count() >= kBibleResultLimit)
+			continue;
+		auto *item = new QListWidgetItem(QStringLiteral("%1\n\n%2").arg(verse.reference, verse.text),
+						 bibleResultsList);
+		item->setToolTip(QStringLiteral("%1\n\n%2").arg(verse.reference, verse.text));
+		item->setTextAlignment(Qt::AlignLeft | Qt::AlignTop);
+		item->setData(Qt::UserRole, verse.reference);
+		item->setSizeHint(QSize(300, 155));
+	}
+	if (matches > kBibleResultLimit)
+		mediaCount->setText(tr("%1 de %2 coincidencias").arg(kBibleResultLimit).arg(matches));
+	else
+		mediaCount->setText(tr("%1 coincidencias").arg(matches));
+	emptyState->setText(tr("No se encontraron versículos"));
+	emptyState->setVisible(matches == 0);
+	bibleResultsList->setVisible(matches > 0);
+}
+
+QString PresenterPanel::BibleDirectoryPath() const
+{
+	BPtr<char> path(GetAppConfigPathPtr("obs-studio/bibles"));
+	return QString::fromUtf8(path.Get());
+}
+
+void PresenterPanel::LoadBibleCatalog(const QString &preferredPath)
+{
+	if (!bibleSelector)
+		return;
+	const QSignalBlocker blocker(bibleSelector);
+	bibleSelector->clear();
+	const QString directoryPath = BibleDirectoryPath();
+	QDir().mkpath(directoryPath);
+	const QDir directory(directoryPath);
+	const QFileInfoList files = directory.entryInfoList({"*.txt"}, QDir::Files | QDir::Readable, QDir::Name);
+	for (const QFileInfo &file : files)
+		bibleSelector->addItem(BibleDisplayName(file.absoluteFilePath()), file.absoluteFilePath());
+
+	int selectedIndex = 0;
+	if (!preferredPath.isEmpty()) {
+		for (int index = 0; index < bibleSelector->count(); ++index) {
+			if (QFileInfo(bibleSelector->itemData(index).toString()).absoluteFilePath() ==
+			    QFileInfo(preferredPath).absoluteFilePath()) {
+				selectedIndex = index;
+				break;
+			}
+		}
+	}
+	if (bibleSelector->count() > 0)
+		bibleSelector->setCurrentIndex(selectedIndex);
+	LoadBibleTranslation(bibleSelector->currentIndex());
+}
+
+void PresenterPanel::LoadBibleTranslation(int index)
+{
+	bibleVerses.clear();
+	currentBiblePath.clear();
+	if (!bibleSelector || index < 0 || index >= bibleSelector->count())
+		return;
+	const QString path = bibleSelector->itemData(index).toString();
+	QFile file(path);
+	if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+		return;
+
+	currentBiblePath = path;
+	QTextStream stream(&file);
+	stream.setEncoding(QStringConverter::Utf8);
+	enum class Section { None, Verse, Reference };
+	Section section = Section::None;
+	QStringList verseLines;
+	QStringList referenceLines;
+	auto finishVerse = [this, &verseLines, &referenceLines]() {
+		const QString text = verseLines.join(' ').simplified();
+		const QString reference = referenceLines.join(' ').simplified();
+		if (!text.isEmpty() && !reference.isEmpty())
+			bibleVerses.push_back({text, reference, NormalizeBibleText(reference + ' ' + text)});
+		verseLines.clear();
+		referenceLines.clear();
+	};
+
+	while (!stream.atEnd()) {
+		const QString line = stream.readLine().trimmed();
+		if (line.compare(QStringLiteral("[VErsiculo]"), Qt::CaseInsensitive) == 0) {
+			finishVerse();
+			section = Section::Verse;
+		} else if (line.compare(QStringLiteral("[referencia]"), Qt::CaseInsensitive) == 0) {
+			section = Section::Reference;
+		} else if (line.startsWith(QStringLiteral("---"))) {
+			if (section == Section::Reference)
+				finishVerse();
+			section = Section::None;
+		} else if (!line.isEmpty()) {
+			if (section == Section::Verse)
+				verseLines.push_back(line);
+			else if (section == Section::Reference)
+				referenceLines.push_back(line);
+		}
+	}
+	finishVerse();
 }
 
 void PresenterPanel::CreateFolder()
@@ -1390,6 +1620,7 @@ void PresenterPanel::LoadSettings()
 	stageEnabled = settings.value("stage/enabled", false).toBool();
 	loopCurrent = settings.value("playback/loopCurrent", false).toBool();
 	fitContentToScreen = settings.value("view/fitContentToScreen", false).toBool();
+	LoadBibleCatalog(settings.value("bible/selectedPath").toString());
 	mediaVolumeSlider->setValue(mediaVolume);
 	if (loopButton) {
 		loopButton->blockSignals(true);
@@ -1498,6 +1729,7 @@ void PresenterPanel::SaveSettings()
 	settings.setValue("stage/enabled", stageEnabled);
 	settings.setValue("playback/loopCurrent", loopCurrent);
 	settings.setValue("view/fitContentToScreen", fitContentToScreen);
+	settings.setValue("bible/selectedPath", currentBiblePath);
 	settings.setValue("audio/mediaVolume", mediaVolume);
 	settings.setValue("audio/outputVolume", outputVolume);
 	settings.setValue("audio/gain", outputGain);
