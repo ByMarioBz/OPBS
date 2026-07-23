@@ -22,6 +22,7 @@ class QCheckBox;
 class QDragEnterEvent;
 class QDropEvent;
 class QLabel;
+class QLineEdit;
 class QListWidget;
 class QListWidgetItem;
 class QPixmap;
@@ -40,18 +41,23 @@ class PresenterPanel : public QWidget {
 
 	struct MediaEntry {
 		QString path;
+		QString folderId;
 		OBSSource source;
 		QListWidgetItem *item = nullptr;
 		QPointer<ThumbnailView> thumbnailView;
-		QPointer<QTimer> thumbnailPrepareTimer;
-		QPointer<QTimer> thumbnailReleaseTimer;
-		bool thumbnailShowing = false;
+		bool isImage = false;
+		bool thumbnailLoaded = false;
+	};
+	struct FolderEntry {
+		QString id;
+		QString name;
 	};
 
 	OBSBasic *main;
 	OBSScene stageScene;
 	obs_sceneitem_t *activeItem = nullptr;
 	OBSSource activeSource;
+	MediaEntry *activeEntry = nullptr;
 	OBSSource gainFilter;
 	OBSSource compressorFilter;
 	OBSSource limiterFilter;
@@ -59,6 +65,8 @@ class PresenterPanel : public QWidget {
 	QPointer<OBSProjector> stageProjector;
 	QPointer<OBSQTDisplay> preview;
 	QPointer<QListWidget> mediaList;
+	QPointer<QListWidget> folderList;
+	QPointer<QLineEdit> searchEdit;
 	QPointer<QLabel> emptyState;
 	QPointer<QLabel> mediaCount;
 	QPointer<QLabel> currentMedia;
@@ -75,6 +83,8 @@ class PresenterPanel : public QWidget {
 	QPointer<QWidget> originalCentralWidget;
 	QPointer<QTimer> timelineTimer;
 	std::vector<std::unique_ptr<MediaEntry>> entries;
+	std::vector<FolderEntry> folders;
+	QString currentFolderId = "general";
 	QString selectedMonitorName;
 	QString audioDeviceName;
 	QString audioDeviceId;
@@ -89,12 +99,16 @@ class PresenterPanel : public QWidget {
 	bool stageEnabled = false;
 	bool timelineDragging = false;
 	bool restoring = false;
+	qint64 seekGuardUntil = 0;
+	int pendingSeekValue = -1;
 
 	static void RenderPreview(void *data, uint32_t cx, uint32_t cy);
 	static void AudioMeterUpdated(void *data, const float magnitude[], const float peak[], const float inputPeak[]);
 	void BuildInterface();
 	void BuildTopMenu();
-	void AddMediaFile(const QString &path, bool save = true);
+	void AddMediaFile(const QString &path, const QString &folderId = QString(), bool save = true);
+	bool EnsureSource(MediaEntry *entry);
+	void ReleaseSource(MediaEntry *entry);
 	void ActivateMedia(MediaEntry *entry);
 	void UpdateStageStatus();
 	void SetStageEnabled(bool enabled, bool save = true);
@@ -111,12 +125,20 @@ class PresenterPanel : public QWidget {
 	void NextMedia();
 	void PreviousMedia();
 	void ReorderEntriesFromList();
+	void ReorderFoldersFromList();
+	void ApplyLibraryFilter();
+	void CreateFolder();
+	void RenameFolder();
+	void MoveMediaToFolder(const QStringList &paths, const QString &folderId);
+	QString SelectedFolderId() const;
 	void LoadSettings();
 	void SaveSettings();
 	QString SettingsPath() const;
-	QPixmap PlaceholderForSource(obs_source_t *source) const;
+	QPixmap PlaceholderForType(const char *sourceType) const;
 	void SetCardThumbnail(MediaEntry *entry, const QPixmap &pixmap);
-	void ImportPaths(const QStringList &paths);
+	void LoadThumbnail(MediaEntry *entry);
+	void LoadVisibleThumbnails();
+	void ImportPaths(const QStringList &paths, const QString &folderId = QString());
 
 protected:
 	void dragEnterEvent(QDragEnterEvent *event) override;
