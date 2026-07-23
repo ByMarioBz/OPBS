@@ -66,6 +66,7 @@ class PresenterPanel : public QWidget {
 	QPointer<OBSQTDisplay> preview;
 	QPointer<QListWidget> mediaList;
 	QPointer<QListWidget> folderList;
+	QPointer<QListWidget> presentationFolderList;
 	QPointer<QLineEdit> searchEdit;
 	QPointer<QLabel> emptyState;
 	QPointer<QLabel> mediaCount;

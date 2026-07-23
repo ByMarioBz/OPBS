@@ -72,6 +72,8 @@
 namespace {
 constexpr int kThumbnailWidth = 256;
 constexpr int kThumbnailHeight = 144;
+constexpr auto kBibleFolderId = "presentation-bible";
+constexpr auto kPresentationsFolderId = "presentation-slides";
 const QStringList imageExtensions = {"bmp", "gif", "jpeg", "jpg", "png", "tga", "webp"};
 const QStringList audioExtensions = {"mp3", "aac", "ogg", "wav", "flac", "m4a", "wma"};
 
@@ -255,9 +257,12 @@ void PresenterPanel::BuildInterface()
 		QListWidget#presenterMediaList::item:hover { border-color: #6d5dfc; background: #252a35; }
 		QListWidget#presenterMediaList::item:selected { border: 2px solid #7b6cff; background: #29263d; }
 		#presenterFolderPanel { background: #15181f; border: 1px solid #2a2e38; border-radius: 8px; }
-		QListWidget#presenterFolderList { background: transparent; border: 0; outline: 0; }
-		QListWidget#presenterFolderList::item { padding: 8px; margin: 2px; border-radius: 6px; }
-		QListWidget#presenterFolderList::item:selected { background: #343052; color: white; }
+		QListWidget#presenterFolderList, QListWidget#presenterPresentationList {
+			background: transparent; border: 0; outline: 0; }
+		QListWidget#presenterFolderList::item, QListWidget#presenterPresentationList::item {
+			padding: 8px; margin: 2px; border-radius: 6px; }
+		QListWidget#presenterFolderList::item:selected, QListWidget#presenterPresentationList::item:selected {
+			background: #343052; color: white; }
 		QLineEdit#presenterSearch { background: #20242d; color: #eef0f6; border: 1px solid #303643;
 			border-radius: 7px; padding: 8px 11px; }
 		QLineEdit#presenterSearch:focus { border-color: #7b6cff; }
@@ -459,7 +464,7 @@ void PresenterPanel::BuildInterface()
 	folderPanel->setFixedWidth(165);
 	auto *folderLayout = new QVBoxLayout(folderPanel);
 	folderLayout->setContentsMargins(8, 8, 8, 8);
-	folderLayout->addWidget(new QLabel(tr("Carpetas"), folderPanel));
+	folderLayout->addWidget(new QLabel(tr("Multimedia"), folderPanel));
 	auto *foldersWidget = new PresenterFolderList(folderPanel);
 	folderList = foldersWidget;
 	foldersWidget->setObjectName("presenterFolderList");
@@ -476,6 +481,22 @@ void PresenterPanel::BuildInterface()
 	folderButtons->addWidget(renameFolder);
 	folderButtons->addStretch();
 	folderLayout->addLayout(folderButtons);
+	folderLayout->addWidget(new QLabel(tr("Presentación"), folderPanel));
+	auto *presentationsWidget = new PresenterFolderList(folderPanel);
+	presentationFolderList = presentationsWidget;
+	presentationsWidget->setObjectName("presenterPresentationList");
+	presentationsWidget->setSelectionMode(QAbstractItemView::SingleSelection);
+	presentationsWidget->setDragEnabled(false);
+	presentationsWidget->setDragDropMode(QAbstractItemView::DropOnly);
+	presentationsWidget->setFixedHeight(92);
+	auto addPresentationFolder = [this, presentationsWidget](const QString &id, const QString &name) {
+		auto *item = new QListWidgetItem(style()->standardIcon(QStyle::SP_DirIcon), name, presentationsWidget);
+		item->setData(Qt::UserRole, id);
+		item->setFlags((item->flags() & ~Qt::ItemIsDragEnabled & ~Qt::ItemIsEditable) | Qt::ItemIsDropEnabled);
+	};
+	addPresentationFolder(QString::fromLatin1(kBibleFolderId), tr("Biblia"));
+	addPresentationFolder(QString::fromLatin1(kPresentationsFolderId), tr("Presentaciones"));
+	folderLayout->addWidget(presentationsWidget);
 	libraryBody->addWidget(folderPanel);
 	auto *mediaArea = new QVBoxLayout();
 	emptyState = new QLabel(tr("Arrastra aquí imágenes, videos o audio para comenzar"), library);
@@ -519,8 +540,21 @@ void PresenterPanel::BuildInterface()
 	connect(addFolder, &QToolButton::clicked, this, &PresenterPanel::CreateFolder);
 	connect(renameFolder, &QToolButton::clicked, this, &PresenterPanel::RenameFolder);
 	connect(foldersWidget, &QListWidget::currentItemChanged, this, [this](QListWidgetItem *current) {
-		if (current)
-			currentFolderId = current->data(Qt::UserRole).toString();
+		if (!current)
+			return;
+		if (presentationFolderList)
+			presentationFolderList->setCurrentRow(-1);
+		currentFolderId = current->data(Qt::UserRole).toString();
+		ApplyLibraryFilter();
+		if (!restoring)
+			SaveSettings();
+	});
+	connect(presentationsWidget, &QListWidget::currentItemChanged, this, [this](QListWidgetItem *current) {
+		if (!current)
+			return;
+		if (folderList)
+			folderList->setCurrentRow(-1);
+		currentFolderId = current->data(Qt::UserRole).toString();
 		ApplyLibraryFilter();
 		if (!restoring)
 			SaveSettings();
@@ -532,6 +566,10 @@ void PresenterPanel::BuildInterface()
 	foldersWidget->filesDropped = [this](const QStringList &paths, const QString &folderId) { ImportPaths(paths, folderId); };
 	foldersWidget->mediaMoved = [this](const QStringList &paths, const QString &folderId) { MoveMediaToFolder(paths, folderId); };
 	foldersWidget->orderChanged = [this]() { ReorderFoldersFromList(); };
+	presentationsWidget->filesDropped =
+		[this](const QStringList &paths, const QString &folderId) { ImportPaths(paths, folderId); };
+	presentationsWidget->mediaMoved =
+		[this](const QStringList &paths, const QString &folderId) { MoveMediaToFolder(paths, folderId); };
 	connect(searchEdit, &QLineEdit::textChanged, this, [this]() { ApplyLibraryFilter(); });
 
 	splitter->addWidget(previewFrame);
@@ -1255,6 +1293,8 @@ QString PresenterPanel::SelectedFolderId() const
 {
 	if (folderList && folderList->currentItem())
 		return folderList->currentItem()->data(Qt::UserRole).toString();
+	if (presentationFolderList && presentationFolderList->currentItem())
+		return presentationFolderList->currentItem()->data(Qt::UserRole).toString();
 	return currentFolderId.isEmpty() ? QStringLiteral("general") : currentFolderId;
 }
 
@@ -1395,9 +1435,19 @@ void PresenterPanel::LoadSettings()
 			break;
 		}
 	}
+	if (presentationFolderList) {
+		for (int row = 0; row < presentationFolderList->count(); ++row) {
+			if (presentationFolderList->item(row)->data(Qt::UserRole).toString() == currentFolderId) {
+				presentationFolderList->setCurrentRow(row);
+				break;
+			}
+		}
+	}
 	if (!folderList->currentItem()) {
-		folderList->setCurrentRow(0);
-		currentFolderId = folderList->currentItem()->data(Qt::UserRole).toString();
+		if (!presentationFolderList || !presentationFolderList->currentItem()) {
+			folderList->setCurrentRow(0);
+			currentFolderId = folderList->currentItem()->data(Qt::UserRole).toString();
+		}
 	}
 
 	const int mediaEntryCount = settings.beginReadArray("media");

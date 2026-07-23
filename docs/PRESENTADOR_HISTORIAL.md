@@ -63,6 +63,9 @@ build_x64/rundir/RelWithDebInfo/obs-plugins/64bit/obs-ffmpeg.dll
   activado; al desactivarlo, el mismo final detuvo el medio y regresó a `0:00`.
 - Interfaz: `Editar` aparece antes de `Pantallas`, su opción de ajuste 16:9 puede marcarse y desmarcarse, y el control de
   repetición queda deshabilitado para imágenes.
+- Biblioteca: las carpetas existentes aparecen bajo `Multimedia`; se comprobaron las selecciones independientes y
+  vacías de `Presentación > Biblia` y `Presentación > Presentaciones`, incluida la restauración de la sección elegida
+  después de cerrar y volver a abrir la aplicación.
 - La selección guardada `Auriculares (BT3280)` devolvió desde Windows el error `88890004`, correspondiente a un
   dispositivo invalidado/no disponible durante esa sesión. No confundirlo con un fallo del mezclador.
 

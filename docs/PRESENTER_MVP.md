@@ -6,7 +6,9 @@ integrar funciones de forma gradual.
 
 ## Estado actual
 
-- Biblioteca persistente con carpetas, búsqueda local, arrastrar y soltar, reordenamiento y carga diferida.
+- Biblioteca persistente dividida en `Multimedia` y `Presentación`; esta última incluye las bibliotecas independientes
+  `Biblia` y `Presentaciones`.
+- Carpetas multimedia con búsqueda local, arrastrar y soltar, reordenamiento y carga diferida.
 - Tarjetas con nombre y miniatura; una selección sustituye inmediatamente al contenido anterior.
 - Vista previa local y escenario a pantalla completa sobre un monitor elegido.
 - Interruptor rápido para activar o apagar la salida de escenario.
