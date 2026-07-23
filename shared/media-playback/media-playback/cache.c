@@ -415,7 +415,12 @@ static inline bool mp_cache_thread(mp_cache_t *c)
 		}
 		if (reset) {
 			mp_cache_reset(c);
-			continue;
+			/* A seek can be requested while a fully decoded source is still
+			 * filling its cache.  In that case restart and seek arrive in the
+			 * same iteration.  Do not discard the newer seek when processing
+			 * the pending restart. */
+			if (!seek)
+				continue;
 		}
 
 		if (seek) {

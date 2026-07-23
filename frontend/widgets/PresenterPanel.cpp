@@ -337,6 +337,7 @@ void PresenterPanel::BuildInterface()
 		if (!activeSource)
 			return;
 		pendingSeekValue = value;
+		seekTimer->start(75);
 		seekGuardUntil = QDateTime::currentMSecsSinceEpoch() + 1500;
 		const int64_t observedDuration = obs_source_media_get_duration(activeSource);
 		if (observedDuration > 0)
@@ -355,6 +356,10 @@ void PresenterPanel::BuildInterface()
 		seekGuardUntil = QDateTime::currentMSecsSinceEpoch() + 1500;
 		if (source && duration > 0)
 			obs_source_media_set_time_immediate(source, duration * value / 1000);
+		/* AbsoluteSlider updates its value on mouse press.  Retry shortly
+		 * after release so a click remains seekable even when the release
+		 * notification races with media cache startup. */
+		seekTimer->start(120);
 	});
 
 	auto *transportRow = new QHBoxLayout();
@@ -752,7 +757,10 @@ bool PresenterPanel::EnsureSource(MediaEntry *entry)
 		obs_data_set_bool(settings, "restart_on_activate", false);
 		obs_data_set_bool(settings, "close_when_inactive", false);
 		obs_data_set_bool(settings, "clear_on_media_end", true);
-		obs_data_set_bool(settings, "full_decode", audioOnly);
+		/* Full decode uses OBS' frame cache, whose clock is designed around
+		 * preloaded visual media.  Stream music normally so its timeline is
+		 * driven by real audio playback time. */
+		obs_data_set_bool(settings, "full_decode", false);
 		obs_data_set_bool(settings, "audio_only", audioOnly);
 	}
 	sourceType = obs_get_latest_input_type_id(sourceType);

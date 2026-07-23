@@ -790,7 +790,9 @@ static inline bool mp_media_thread(mp_media_t *m)
 		}
 		if (reset) {
 			mp_media_reset(m);
-			continue;
+			/* Preserve a seek requested in the same iteration as restart. */
+			if (!seek)
+				continue;
 		}
 
 		if (seek) {

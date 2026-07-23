@@ -25,7 +25,9 @@ El trabajo posterior corrige dos fallos observados en prueba real:
 - El audio solo aparecía después de cambiar manualmente de salida y se perdía al seleccionar otro medio. Ahora el
   monitor se reconstruye por activación y después de `media_started`.
 - MP3 con portada incrustada mezclaba el reloj de la imagen estática con el del audio. La fuente activa de música se
-  marca `audio_only` y excluye video del decodificador.
+  marca `audio_only`, excluye video del decodificador y se reproduce en flujo normal en lugar del caché de cuadros.
+- El control temporal aplica el salto durante el movimiento y lo repite brevemente al soltar, evitando depender de un
+  único evento del ratón. Media-playback conserva además un salto que coincida con un reinicio de la fuente.
 
 Estas correcciones deben conservarse juntas porque atraviesan frontend, libobs, obs-ffmpeg y media-playback.
 
@@ -55,23 +57,15 @@ build_x64/rundir/RelWithDebInfo/obs-plugins/64bit/obs-ffmpeg.dll
 
 - Video: la línea de tiempo saltó de aproximadamente `0:01` a `1:20` en un archivo de `1:45` y continuó.
 - Audio: medidores estéreo activos y duración detectada.
-- Se reprodujo el fallo de MP3 con portada que hacía retroceder el reloj; se implementó `audio_only` y se recompiló.
+- Se reprodujo el fallo de MP3 con portada y se verificó la corrección final: salto hacia adelante de `0:10` a `2:27`,
+  avance hasta `2:38`, salto hacia atrás a `0:59` y avance posterior hasta `1:11`, sin regresar al inicio.
 - La selección guardada `Auriculares (BT3280)` devolvió desde Windows el error `88890004`, correspondiente a un
   dispositivo invalidado/no disponible durante esa sesión. No confundirlo con un fallo del mezclador.
 
 ## Prueba pendiente inmediata
 
-La última compilación con `audio_only` quedó instalada y abierta, pero la comprobación automatizada final fue
-interrumpida antes de seleccionar la canción. Al retomar:
-
-1. Abrir `dist/PresentadorMultimedia/INICIAR_PRESENTADOR.bat` si no está abierto.
-2. Elegir una salida de audio físicamente conectada.
-3. Reproducir un MP3 durante 10 segundos.
-4. Mover la línea de tiempo cerca del 75 % y confirmar que el tiempo salta y sigue aumentando sin regresar.
-5. Cambiar a video y después a otra canción sin abrir `Sonido`; confirmar audio en ambos cambios.
-6. Revisar medidores y el log más reciente.
-
-No declarar resuelto el audio físico hasta completar esa secuencia con un dispositivo conectado.
+La línea de tiempo de música quedó verificada. Sigue pendiente comprobar el audio físico con una salida conectada:
+elegirla una vez, cambiar entre video y dos canciones sin volver a abrir `Sonido`, y confirmar sonido en cada cambio.
 
 ## Próximos límites conocidos
 
