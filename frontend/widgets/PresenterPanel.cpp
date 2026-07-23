@@ -580,6 +580,7 @@ void PresenterPanel::BuildInterface()
 	list->setGridSize(QSize(kThumbnailWidth + 24, kThumbnailHeight + 58));
 	list->setSpacing(8);
 	list->setSelectionMode(QAbstractItemView::SingleSelection);
+	list->setContextMenuPolicy(Qt::CustomContextMenu);
 	list->hide();
 	list->filesDropped = [this](const QStringList &paths) { ImportPaths(paths, SelectedFolderId()); };
 	list->orderChanged = [this]() { ReorderEntriesFromList(); };
@@ -590,6 +591,21 @@ void PresenterPanel::BuildInterface()
 				break;
 			}
 		}
+	});
+	connect(list, &QWidget::customContextMenuRequested, this, [this, list](const QPoint &position) {
+		if (!folderList || !folderList->currentItem())
+			return;
+		QListWidgetItem *item = list->itemAt(position);
+		if (!item)
+			return;
+		auto found = std::find_if(entries.begin(), entries.end(),
+					 [item](const auto &entry) { return entry->item == item; });
+		if (found == entries.end())
+			return;
+		QMenu menu(list);
+		QAction *removeAction = menu.addAction(style()->standardIcon(QStyle::SP_TrashIcon), tr("Eliminar"));
+		if (menu.exec(list->viewport()->mapToGlobal(position)) == removeAction)
+			RemoveMediaEntry(found->get());
 	});
 	connect(list->verticalScrollBar(), &QScrollBar::valueChanged, this,
 		[this]() { QTimer::singleShot(0, this, &PresenterPanel::LoadVisibleThumbnails); });
@@ -606,6 +622,10 @@ void PresenterPanel::BuildInterface()
 	bibleResultsList->setSpacing(8);
 	bibleResultsList->setSelectionMode(QAbstractItemView::SingleSelection);
 	bibleResultsList->hide();
+	connect(bibleResultsList, &QListWidget::itemClicked, this, [this](QListWidgetItem *item) {
+		if (item)
+			ProjectBibleVerse(item->data(Qt::UserRole + 1).toString(), item->data(Qt::UserRole).toString());
+	});
 	mediaArea->addWidget(bibleResultsList, 1);
 	searchEdit = new QLineEdit(library);
 	searchEdit->setObjectName("presenterSearch");
@@ -775,13 +795,8 @@ void PresenterPanel::Shutdown()
 		audioMeter = nullptr;
 	}
 	DetachAudioFilters();
-	activeItem = nullptr;
-	if (activeSource) {
-		obs_source_media_stop(activeSource);
-		obs_source_set_monitoring_type(activeSource, OBS_MONITORING_TYPE_NONE);
-	}
-	activeSource = nullptr;
-	activeEntry = nullptr;
+	ClearActiveMedia();
+	ClearBiblePresentation();
 	entries.clear();
 	if (stageScene && stageActive) {
 		obs_source_dec_active(obs_scene_get_source(stageScene));
@@ -934,11 +949,8 @@ void PresenterPanel::ReleaseSource(MediaEntry *entry)
 	entry->source = nullptr;
 }
 
-void PresenterPanel::ActivateMedia(MediaEntry *entry)
+void PresenterPanel::ClearActiveMedia(MediaEntry *keepEntry)
 {
-	if (!entry || !stageScene || !EnsureSource(entry))
-		return;
-	LoadThumbnail(entry);
 	MediaEntry *previousEntry = activeEntry;
 	if (audioMeter)
 		obs_volmeter_detach_source(audioMeter);
@@ -954,8 +966,121 @@ void PresenterPanel::ActivateMedia(MediaEntry *entry)
 	}
 	activeSource = nullptr;
 	activeEntry = nullptr;
-	if (previousEntry && previousEntry != entry)
+	if (previousEntry && previousEntry != keepEntry)
 		ReleaseSource(previousEntry);
+	cachedDuration = 0;
+	pendingSeekValue = -1;
+	if (loopButton)
+		loopButton->setEnabled(false);
+	if (timelineSlider)
+		timelineSlider->setValue(0);
+	if (timeLabel)
+		timeLabel->setText(QStringLiteral("0:00 / 0:00"));
+	if (meterLeft)
+		meterLeft->setValue(0);
+	if (meterRight)
+		meterRight->setValue(0);
+}
+
+void PresenterPanel::ClearBiblePresentation()
+{
+	auto removeItem = [](obs_sceneitem_t *&item) {
+		if (item) {
+			obs_sceneitem_remove(item);
+			item = nullptr;
+		}
+	};
+	removeItem(bibleReferenceItem);
+	removeItem(bibleVerseItem);
+	removeItem(bibleBackgroundItem);
+	bibleReferenceSource = nullptr;
+	bibleVerseSource = nullptr;
+	bibleBackgroundSource = nullptr;
+}
+
+void PresenterPanel::ProjectBibleVerse(const QString &text, const QString &reference)
+{
+	if (!stageScene || text.isEmpty() || reference.isEmpty())
+		return;
+	ClearActiveMedia();
+	ClearBiblePresentation();
+
+	const uint32_t canvasWidth = std::max(obs_source_get_width(obs_scene_get_source(stageScene)), 1920u);
+	const uint32_t canvasHeight = std::max(obs_source_get_height(obs_scene_get_source(stageScene)), 1080u);
+	const char *colorSourceType = obs_get_latest_input_type_id("color_source");
+	const char *textSourceType = obs_get_latest_input_type_id("text_gdiplus");
+	if (!colorSourceType || !textSourceType)
+		return;
+
+	OBSDataAutoRelease backgroundSettings = obs_data_create();
+	obs_data_set_int(backgroundSettings, "width", canvasWidth);
+	obs_data_set_int(backgroundSettings, "height", canvasHeight);
+	obs_data_set_int(backgroundSettings, "color", 0xFF000000);
+	OBSSourceAutoRelease background =
+		obs_source_create_private(colorSourceType, "Presenter Bible Background", backgroundSettings);
+	bibleBackgroundSource = background.Get();
+
+	const int verseFontSize = text.size() > 480 ? 48 : text.size() > 300 ? 60 : text.size() > 180 ? 76 : 96;
+	auto createTextSource = [textSourceType](OBSSource &target, const QString &sourceName, const QString &content,
+						int fontSize, int width, int height) {
+		OBSDataAutoRelease settings = obs_data_create();
+		OBSDataAutoRelease font = obs_data_create();
+		obs_data_set_string(font, "face", "Arial");
+		obs_data_set_string(font, "style", "Regular");
+		obs_data_set_int(font, "size", fontSize);
+		obs_data_set_int(font, "flags", 0);
+		obs_data_set_obj(settings, "font", font);
+		obs_data_set_string(settings, "text", content.toUtf8().constData());
+		obs_data_set_int(settings, "color", 0xFFFFFF);
+		obs_data_set_int(settings, "opacity", 100);
+		obs_data_set_string(settings, "align", "center");
+		obs_data_set_string(settings, "valign", "center");
+		obs_data_set_bool(settings, "extents", true);
+		obs_data_set_bool(settings, "extents_wrap", true);
+		obs_data_set_int(settings, "extents_cx", width);
+		obs_data_set_int(settings, "extents_cy", height);
+		OBSSourceAutoRelease source =
+			obs_source_create_private(textSourceType, sourceName.toUtf8().constData(), settings);
+		target = source.Get();
+	};
+
+	const int verseWidth = static_cast<int>(canvasWidth * 0.82);
+	const int verseHeight = static_cast<int>(canvasHeight * 0.64);
+	const int referenceWidth = static_cast<int>(canvasWidth * 0.72);
+	const int referenceHeight = static_cast<int>(canvasHeight * 0.12);
+	createTextSource(bibleVerseSource, QStringLiteral("Presenter Bible Verse"), text, verseFontSize, verseWidth,
+			 verseHeight);
+	createTextSource(bibleReferenceSource, QStringLiteral("Presenter Bible Reference"), reference, 44,
+			 referenceWidth, referenceHeight);
+	if (!bibleBackgroundSource || !bibleVerseSource || !bibleReferenceSource) {
+		ClearBiblePresentation();
+		return;
+	}
+
+	bibleBackgroundItem = obs_scene_add(stageScene, bibleBackgroundSource);
+	bibleVerseItem = obs_scene_add(stageScene, bibleVerseSource);
+	bibleReferenceItem = obs_scene_add(stageScene, bibleReferenceSource);
+	if (!bibleBackgroundItem || !bibleVerseItem || !bibleReferenceItem) {
+		ClearBiblePresentation();
+		return;
+	}
+	const struct vec2 versePosition = {canvasWidth * 0.09f, canvasHeight * 0.12f};
+	const struct vec2 referencePosition = {canvasWidth * 0.14f, canvasHeight * 0.82f};
+	obs_sceneitem_set_pos(bibleVerseItem, &versePosition);
+	obs_sceneitem_set_pos(bibleReferenceItem, &referencePosition);
+	if (mediaList)
+		mediaList->clearSelection();
+	currentMedia->setText(reference);
+	RefreshTimeline();
+}
+
+void PresenterPanel::ActivateMedia(MediaEntry *entry)
+{
+	if (!entry || !stageScene || !EnsureSource(entry))
+		return;
+	LoadThumbnail(entry);
+	ClearBiblePresentation();
+	ClearActiveMedia(entry);
 	activeEntry = entry;
 	activeSource = entry->source;
 	cachedDuration = 0;
@@ -1460,6 +1585,7 @@ void PresenterPanel::ApplyBibleFilter()
 		item->setToolTip(QStringLiteral("%1\n\n%2").arg(verse.reference, verse.text));
 		item->setTextAlignment(Qt::AlignLeft | Qt::AlignTop);
 		item->setData(Qt::UserRole, verse.reference);
+		item->setData(Qt::UserRole + 1, verse.text);
 		item->setSizeHint(QSize(300, 155));
 	}
 	if (matches > kBibleResultLimit)
@@ -1586,6 +1712,31 @@ void PresenterPanel::MoveMediaToFolder(const QStringList &paths, const QString &
 			}
 		}
 	}
+	ApplyLibraryFilter();
+	SaveSettings();
+}
+
+void PresenterPanel::RemoveMediaEntry(MediaEntry *entry)
+{
+	if (!entry)
+		return;
+	auto found = std::find_if(entries.begin(), entries.end(),
+				 [entry](const auto &candidate) { return candidate.get() == entry; });
+	if (found == entries.end())
+		return;
+	const bool wasActive = activeEntry == entry;
+	if (wasActive) {
+		ClearActiveMedia();
+		currentMedia->setText(tr("Ningún contenido seleccionado"));
+	} else {
+		ReleaseSource(entry);
+	}
+	if (entry->thumbnailView)
+		delete entry->thumbnailView.data();
+	entry->thumbnailView = nullptr;
+	delete entry->item;
+	entry->item = nullptr;
+	entries.erase(found);
 	ApplyLibraryFilter();
 	SaveSettings();
 }

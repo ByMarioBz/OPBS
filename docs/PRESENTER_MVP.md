@@ -11,6 +11,9 @@ integrar funciones de forma gradual.
 - Carpetas multimedia con búsqueda local, arrastrar y soltar, reordenamiento y carga diferida.
 - Buscador bíblico por texto o referencia, selector de traducciones locales y cuadrícula limitada de resultados para
   mantener el rendimiento con biblias completas.
+- Proyección bíblica 16:9 con fondo negro, versículo blanco adaptable y referencia blanca de menor tamaño.
+- Menú contextual `Eliminar` en las carpetas de `Multimedia`; quita la referencia de la biblioteca sin borrar el
+  archivo original del equipo.
 - Tarjetas con nombre y miniatura; una selección sustituye inmediatamente al contenido anterior.
 - Vista previa local y escenario a pantalla completa sobre un monitor elegido.
 - Interruptor rápido para activar o apagar la salida de escenario.
@@ -20,7 +23,8 @@ integrar funciones de forma gradual.
 - Menú `Editar` con ajuste opcional de fotos y videos al área completa 16:9; la preferencia se conserva.
 - Ventanas `Pantallas` y `Sonido`; se conservan monitor, dispositivo, volumen, ganancia y efecto seleccionados.
 - Posición y tamaño de la ventana principal persistentes.
-- Ejecución portátil en `dist/PresentadorMultimedia`, sin alterar una instalación normal de OBS.
+- Ejecución portátil en `dist/PresentadorMultimedia` y paquete compartible en `portable`, sin alterar una instalación
+  normal de OBS.
 
 ## Ramas y base
 

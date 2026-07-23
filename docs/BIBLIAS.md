@@ -6,8 +6,8 @@ La sección `Presentación > Biblia` descubre automáticamente los archivos `.tx
 config/obs-studio/bibles
 ```
 
-En la versión portátil esta carpeta está dentro de `dist/PresentadorMultimedia`. Cada archivo aparece como una opción
-en el selector de biblias. El nombre se obtiene del nombre del archivo; por ejemplo,
+En las versiones portátiles esta carpeta está dentro de `dist/PresentadorMultimedia` o `portable`. Cada archivo aparece
+como una opción en el selector de biblias. El nombre se obtiene del nombre del archivo; por ejemplo,
 `biblia_reina_valera_1960.txt` aparece como `Reina Valera 1960`.
 
 ## Formato
@@ -36,3 +36,7 @@ El archivo debe guardarse como UTF-8.
 
 Los archivos bíblicos se mantienen como datos locales de la aplicación y no forman parte del historial de código de
 OBS. Al mover el programa a otro equipo debe copiarse también la carpeta `config/obs-studio/bibles`.
+
+Al seleccionar una tarjeta, el Presentador sustituye el contenido anterior por una composición 16:9: fondo negro,
+versículo blanco centrado y referencia blanca más pequeña. El tamaño del versículo se adapta a su longitud para evitar
+recortes.

@@ -62,7 +62,13 @@ class PresenterPanel : public QWidget {
 	OBSBasic *main;
 	OBSScene stageScene;
 	obs_sceneitem_t *activeItem = nullptr;
+	obs_sceneitem_t *bibleBackgroundItem = nullptr;
+	obs_sceneitem_t *bibleVerseItem = nullptr;
+	obs_sceneitem_t *bibleReferenceItem = nullptr;
 	OBSSource activeSource;
+	OBSSource bibleBackgroundSource;
+	OBSSource bibleVerseSource;
+	OBSSource bibleReferenceSource;
 	MediaEntry *activeEntry = nullptr;
 	OBSSource gainFilter;
 	OBSSource compressorFilter;
@@ -131,6 +137,10 @@ class PresenterPanel : public QWidget {
 	bool EnsureSource(MediaEntry *entry);
 	void ReleaseSource(MediaEntry *entry);
 	void ActivateMedia(MediaEntry *entry);
+	void ClearActiveMedia(MediaEntry *keepEntry = nullptr);
+	void ClearBiblePresentation();
+	void ProjectBibleVerse(const QString &text, const QString &reference);
+	void RemoveMediaEntry(MediaEntry *entry);
 	void UpdateStageStatus();
 	void SetStageEnabled(bool enabled, bool save = true);
 	void ResolveSelectedMonitor();

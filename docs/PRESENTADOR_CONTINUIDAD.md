@@ -14,6 +14,7 @@ El repositorio Git contiene el código y su historial. Estas carpetas locales so
 | `.tools` | CMake portátil usado en este equipo | No | No, si CMake está instalado |
 | `build_x64` | resultados intermedios | No | No; se regenera |
 | `dist/PresentadorMultimedia` | aplicación portátil compilada | No | Solo para ejecutar sin compilar |
+| `portable` | copia limpia para compartir, con `Presentador.exe` y biblias locales | No | Para pruebas en otra PC |
 | medios del usuario | imágenes, videos y canciones | No | Solo si se quieren conservar |
 
 La biblioteca guarda rutas absolutas. Copiar la configuración portátil a otro equipo no copia los medios y las rutas
@@ -109,6 +110,17 @@ reutilizar un `CMakeCache.txt` creado en otra ruta o computadora.
 
 El empaquetado copia el contenido ejecutable de `build_x64/rundir/RelWithDebInfo` a
 `dist/PresentadorMultimedia`. La configuración se guarda dentro de esa carpeta por `--portable`.
+
+Para crear una copia limpia destinada a otra persona:
+
+```powershell
+.\presenter-tools\Create-Portable.cmd
+```
+
+El resultado queda en `portable`. El ejecutable es `portable/bin/64bit/Presentador.exe`; también puede iniciarse desde
+`portable/INICIAR_PRESENTADOR.bat`. El marcador `portable/portable_mode.txt` conserva la configuración dentro del
+paquete aun al abrir directamente el EXE. El generador copia las biblias locales, pero no las rutas ni la biblioteca
+multimedia personal del equipo de desarrollo.
 
 Para una sesión diagnóstica sin complementos no esenciales:
 
