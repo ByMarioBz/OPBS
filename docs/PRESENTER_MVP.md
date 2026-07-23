@@ -1,55 +1,43 @@
 # Presentador multimedia
 
-Esta rama transforma temporalmente el frontend de OBS Studio en una aplicación enfocada en presentar contenido
-multimedia, sin eliminar el código ni las funciones originales de OBS.
+Aplicación de escritorio para organizar y proyectar imágenes, videos y audio, construida sobre OBS Studio 32.2.0.
+El frontend clásico de OBS está temporalmente oculto, pero su implementación permanece disponible para recuperar e
+integrar funciones de forma gradual.
 
-## Estado de esta primera versión
+## Estado actual
 
-- La ventana principal muestra una vista previa y una biblioteca en cuadrícula, repartidas aproximadamente al 50 %.
-- Se pueden importar varios archivos individuales de imagen, video o audio.
-- Cada archivo aparece con su nombre y una miniatura. Para video, la miniatura se genera con el sistema de capturas
-  de fuentes de OBS; los archivos únicamente de audio muestran el icono correspondiente.
-- Al seleccionar una tarjeta, el contenido anterior se detiene y se sustituye por el nuevo tanto en la vista previa
-  como en la salida de escenario.
-- El menú superior `Pantallas` muestra dos tarjetas. `Escenario` permite elegir un monitor conectado y abre en él
-  una salida de pantalla completa. La segunda tarjeta queda reservada para una salida futura.
-- Las áreas clásicas de OBS se ocultan en este modo, pero su implementación permanece intacta.
+- Biblioteca persistente con carpetas, búsqueda local, arrastrar y soltar, reordenamiento y carga diferida.
+- Tarjetas con nombre y miniatura; una selección sustituye inmediatamente al contenido anterior.
+- Vista previa local y escenario a pantalla completa sobre un monitor elegido.
+- Interruptor rápido para activar o apagar la salida de escenario.
+- Controles anterior, reproducir/pausar, detener y siguiente, más teclas multimedia mientras la aplicación está activa.
+- Línea de tiempo, medidores estéreo y volumen del contenido.
+- Ventanas `Pantallas` y `Sonido`; se conservan monitor, dispositivo, volumen, ganancia y efecto seleccionados.
+- Posición y tamaño de la ventana principal persistentes.
+- Ejecución portátil en `dist/PresentadorMultimedia`, sin alterar una instalación normal de OBS.
 
-## Separación respecto de OBS original
+## Ramas y base
 
-- `obs-original`: referencia limpia al commit de OBS usado como punto de partida.
-- `feature/media-presenter`: desarrollo de la nueva aplicación.
+- `obs-original`: OBS Studio limpio en `7546be7` (etiqueta `32.2.0`).
+- `master`: seguimiento de la base pública; no desarrollar aquí.
+- `feature/media-presenter`: producto y única rama de trabajo actual.
+- remoto `obs-public`: `https://github.com/obsproject/obs-studio.git`, configurado sin permiso de escritura.
 
-Para comparar el producto con la base original se puede usar:
+Comparación completa con OBS original:
 
 ```powershell
+git diff --stat obs-original...feature/media-presenter
 git diff obs-original...feature/media-presenter
 ```
 
-## Arquitectura
+## Continuar el proyecto
 
-`PresenterPanel` mantiene una escena privada de OBS que funciona como escenario. La vista previa y el proyector a
-pantalla completa renderizan esa misma escena. Al hacer clic en otro archivo se reemplaza el único elemento activo de
-la escena; de esta forma nunca se superponen dos contenidos.
-
-La reproducción de video y audio utiliza `ffmpeg_source`, las imágenes utilizan `image_source`, y la salida de monitor
-reutiliza `OBSProjector`. Esto conserva el renderizado, la aceleración y la compatibilidad multimedia de OBS.
-
-## Compilación
-
-El proyecto conserva el sistema oficial de compilación de OBS y su preset `windows-x64`. Se necesitan CMake 3.28 o
-posterior, el Visual Studio indicado por el preset actual y las dependencias precompiladas de OBS. Después de instalar
-esas herramientas:
-
-```powershell
-cmake --preset windows-x64
-cmake --build --preset windows-x64
-```
-
-Este equipo todavía no tiene CMake ni el compilador de Visual Studio disponibles, por lo que la validación binaria debe
-realizarse cuando estén instalados.
+- Preparar otro equipo y transferir el historial: `PRESENTADOR_CONTINUIDAD.md`.
+- Entender componentes, datos y flujo de reproducción: `PRESENTADOR_ARQUITECTURA.md`.
+- Revisar decisiones, commits, pruebas y trabajo pendiente: `PRESENTADOR_HISTORIAL.md`.
+- Reglas para asistentes y colaboradores: `../AGENTS.md`.
 
 ## Licencia
 
-OBS Studio se distribuye bajo GPL-2.0. Una aplicación derivada y distribuida debe conservar las obligaciones de esa
-licencia, incluidos los avisos y la disponibilidad del código fuente correspondiente.
+OBS Studio y este trabajo derivado se distribuyen bajo GPL-2.0. Al distribuir binarios deben conservarse los avisos y
+ofrecerse el código fuente correspondiente, incluidas estas modificaciones.

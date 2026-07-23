@@ -32,6 +32,8 @@
 !COPYING
 !INSTALL
 !README.rst
+!AGENTS.md
+!/presenter-tools
 
 # Exclude lock files
 *.lock.json
