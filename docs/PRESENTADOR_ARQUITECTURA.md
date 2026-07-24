@@ -35,7 +35,7 @@ de insertar la nueva; no deben existir dos contenidos superpuestos.
 ### Interfaz
 
 - `frontend/widgets/PresenterPanel.cpp` y `.hpp`: biblioteca, carpetas, búsqueda, persistencia, preview, transporte,
-  tiempo, medidores, volumen, diálogos de pantallas/sonido y coordinación de fuentes.
+  tiempo, medidores, volumen, diálogos de pantallas/sonido/Biblia y coordinación de fuentes.
 - `frontend/widgets/OBSBasic.cpp` y `.hpp`: crea y muestra el modo presentador.
 - `frontend/widgets/OBSBasic_Projectors.cpp`: acceso controlado al proyector de OBS.
 - `frontend/cmake/ui-widgets.cmake`: incluye los archivos nuevos en la compilación.
@@ -60,7 +60,8 @@ dist/PresentadorMultimedia/config/obs-studio
 ```
 
 Se recuerdan biblioteca, carpetas, orden, carpeta activa, monitor, estado de salida, ajustes de sonido y geometría de
-ventana. Los registros de ejecución están bajo `config/obs-studio/logs` y son la primera fuente para diagnosticar fallos.
+ventana. También se conservan la Biblia seleccionada y su tipografía, tamaño, alineación y posición de referencia. Los
+registros de ejecución están bajo `config/obs-studio/logs` y son la primera fuente para diagnosticar fallos.
 
 No versionar esa configuración: contiene rutas locales y preferencias del usuario.
 

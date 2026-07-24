@@ -35,8 +35,11 @@
 #include <QFile>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QFontComboBox>
 #include <QFrame>
+#include <QFormLayout>
 #include <QGuiApplication>
+#include <QGroupBox>
 #include <QHBoxLayout>
 #include <QImageReader>
 #include <QInputDialog>
@@ -52,10 +55,12 @@
 #include <QPushButton>
 #include <QScreen>
 #include <QScrollBar>
+#include <QSaveFile>
 #include <QSettings>
 #include <QSignalBlocker>
 #include <QShortcut>
 #include <QSlider>
+#include <QSpinBox>
 #include <QSplitter>
 #include <QStatusBar>
 #include <QStyle>
@@ -205,6 +210,67 @@ protected:
 		QListWidget::dropEvent(event);
 		if (orderChanged)
 			orderChanged();
+	}
+};
+
+class BibleLayoutPreview final : public QWidget {
+	QString fontFamily = QStringLiteral("Arial");
+	QString textAlignment = QStringLiteral("center");
+	QString referencePosition = QStringLiteral("bottom-center");
+	int fontSize = 96;
+
+public:
+	explicit BibleLayoutPreview(QWidget *parent = nullptr) : QWidget(parent)
+	{
+		setMinimumSize(480, 270);
+		setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+	}
+
+	void SetLayout(const QString &family, int size, const QString &alignment, const QString &reference)
+	{
+		fontFamily = family;
+		fontSize = size;
+		textAlignment = alignment;
+		referencePosition = reference;
+		update();
+	}
+
+protected:
+	void paintEvent(QPaintEvent *) override
+	{
+		QPainter painter(this);
+		painter.setRenderHint(QPainter::Antialiasing);
+		painter.fillRect(rect(), QColor(Qt::black));
+		const QRect content = rect().adjusted(width() / 16, height() / 14, -width() / 16, -height() / 14);
+		const bool referenceAtTop = referencePosition.startsWith(QStringLiteral("top"));
+		const QRect referenceRect(content.left(), referenceAtTop ? content.top() : content.bottom() - height() / 10,
+					  content.width(), height() / 10);
+		const QRect verseRect(content.left(), referenceAtTop ? referenceRect.bottom() + height() / 30 : content.top(),
+				      content.width(), content.height() - referenceRect.height() - height() / 24);
+		Qt::Alignment verseAlignment = Qt::AlignVCenter;
+		if (textAlignment == QStringLiteral("left"))
+			verseAlignment |= Qt::AlignLeft;
+		else if (textAlignment == QStringLiteral("right"))
+			verseAlignment |= Qt::AlignRight;
+		else
+			verseAlignment |= Qt::AlignHCenter;
+		Qt::Alignment referenceAlignment = Qt::AlignVCenter;
+		if (referencePosition.endsWith(QStringLiteral("left")))
+			referenceAlignment |= Qt::AlignLeft;
+		else if (referencePosition.endsWith(QStringLiteral("right")))
+			referenceAlignment |= Qt::AlignRight;
+		else
+			referenceAlignment |= Qt::AlignHCenter;
+		painter.setPen(Qt::white);
+		QFont verseFont(fontFamily);
+		verseFont.setPixelSize(std::max(12, fontSize * height() / 1080));
+		painter.setFont(verseFont);
+		painter.drawText(verseRect, verseAlignment | Qt::TextWordWrap,
+				 QObject::tr("El Señor es mi pastor; nada me faltará."));
+		QFont referenceFont(fontFamily);
+		referenceFont.setPixelSize(std::max(10, int(fontSize * 0.55) * height() / 1080));
+		painter.setFont(referenceFont);
+		painter.drawText(referenceRect, referenceAlignment, QObject::tr("Salmos 23:1"));
 	}
 };
 
@@ -705,6 +771,7 @@ void PresenterPanel::BuildTopMenu()
 	fitToScreenAction->setCheckable(true);
 	screensAction = main->menuBar()->addAction(tr("Pantallas"));
 	soundAction = main->menuBar()->addAction(tr("Sonido"));
+	bibleAction = main->menuBar()->addAction(tr("Biblia"));
 	connect(fitToScreenAction, &QAction::toggled, this, [this](bool enabled) {
 		fitContentToScreen = enabled;
 		ApplyActiveItemBounds();
@@ -713,8 +780,10 @@ void PresenterPanel::BuildTopMenu()
 	});
 	connect(screensAction, &QAction::triggered, this, &PresenterPanel::ShowScreensDialog);
 	connect(soundAction, &QAction::triggered, this, &PresenterPanel::ShowSoundDialog);
+	connect(bibleAction, &QAction::triggered, this, &PresenterPanel::ShowBibleDialog);
 	for (QAction *action : main->menuBar()->actions())
-		action->setVisible(action == editMenuAction || action == screensAction || action == soundAction);
+		action->setVisible(action == editMenuAction || action == screensAction || action == soundAction ||
+				   action == bibleAction);
 
 	connect(qApp, &QGuiApplication::screenAdded, this, [this]() {
 		ResolveSelectedMonitor();
@@ -1004,6 +1073,8 @@ void PresenterPanel::ProjectBibleVerse(const QString &text, const QString &refer
 		return;
 	ClearActiveMedia();
 	ClearBiblePresentation();
+	activeBibleText = text;
+	activeBibleReference = reference;
 
 	const uint32_t canvasWidth = std::max(obs_source_get_width(obs_scene_get_source(stageScene)), 1920u);
 	const uint32_t canvasHeight = std::max(obs_source_get_height(obs_scene_get_source(stageScene)), 1080u);
@@ -1020,12 +1091,12 @@ void PresenterPanel::ProjectBibleVerse(const QString &text, const QString &refer
 		obs_source_create_private(colorSourceType, "Presenter Bible Background", backgroundSettings);
 	bibleBackgroundSource = background.Get();
 
-	const int verseFontSize = text.size() > 480 ? 48 : text.size() > 300 ? 60 : text.size() > 180 ? 76 : 96;
-	auto createTextSource = [textSourceType](OBSSource &target, const QString &sourceName, const QString &content,
-						int fontSize, int width, int height) {
+	auto createTextSource = [this, textSourceType](OBSSource &target, const QString &sourceName,
+						      const QString &content, int fontSize, int width, int height,
+						      const QString &alignment) {
 		OBSDataAutoRelease settings = obs_data_create();
 		OBSDataAutoRelease font = obs_data_create();
-		obs_data_set_string(font, "face", "Arial");
+		obs_data_set_string(font, "face", bibleFontFamily.toUtf8().constData());
 		obs_data_set_string(font, "style", "Regular");
 		obs_data_set_int(font, "size", fontSize);
 		obs_data_set_int(font, "flags", 0);
@@ -1033,7 +1104,7 @@ void PresenterPanel::ProjectBibleVerse(const QString &text, const QString &refer
 		obs_data_set_string(settings, "text", content.toUtf8().constData());
 		obs_data_set_int(settings, "color", 0xFFFFFF);
 		obs_data_set_int(settings, "opacity", 100);
-		obs_data_set_string(settings, "align", "center");
+		obs_data_set_string(settings, "align", alignment.toUtf8().constData());
 		obs_data_set_string(settings, "valign", "center");
 		obs_data_set_bool(settings, "extents", true);
 		obs_data_set_bool(settings, "extents_wrap", true);
@@ -1044,14 +1115,21 @@ void PresenterPanel::ProjectBibleVerse(const QString &text, const QString &refer
 		target = source.Get();
 	};
 
+	const bool referenceAtTop = bibleReferencePosition.startsWith(QStringLiteral("top"));
+	QString referenceAlignment = QStringLiteral("center");
+	if (bibleReferencePosition.endsWith(QStringLiteral("left")))
+		referenceAlignment = QStringLiteral("left");
+	else if (bibleReferencePosition.endsWith(QStringLiteral("right")))
+		referenceAlignment = QStringLiteral("right");
 	const int verseWidth = static_cast<int>(canvasWidth * 0.82);
-	const int verseHeight = static_cast<int>(canvasHeight * 0.64);
-	const int referenceWidth = static_cast<int>(canvasWidth * 0.72);
-	const int referenceHeight = static_cast<int>(canvasHeight * 0.12);
-	createTextSource(bibleVerseSource, QStringLiteral("Presenter Bible Verse"), text, verseFontSize, verseWidth,
-			 verseHeight);
-	createTextSource(bibleReferenceSource, QStringLiteral("Presenter Bible Reference"), reference, 44,
-			 referenceWidth, referenceHeight);
+	const int verseHeight = static_cast<int>(canvasHeight * 0.66);
+	const int referenceWidth = static_cast<int>(canvasWidth * 0.82);
+	const int referenceHeight = static_cast<int>(canvasHeight * 0.10);
+	createTextSource(bibleVerseSource, QStringLiteral("Presenter Bible Verse"), text, bibleFontSize, verseWidth,
+			 verseHeight, bibleTextAlignment);
+	createTextSource(bibleReferenceSource, QStringLiteral("Presenter Bible Reference"), reference,
+			 std::max(18, int(bibleFontSize * 0.55)), referenceWidth, referenceHeight,
+			 referenceAlignment);
 	if (!bibleBackgroundSource || !bibleVerseSource || !bibleReferenceSource) {
 		ClearBiblePresentation();
 		return;
@@ -1064,8 +1142,8 @@ void PresenterPanel::ProjectBibleVerse(const QString &text, const QString &refer
 		ClearBiblePresentation();
 		return;
 	}
-	const struct vec2 versePosition = {canvasWidth * 0.09f, canvasHeight * 0.12f};
-	const struct vec2 referencePosition = {canvasWidth * 0.14f, canvasHeight * 0.82f};
+	const struct vec2 versePosition = {canvasWidth * 0.09f, canvasHeight * (referenceAtTop ? 0.20f : 0.08f)};
+	const struct vec2 referencePosition = {canvasWidth * 0.09f, canvasHeight * (referenceAtTop ? 0.06f : 0.84f)};
 	obs_sceneitem_set_pos(bibleVerseItem, &versePosition);
 	obs_sceneitem_set_pos(bibleReferenceItem, &referencePosition);
 	if (mediaList)
@@ -1080,6 +1158,8 @@ void PresenterPanel::ActivateMedia(MediaEntry *entry)
 		return;
 	LoadThumbnail(entry);
 	ClearBiblePresentation();
+	activeBibleText.clear();
+	activeBibleReference.clear();
 	ClearActiveMedia(entry);
 	activeEntry = entry;
 	activeSource = entry->source;
@@ -1453,6 +1533,108 @@ void PresenterPanel::ShowSoundDialog()
 	SaveSettings();
 }
 
+void PresenterPanel::ShowBibleDialog()
+{
+	QDialog dialog(main);
+	dialog.setWindowTitle(tr("Configuración de Biblia"));
+	dialog.setMinimumSize(680, 760);
+	auto *layout = new QVBoxLayout(&dialog);
+
+	auto *importGroup = new QGroupBox(tr("Agregar Biblia"), &dialog);
+	auto *importLayout = new QVBoxLayout(importGroup);
+	importLayout->addWidget(new QLabel(
+		tr("Selecciona un TXT con bloques [VErsiculo], texto, [referencia] y referencia."), importGroup));
+	auto *pathLayout = new QHBoxLayout();
+	auto *pathEdit = new QLineEdit(importGroup);
+	pathEdit->setPlaceholderText(tr("Ruta del archivo .txt"));
+	auto *browseButton = new QPushButton(tr("Examinar…"), importGroup);
+	pathLayout->addWidget(pathEdit, 1);
+	pathLayout->addWidget(browseButton);
+	importLayout->addLayout(pathLayout);
+	auto *addButton = new QPushButton(tr("Agregar Biblia"), importGroup);
+	importLayout->addWidget(addButton, 0, Qt::AlignRight);
+	layout->addWidget(importGroup);
+
+	auto *layoutGroup = new QGroupBox(tr("Layout / lienzo de proyección"), &dialog);
+	auto *canvasLayout = new QVBoxLayout(layoutGroup);
+	auto *layoutPreview = new BibleLayoutPreview(layoutGroup);
+	canvasLayout->addWidget(layoutPreview, 1);
+	auto *form = new QFormLayout();
+	auto *fontCombo = new QFontComboBox(layoutGroup);
+	fontCombo->setCurrentFont(QFont(bibleFontFamily));
+	auto *fontSize = new QSpinBox(layoutGroup);
+	fontSize->setRange(24, 180);
+	fontSize->setSuffix(tr(" px"));
+	fontSize->setValue(bibleFontSize);
+	auto *alignment = new QComboBox(layoutGroup);
+	alignment->addItem(tr("Izquierda"), QStringLiteral("left"));
+	alignment->addItem(tr("Centro"), QStringLiteral("center"));
+	alignment->addItem(tr("Derecha"), QStringLiteral("right"));
+	alignment->setCurrentIndex(std::max(0, alignment->findData(bibleTextAlignment)));
+	auto *referencePosition = new QComboBox(layoutGroup);
+	referencePosition->addItem(tr("Izquierda superior"), QStringLiteral("top-left"));
+	referencePosition->addItem(tr("Centro superior"), QStringLiteral("top-center"));
+	referencePosition->addItem(tr("Derecha superior"), QStringLiteral("top-right"));
+	referencePosition->addItem(tr("Izquierda inferior"), QStringLiteral("bottom-left"));
+	referencePosition->addItem(tr("Centro inferior"), QStringLiteral("bottom-center"));
+	referencePosition->addItem(tr("Derecha inferior"), QStringLiteral("bottom-right"));
+	referencePosition->setCurrentIndex(std::max(0, referencePosition->findData(bibleReferencePosition)));
+	form->addRow(tr("Tipo de letra"), fontCombo);
+	form->addRow(tr("Tamaño del versículo"), fontSize);
+	form->addRow(tr("Alineación del versículo"), alignment);
+	form->addRow(tr("Posición de la referencia"), referencePosition);
+	canvasLayout->addLayout(form);
+	layout->addWidget(layoutGroup, 1);
+
+	auto refreshPreview = [layoutPreview, fontCombo, fontSize, alignment, referencePosition]() {
+		layoutPreview->SetLayout(fontCombo->currentFont().family(), fontSize->value(),
+					 alignment->currentData().toString(),
+					 referencePosition->currentData().toString());
+	};
+	refreshPreview();
+	connect(fontCombo, &QFontComboBox::currentFontChanged, &dialog, [refreshPreview](const QFont &) {
+		refreshPreview();
+	});
+	connect(fontSize, qOverload<int>(&QSpinBox::valueChanged), &dialog, [refreshPreview](int) {
+		refreshPreview();
+	});
+	connect(alignment, qOverload<int>(&QComboBox::currentIndexChanged), &dialog, [refreshPreview](int) {
+		refreshPreview();
+	});
+	connect(referencePosition, qOverload<int>(&QComboBox::currentIndexChanged), &dialog,
+		[refreshPreview](int) { refreshPreview(); });
+	connect(browseButton, &QPushButton::clicked, &dialog, [this, pathEdit]() {
+		const QString path = QFileDialog::getOpenFileName(main, tr("Seleccionar Biblia"), QString(),
+								  tr("Archivos de texto (*.txt)"));
+		if (!path.isEmpty())
+			pathEdit->setText(path);
+	});
+	connect(addButton, &QPushButton::clicked, &dialog, [this, pathEdit]() {
+		const QString path = pathEdit->text().trimmed();
+		if (path.isEmpty()) {
+			QMessageBox::warning(main, tr("Agregar Biblia"), tr("Selecciona primero un archivo TXT."));
+			return;
+		}
+		if (ImportBibleFile(path))
+			pathEdit->clear();
+	});
+
+	auto *buttons = new QDialogButtonBox(QDialogButtonBox::Save | QDialogButtonBox::Cancel, &dialog);
+	layout->addWidget(buttons);
+	connect(buttons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
+	connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+	if (dialog.exec() != QDialog::Accepted)
+		return;
+
+	bibleFontFamily = fontCombo->currentFont().family();
+	bibleFontSize = fontSize->value();
+	bibleTextAlignment = alignment->currentData().toString();
+	bibleReferencePosition = referencePosition->currentData().toString();
+	SaveSettings();
+	if (!activeBibleText.isEmpty() && !activeBibleReference.isEmpty())
+		ProjectBibleVerse(activeBibleText, activeBibleReference);
+}
+
 void PresenterPanel::ResolveSelectedMonitor()
 {
 	selectedMonitor = -1;
@@ -1638,22 +1820,37 @@ void PresenterPanel::LoadBibleTranslation(int index)
 	if (!bibleSelector || index < 0 || index >= bibleSelector->count())
 		return;
 	const QString path = bibleSelector->itemData(index).toString();
-	QFile file(path);
-	if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+	std::vector<BibleVerse> parsedVerses;
+	if (!ParseBibleFile(path, parsedVerses))
 		return;
-
 	currentBiblePath = path;
+	bibleVerses = std::move(parsedVerses);
+}
+
+bool PresenterPanel::ParseBibleFile(const QString &path, std::vector<BibleVerse> &verses, QString *error) const
+{
+	verses.clear();
+	QFile file(path);
+	if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+		if (error)
+			*error = tr("No se pudo abrir el archivo.");
+		return false;
+	}
 	QTextStream stream(&file);
 	stream.setEncoding(QStringConverter::Utf8);
 	enum class Section { None, Verse, Reference };
 	Section section = Section::None;
 	QStringList verseLines;
 	QStringList referenceLines;
-	auto finishVerse = [this, &verseLines, &referenceLines]() {
+	bool invalid = false;
+	auto finishVerse = [this, &verses, &verseLines, &referenceLines, &invalid]() {
 		const QString text = verseLines.join(' ').simplified();
 		const QString reference = referenceLines.join(' ').simplified();
-		if (!text.isEmpty() && !reference.isEmpty())
-			bibleVerses.push_back({text, reference, NormalizeBibleText(reference + ' ' + text)});
+		if (text.isEmpty() || reference.isEmpty()) {
+			invalid = true;
+		} else {
+			verses.push_back({text, reference, NormalizeBibleText(reference + ' ' + text)});
+		}
 		verseLines.clear();
 		referenceLines.clear();
 	};
@@ -1661,22 +1858,81 @@ void PresenterPanel::LoadBibleTranslation(int index)
 	while (!stream.atEnd()) {
 		const QString line = stream.readLine().trimmed();
 		if (line.compare(QStringLiteral("[VErsiculo]"), Qt::CaseInsensitive) == 0) {
-			finishVerse();
+			if (section != Section::None) {
+				invalid = true;
+				break;
+			}
 			section = Section::Verse;
 		} else if (line.compare(QStringLiteral("[referencia]"), Qt::CaseInsensitive) == 0) {
+			if (section != Section::Verse || verseLines.isEmpty()) {
+				invalid = true;
+				break;
+			}
 			section = Section::Reference;
 		} else if (line.startsWith(QStringLiteral("---"))) {
-			if (section == Section::Reference)
+			if (section == Section::Reference) {
 				finishVerse();
+			} else if (section != Section::None) {
+				invalid = true;
+				break;
+			}
 			section = Section::None;
 		} else if (!line.isEmpty()) {
 			if (section == Section::Verse)
 				verseLines.push_back(line);
 			else if (section == Section::Reference)
 				referenceLines.push_back(line);
+			else {
+				invalid = true;
+				break;
+			}
 		}
 	}
-	finishVerse();
+	if (!invalid && section == Section::Reference)
+		finishVerse();
+	else if (!invalid && section != Section::None)
+		invalid = true;
+	if (invalid || verses.empty()) {
+		verses.clear();
+		if (error)
+			*error = tr("El TXT no sigue el formato [VErsiculo], texto, [referencia] y referencia.");
+		return false;
+	}
+	return true;
+}
+
+bool PresenterPanel::ImportBibleFile(const QString &path)
+{
+	std::vector<BibleVerse> parsedVerses;
+	QString error;
+	if (!ParseBibleFile(path, parsedVerses, &error)) {
+		QMessageBox::critical(main, tr("Biblia incompatible"),
+				      tr("Biblia incompatible.\n\n%1").arg(error));
+		return false;
+	}
+	const QFileInfo source(path);
+	const QString directoryPath = BibleDirectoryPath();
+	QDir().mkpath(directoryPath);
+	const QString destination = QDir(directoryPath).filePath(source.fileName());
+	if (QFileInfo(source.absoluteFilePath()).absoluteFilePath() != QFileInfo(destination).absoluteFilePath()) {
+		QFile input(source.absoluteFilePath());
+		if (!input.open(QIODevice::ReadOnly)) {
+			QMessageBox::critical(main, tr("Agregar Biblia"), tr("No se pudo leer el archivo seleccionado."));
+			return false;
+		}
+		QSaveFile output(destination);
+		if (!output.open(QIODevice::WriteOnly) || output.write(input.readAll()) < 0 || !output.commit()) {
+			QMessageBox::critical(main, tr("Agregar Biblia"),
+					      tr("No se pudo guardar la Biblia en la aplicación."));
+			return false;
+		}
+	}
+	LoadBibleCatalog(destination);
+	ApplyBibleFilter();
+	SaveSettings();
+	QMessageBox::information(main, tr("Agregar Biblia"),
+				 tr("La Biblia “%1” se agregó correctamente.").arg(BibleDisplayName(destination)));
+	return true;
 }
 
 void PresenterPanel::CreateFolder()
@@ -1771,6 +2027,10 @@ void PresenterPanel::LoadSettings()
 	stageEnabled = settings.value("stage/enabled", false).toBool();
 	loopCurrent = settings.value("playback/loopCurrent", false).toBool();
 	fitContentToScreen = settings.value("view/fitContentToScreen", false).toBool();
+	bibleFontFamily = settings.value("bible/fontFamily", "Arial").toString();
+	bibleFontSize = std::clamp(settings.value("bible/fontSize", 96).toInt(), 24, 180);
+	bibleTextAlignment = settings.value("bible/textAlignment", "center").toString();
+	bibleReferencePosition = settings.value("bible/referencePosition", "bottom-center").toString();
 	LoadBibleCatalog(settings.value("bible/selectedPath").toString());
 	mediaVolumeSlider->setValue(mediaVolume);
 	if (loopButton) {
@@ -1881,6 +2141,10 @@ void PresenterPanel::SaveSettings()
 	settings.setValue("playback/loopCurrent", loopCurrent);
 	settings.setValue("view/fitContentToScreen", fitContentToScreen);
 	settings.setValue("bible/selectedPath", currentBiblePath);
+	settings.setValue("bible/fontFamily", bibleFontFamily);
+	settings.setValue("bible/fontSize", bibleFontSize);
+	settings.setValue("bible/textAlignment", bibleTextAlignment);
+	settings.setValue("bible/referencePosition", bibleReferencePosition);
 	settings.setValue("audio/mediaVolume", mediaVolume);
 	settings.setValue("audio/outputVolume", outputVolume);
 	settings.setValue("audio/gain", outputGain);

@@ -11,7 +11,9 @@ integrar funciones de forma gradual.
 - Carpetas multimedia con búsqueda local, arrastrar y soltar, reordenamiento y carga diferida.
 - Buscador bíblico por texto o referencia, selector de traducciones locales y cuadrícula limitada de resultados para
   mantener el rendimiento con biblias completas.
-- Proyección bíblica 16:9 con fondo negro, versículo blanco adaptable y referencia blanca de menor tamaño.
+- Menú `Biblia` para importar traducciones TXT compatibles y configurar el lienzo con vista previa: tipografía, tamaño,
+  alineación del versículo y seis posiciones posibles para la referencia.
+- Proyección bíblica 16:9 con fondo negro, versículo blanco y referencia blanca de menor tamaño.
 - Menú contextual `Eliminar` en las carpetas de `Multimedia`; quita la referencia de la biblioteca sin borrar el
   archivo original del equipo.
 - Tarjetas con nombre y miniatura; una selección sustituye inmediatamente al contenido anterior.
@@ -21,7 +23,7 @@ integrar funciones de forma gradual.
   multimedia mientras la aplicación está activa.
 - Línea de tiempo, medidores estéreo y volumen del contenido.
 - Menú `Editar` con ajuste opcional de fotos y videos al área completa 16:9; la preferencia se conserva.
-- Ventanas `Pantallas` y `Sonido`; se conservan monitor, dispositivo, volumen, ganancia y efecto seleccionados.
+- Ventanas `Pantallas`, `Sonido` y `Biblia`; se conservan monitor, dispositivo, audio y layout bíblico seleccionados.
 - Posición y tamaño de la ventana principal persistentes.
 - Ejecución portátil en `dist/PresentadorMultimedia` y paquete compartible en `portable`, sin alterar una instalación
   normal de OBS.

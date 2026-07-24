@@ -1,6 +1,6 @@
 # Historial y estado de ingeniería
 
-Última actualización: 22 de julio de 2026.
+Última actualización: 23 de julio de 2026.
 
 ## Base
 
@@ -74,6 +74,10 @@ build_x64/rundir/RelWithDebInfo/obs-plugins/64bit/obs-ffmpeg.dll
 - Biblioteca multimedia: el clic derecho sobre una imagen mostró únicamente `Eliminar`; la prueba cerró el menú sin
   quitar elementos. La implementación elimina la referencia persistida y conserva el archivo físico.
 - Portabilidad: `portable/bin/64bit/Presentador.exe` inició correctamente con Reina Valera 1960 incluida.
+- Configuración bíblica: el nuevo menú `Biblia` abrió su importador y editor 16:9. Un TXT sin etiquetas mostró
+  `Biblia incompatible`; Reina Valera 1960 fue aceptada, cargó 31,104 versículos y quedó seleccionable en la biblioteca.
+  La vista previa reaccionó al cambiar el tamaño de 96 a 120 y la referencia de centro inferior a izquierda superior;
+  al guardar, `Apocalipsis 22:20` se renderizó con esos mismos ajustes en la escena real.
 - La selección guardada `Auriculares (BT3280)` devolvió desde Windows el error `88890004`, correspondiente a un
   dispositivo invalidado/no disponible durante esa sesión. No confundirlo con un fallo del mezclador.
 
