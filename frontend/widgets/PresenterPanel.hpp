@@ -97,6 +97,7 @@ class PresenterPanel : public QWidget {
 	QPointer<QToolButton> loopButton;
 	QPointer<QCheckBox> stageToggle;
 	QPointer<QAction> editMenuAction;
+	QPointer<QAction> fileMenuAction;
 	QPointer<QAction> fitToScreenAction;
 	QPointer<QAction> screensAction;
 	QPointer<QAction> soundAction;
@@ -112,6 +113,7 @@ class PresenterPanel : public QWidget {
 	QString bibleFontFamily = "Arial";
 	QString bibleTextAlignment = "center";
 	QString bibleReferencePosition = "bottom-center";
+	QString bibleBackgroundPath;
 	QString activeBibleText;
 	QString activeBibleReference;
 	QString selectedMonitorName;
@@ -129,6 +131,7 @@ class PresenterPanel : public QWidget {
 	bool stageEnabled = false;
 	bool loopCurrent = false;
 	bool fitContentToScreen = false;
+	bool bibleBackgroundLoop = false;
 	bool timelineDragging = false;
 	bool restoring = false;
 	qint64 seekGuardUntil = 0;
@@ -154,6 +157,9 @@ class PresenterPanel : public QWidget {
 	void ShowScreensDialog();
 	void ShowSoundDialog();
 	void ShowBibleDialog();
+	void ImportPresentation(bool pdf);
+	void ReplacePresentationSlides(const QString &temporaryDirectory, int slideCount);
+	void ClearPresentationEntries();
 	void ApplyAudioSettings();
 	void ApplyLoopSetting();
 	void ApplyActiveItemBounds();
@@ -176,6 +182,7 @@ class PresenterPanel : public QWidget {
 	bool ParseBibleFile(const QString &path, std::vector<BibleVerse> &verses, QString *error = nullptr) const;
 	bool ImportBibleFile(const QString &path);
 	QString BibleDirectoryPath() const;
+	QString PresentationsDirectoryPath() const;
 	void CreateFolder();
 	void RenameFolder();
 	void MoveMediaToFolder(const QStringList &paths, const QString &folderId);

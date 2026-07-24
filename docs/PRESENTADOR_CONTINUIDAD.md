@@ -122,6 +122,10 @@ El resultado queda en `portable`. El ejecutable es `portable/bin/64bit/Presentad
 paquete aun al abrir directamente el EXE. El generador copia las biblias locales, pero no las rutas ni la biblioteca
 multimedia personal del equipo de desarrollo.
 
+La importación PDF usa las API incluidas en Windows. La importación directa de `.ppt` y `.pptx` necesita Microsoft
+PowerPoint instalado en el equipo que realiza la conversión; una vez convertidas, las diapositivas son PNG normales y
+no necesitan PowerPoint para proyectarse.
+
 Para una sesión diagnóstica sin complementos no esenciales:
 
 ```powershell

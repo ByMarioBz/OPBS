@@ -59,6 +59,12 @@ target_sources(
     widgets/OBSQTDisplay.hpp
     widgets/PresenterPanel.cpp
     widgets/PresenterPanel.hpp
+    widgets/PresentationImporter.cpp
+    widgets/PresentationImporter.hpp
     widgets/StatusBarWidget.cpp
     widgets/StatusBarWidget.hpp
 )
+
+if(OS_WINDOWS)
+  target_link_libraries(obs-studio PRIVATE windowsapp ole32 oleaut32)
+endif()

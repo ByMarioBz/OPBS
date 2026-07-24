@@ -35,7 +35,10 @@ de insertar la nueva; no deben existir dos contenidos superpuestos.
 ### Interfaz
 
 - `frontend/widgets/PresenterPanel.cpp` y `.hpp`: biblioteca, carpetas, búsqueda, persistencia, preview, transporte,
-  tiempo, medidores, volumen, diálogos de pantallas/sonido/Biblia y coordinación de fuentes.
+  tiempo, medidores, volumen, diálogos de pantallas/sonido/Biblia, importación de presentaciones y coordinación de
+  fuentes.
+- `frontend/widgets/PresentationImporter.cpp` y `.hpp`: convierte PDF con el motor nativo de Windows y PowerPoint
+  mediante automatización COM; entrega imágenes PNG secuenciales al panel.
 - `frontend/widgets/OBSBasic.cpp` y `.hpp`: crea y muestra el modo presentador.
 - `frontend/widgets/OBSBasic_Projectors.cpp`: acceso controlado al proyector de OBS.
 - `frontend/cmake/ui-widgets.cmake`: incluye los archivos nuevos en la compilación.
@@ -60,8 +63,10 @@ dist/PresentadorMultimedia/config/obs-studio
 ```
 
 Se recuerdan biblioteca, carpetas, orden, carpeta activa, monitor, estado de salida, ajustes de sonido y geometría de
-ventana. También se conservan la Biblia seleccionada y su tipografía, tamaño, alineación y posición de referencia. Los
-registros de ejecución están bajo `config/obs-studio/logs` y son la primera fuente para diagnosticar fallos.
+ventana. También se conservan la Biblia seleccionada, su tipografía, tamaño, alineación, posición de referencia, fondo
+personalizado y repetición del fondo. Las diapositivas convertidas viven bajo la configuración portátil y sustituyen
+atómicamente la importación anterior. Los registros de ejecución están bajo `config/obs-studio/logs` y son la primera
+fuente para diagnosticar fallos.
 
 No versionar esa configuración: contiene rutas locales y preferencias del usuario.
 
@@ -81,6 +86,7 @@ error de dispositivo invalidado y el usuario debe seleccionar una salida conecta
 - Las miniaturas se solicitan de forma diferida.
 - La biblioteca filtra por carpeta y nombre sin cargar medios completos.
 - La escena contiene un único elemento activo.
+- Los PDF se rasterizan en un flujo de trabajo explícito; no se crean fuentes OBS por cada página hasta seleccionarla.
 
 Al ampliar la biblioteca, conservar virtualización/carga diferida. No crear una fuente OBS permanente por tarjeta.
 

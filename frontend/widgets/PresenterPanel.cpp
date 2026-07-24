@@ -12,6 +12,7 @@
 #include "OBSBasic.hpp"
 #include "OBSProjector.hpp"
 #include "OBSQTDisplay.hpp"
+#include "PresentationImporter.hpp"
 
 #include <OBSApp.hpp>
 #include <components/Multiview.hpp>
@@ -23,6 +24,7 @@
 #include <obs-audio-controls.h>
 
 #include <QAction>
+#include <QApplication>
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDialog>
@@ -52,6 +54,7 @@
 #include <QMimeData>
 #include <QPainter>
 #include <QProgressBar>
+#include <QProgressDialog>
 #include <QPushButton>
 #include <QScreen>
 #include <QScrollBar>
@@ -85,6 +88,7 @@ constexpr auto kBibleFolderId = "presentation-bible";
 constexpr auto kPresentationsFolderId = "presentation-slides";
 const QStringList imageExtensions = {"bmp", "gif", "jpeg", "jpg", "png", "tga", "webp"};
 const QStringList audioExtensions = {"mp3", "aac", "ogg", "wav", "flac", "m4a", "wma"};
+const QStringList videoExtensions = {"mp4", "m4v", "mov", "mkv", "avi", "webm", "wmv", "mpeg", "mpg"};
 
 class PresenterMediaList final : public QListWidget {
 public:
@@ -217,6 +221,7 @@ class BibleLayoutPreview final : public QWidget {
 	QString fontFamily = QStringLiteral("Arial");
 	QString textAlignment = QStringLiteral("center");
 	QString referencePosition = QStringLiteral("bottom-center");
+	QString backgroundPath;
 	int fontSize = 96;
 
 public:
@@ -226,12 +231,14 @@ public:
 		setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 	}
 
-	void SetLayout(const QString &family, int size, const QString &alignment, const QString &reference)
+	void SetLayout(const QString &family, int size, const QString &alignment, const QString &reference,
+		       const QString &background)
 	{
 		fontFamily = family;
 		fontSize = size;
 		textAlignment = alignment;
 		referencePosition = reference;
+		backgroundPath = background;
 		update();
 	}
 
@@ -241,6 +248,22 @@ protected:
 		QPainter painter(this);
 		painter.setRenderHint(QPainter::Antialiasing);
 		painter.fillRect(rect(), QColor(Qt::black));
+		if (!backgroundPath.isEmpty()) {
+			const QPixmap background(backgroundPath);
+			if (!background.isNull()) {
+				const QPixmap scaled =
+					background.scaled(size(), Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation);
+				const QPoint topLeft((width() - scaled.width()) / 2, (height() - scaled.height()) / 2);
+				painter.drawPixmap(topLeft, scaled);
+			} else {
+				painter.fillRect(rect(), QColor("#172033"));
+				painter.setPen(QColor("#aeb8d0"));
+				painter.drawText(rect().adjusted(12, 10, -12, -10),
+						 Qt::AlignBottom | Qt::AlignRight,
+						 QObject::tr("Fondo de video: %1")
+							 .arg(QFileInfo(backgroundPath).fileName()));
+			}
+		}
 		const QRect content = rect().adjusted(width() / 16, height() / 14, -width() / 16, -height() / 14);
 		const bool referenceAtTop = referencePosition.startsWith(QStringLiteral("top"));
 		const QRect referenceRect(content.left(), referenceAtTop ? content.top() : content.bottom() - height() / 10,
@@ -765,6 +788,11 @@ void PresenterPanel::BuildInterface()
 
 void PresenterPanel::BuildTopMenu()
 {
+	auto *fileMenu = main->menuBar()->addMenu(tr("Archivo"));
+	fileMenuAction = fileMenu->menuAction();
+	auto *importMenu = fileMenu->addMenu(tr("Importar"));
+	QAction *importPowerPoint = importMenu->addAction(tr("PowerPoint"));
+	QAction *importPdf = importMenu->addAction(tr("PDF"));
 	auto *editMenu = main->menuBar()->addMenu(tr("Editar"));
 	editMenuAction = editMenu->menuAction();
 	fitToScreenAction = editMenu->addAction(tr("Activar ajustar a tamaño de pantalla"));
@@ -781,9 +809,11 @@ void PresenterPanel::BuildTopMenu()
 	connect(screensAction, &QAction::triggered, this, &PresenterPanel::ShowScreensDialog);
 	connect(soundAction, &QAction::triggered, this, &PresenterPanel::ShowSoundDialog);
 	connect(bibleAction, &QAction::triggered, this, &PresenterPanel::ShowBibleDialog);
+	connect(importPowerPoint, &QAction::triggered, this, [this]() { ImportPresentation(false); });
+	connect(importPdf, &QAction::triggered, this, [this]() { ImportPresentation(true); });
 	for (QAction *action : main->menuBar()->actions())
-		action->setVisible(action == editMenuAction || action == screensAction || action == soundAction ||
-				   action == bibleAction);
+		action->setVisible(action == fileMenuAction || action == editMenuAction || action == screensAction ||
+				   action == soundAction || action == bibleAction);
 
 	connect(qApp, &QGuiApplication::screenAdded, this, [this]() {
 		ResolveSelectedMonitor();
@@ -886,6 +916,124 @@ void PresenterPanel::ImportMedia()
 		    SelectedFolderId());
 }
 
+void PresenterPanel::ImportPresentation(bool pdf)
+{
+	const QString filter = pdf ? tr("Documento PDF (*.pdf)")
+				   : tr("Presentación de PowerPoint (*.ppt *.pptx)");
+	const QString path = QFileDialog::getOpenFileName(
+		main, pdf ? tr("Importar PDF") : tr("Importar PowerPoint"), QString(), filter);
+	if (path.isEmpty())
+		return;
+
+	const QString basePath = PresentationsDirectoryPath();
+	QDir().mkpath(basePath);
+	const QString temporaryName = QStringLiteral("import-") + QUuid::createUuid().toString(QUuid::WithoutBraces);
+	const QString temporaryPath = QDir(basePath).filePath(temporaryName);
+	QDir().mkpath(temporaryPath);
+
+	QProgressDialog progress(pdf ? tr("Convirtiendo páginas del PDF…")
+				     : tr("Convirtiendo diapositivas de PowerPoint…"),
+				 QString(), 0, 0, main);
+	progress.setWindowTitle(tr("Importar presentación"));
+	progress.setWindowModality(Qt::ApplicationModal);
+	progress.setCancelButton(nullptr);
+	progress.setMinimumDuration(0);
+	progress.show();
+	QApplication::processEvents();
+
+	const PresentationImportResult result =
+		pdf ? PresentationImporter::ImportPdf(path, temporaryPath)
+		    : PresentationImporter::ImportPowerPoint(path, temporaryPath);
+	progress.close();
+	if (!result.success) {
+		QDir(temporaryPath).removeRecursively();
+		QMessageBox::critical(main, tr("No se pudo importar la presentación"),
+				      result.error.isEmpty() ? tr("No se generaron diapositivas.") : result.error);
+		return;
+	}
+	ReplacePresentationSlides(temporaryPath, result.slidePaths.size());
+}
+
+void PresenterPanel::ClearPresentationEntries()
+{
+	for (auto iterator = entries.begin(); iterator != entries.end();) {
+		MediaEntry *entry = iterator->get();
+		if (entry->folderId != QString::fromLatin1(kPresentationsFolderId)) {
+			++iterator;
+			continue;
+		}
+		if (activeEntry == entry)
+			ClearActiveMedia();
+		else
+			ReleaseSource(entry);
+		if (entry->thumbnailView)
+			delete entry->thumbnailView.data();
+		entry->thumbnailView = nullptr;
+		delete entry->item;
+		entry->item = nullptr;
+		iterator = entries.erase(iterator);
+	}
+}
+
+void PresenterPanel::ReplacePresentationSlides(const QString &temporaryDirectory, int slideCount)
+{
+	const QString basePath = PresentationsDirectoryPath();
+	QDir base(basePath);
+	const QString currentName = QStringLiteral("current");
+	const QString backupName =
+		QStringLiteral("previous-") + QUuid::createUuid().toString(QUuid::WithoutBraces);
+	const QString temporaryName = QFileInfo(temporaryDirectory).fileName();
+	const bool hadCurrent = QDir(base.filePath(currentName)).exists();
+	const auto restoreCurrentEntries = [this, &base, &currentName]() {
+		const QString currentPath = base.filePath(currentName);
+		for (int index = 1;; ++index) {
+			const QString path = QDir(currentPath).filePath(QString::number(index) + ".png");
+			if (!QFileInfo::exists(path))
+				break;
+			AddMediaFile(path, QString::fromLatin1(kPresentationsFolderId), false);
+		}
+		ApplyLibraryFilter();
+		SaveSettings();
+	};
+
+	ClearPresentationEntries();
+	if (hadCurrent && !base.rename(currentName, backupName)) {
+		QDir(temporaryDirectory).removeRecursively();
+		restoreCurrentEntries();
+		QMessageBox::critical(main, tr("Importar presentación"),
+				      tr("No se pudo reemplazar la presentación anterior."));
+		return;
+	}
+	if (!base.rename(temporaryName, currentName)) {
+		if (hadCurrent)
+			base.rename(backupName, currentName);
+		restoreCurrentEntries();
+		QMessageBox::critical(main, tr("Importar presentación"),
+				      tr("No se pudo activar la nueva presentación."));
+		return;
+	}
+	if (hadCurrent)
+		QDir(base.filePath(backupName)).removeRecursively();
+
+	const QString currentPath = base.filePath(currentName);
+	for (int index = 1; index <= slideCount; ++index)
+		AddMediaFile(QDir(currentPath).filePath(QString::number(index) + ".png"),
+			     QString::fromLatin1(kPresentationsFolderId), false);
+	if (presentationFolderList) {
+		for (int row = 0; row < presentationFolderList->count(); ++row) {
+			if (presentationFolderList->item(row)->data(Qt::UserRole).toString() ==
+			    QString::fromLatin1(kPresentationsFolderId)) {
+				presentationFolderList->setCurrentRow(row);
+				break;
+			}
+		}
+	}
+	ApplyLibraryFilter();
+	SaveSettings();
+	QMessageBox::information(main, tr("Presentación importada"),
+				 tr("Se importaron %1 diapositivas.").arg(slideCount));
+}
+
 void PresenterPanel::ImportPaths(const QStringList &paths, const QString &folderId)
 {
 	for (const QString &path : paths)
@@ -915,7 +1063,10 @@ void PresenterPanel::AddMediaFile(const QString &path, const QString &folderId, 
 	entry->path = info.absoluteFilePath();
 	entry->folderId = destinationFolder.isEmpty() ? QStringLiteral("general") : destinationFolder;
 	entry->isImage = isImage;
-	entry->item = new QListWidgetItem(info.fileName(), mediaList);
+	const QString cardName = entry->folderId == QString::fromLatin1(kPresentationsFolderId)
+					 ? info.completeBaseName()
+					 : info.fileName();
+	entry->item = new QListWidgetItem(cardName, mediaList);
 	entry->item->setData(Qt::UserRole, entry->path);
 	entry->item->setToolTip(entry->path);
 	entry->item->setTextAlignment(Qt::AlignHCenter | Qt::AlignBottom);
@@ -1062,6 +1213,8 @@ void PresenterPanel::ClearBiblePresentation()
 	removeItem(bibleReferenceItem);
 	removeItem(bibleVerseItem);
 	removeItem(bibleBackgroundItem);
+	if (bibleBackgroundSource)
+		obs_source_media_stop(bibleBackgroundSource);
 	bibleReferenceSource = nullptr;
 	bibleVerseSource = nullptr;
 	bibleBackgroundSource = nullptr;
@@ -1084,12 +1237,38 @@ void PresenterPanel::ProjectBibleVerse(const QString &text, const QString &refer
 		return;
 
 	OBSDataAutoRelease backgroundSettings = obs_data_create();
-	obs_data_set_int(backgroundSettings, "width", canvasWidth);
-	obs_data_set_int(backgroundSettings, "height", canvasHeight);
-	obs_data_set_int(backgroundSettings, "color", 0xFF000000);
+	const QFileInfo backgroundFile(bibleBackgroundPath);
+	const QString backgroundSuffix = backgroundFile.suffix().toLower();
+	const bool backgroundIsImage =
+		backgroundFile.exists() && imageExtensions.contains(backgroundSuffix);
+	const bool backgroundIsVideo =
+		backgroundFile.exists() && videoExtensions.contains(backgroundSuffix);
+	const char *backgroundSourceType = colorSourceType;
+	if (backgroundIsImage) {
+		backgroundSourceType = obs_get_latest_input_type_id("image_source");
+		obs_data_set_string(backgroundSettings, "file", backgroundFile.absoluteFilePath().toUtf8().constData());
+	} else if (backgroundIsVideo) {
+		backgroundSourceType = obs_get_latest_input_type_id("ffmpeg_source");
+		obs_data_set_bool(backgroundSettings, "is_local_file", true);
+		obs_data_set_string(backgroundSettings, "local_file",
+				    backgroundFile.absoluteFilePath().toUtf8().constData());
+		obs_data_set_bool(backgroundSettings, "restart_on_activate", false);
+		obs_data_set_bool(backgroundSettings, "close_when_inactive", false);
+		obs_data_set_bool(backgroundSettings, "clear_on_media_end", false);
+		obs_data_set_bool(backgroundSettings, "looping", bibleBackgroundLoop);
+		obs_data_set_bool(backgroundSettings, "full_decode", false);
+	} else {
+		obs_data_set_int(backgroundSettings, "width", canvasWidth);
+		obs_data_set_int(backgroundSettings, "height", canvasHeight);
+		obs_data_set_int(backgroundSettings, "color", 0xFF000000);
+	}
+	if (!backgroundSourceType)
+		return;
 	OBSSourceAutoRelease background =
-		obs_source_create_private(colorSourceType, "Presenter Bible Background", backgroundSettings);
+		obs_source_create_private(backgroundSourceType, "Presenter Bible Background", backgroundSettings);
 	bibleBackgroundSource = background.Get();
+	if (backgroundIsVideo && bibleBackgroundSource)
+		obs_source_set_volume(bibleBackgroundSource, 0.0f);
 
 	auto createTextSource = [this, textSourceType](OBSSource &target, const QString &sourceName,
 						      const QString &content, int fontSize, int width, int height,
@@ -1142,10 +1321,21 @@ void PresenterPanel::ProjectBibleVerse(const QString &text, const QString &refer
 		ClearBiblePresentation();
 		return;
 	}
+	const struct vec2 canvasSize = {static_cast<float>(canvasWidth), static_cast<float>(canvasHeight)};
+	const struct vec2 canvasCenter = {canvasWidth / 2.0f, canvasHeight / 2.0f};
+	obs_sceneitem_set_alignment(bibleBackgroundItem, OBS_ALIGN_CENTER);
+	obs_sceneitem_set_bounds_alignment(bibleBackgroundItem, OBS_ALIGN_CENTER);
+	obs_sceneitem_set_bounds_type(bibleBackgroundItem,
+				      backgroundIsImage || backgroundIsVideo ? OBS_BOUNDS_SCALE_OUTER
+									   : OBS_BOUNDS_STRETCH);
+	obs_sceneitem_set_bounds(bibleBackgroundItem, &canvasSize);
+	obs_sceneitem_set_pos(bibleBackgroundItem, &canvasCenter);
 	const struct vec2 versePosition = {canvasWidth * 0.09f, canvasHeight * (referenceAtTop ? 0.20f : 0.08f)};
 	const struct vec2 referencePosition = {canvasWidth * 0.09f, canvasHeight * (referenceAtTop ? 0.06f : 0.84f)};
 	obs_sceneitem_set_pos(bibleVerseItem, &versePosition);
 	obs_sceneitem_set_pos(bibleReferenceItem, &referencePosition);
+	if (backgroundIsVideo)
+		obs_source_media_restart(bibleBackgroundSource);
 	if (mediaList)
 		mediaList->clearSelection();
 	currentMedia->setText(reference);
@@ -1557,6 +1747,21 @@ void PresenterPanel::ShowBibleDialog()
 
 	auto *layoutGroup = new QGroupBox(tr("Layout / lienzo de proyección"), &dialog);
 	auto *canvasLayout = new QVBoxLayout(layoutGroup);
+	auto *backgroundLabel = new QLabel(tr("Fondo personalizado (imagen o video)"), layoutGroup);
+	canvasLayout->addWidget(backgroundLabel);
+	auto *backgroundRow = new QHBoxLayout();
+	auto *backgroundEdit = new QLineEdit(layoutGroup);
+	backgroundEdit->setPlaceholderText(tr("Sin fondo personalizado"));
+	backgroundEdit->setText(bibleBackgroundPath);
+	auto *backgroundBrowse = new QPushButton(tr("Examinar…"), layoutGroup);
+	auto *backgroundClear = new QPushButton(tr("Quitar"), layoutGroup);
+	backgroundRow->addWidget(backgroundEdit, 1);
+	backgroundRow->addWidget(backgroundBrowse);
+	backgroundRow->addWidget(backgroundClear);
+	canvasLayout->addLayout(backgroundRow);
+	auto *backgroundLoop = new QCheckBox(tr("Repetir el video de fondo en bucle"), layoutGroup);
+	backgroundLoop->setChecked(bibleBackgroundLoop);
+	canvasLayout->addWidget(backgroundLoop);
 	auto *layoutPreview = new BibleLayoutPreview(layoutGroup);
 	canvasLayout->addWidget(layoutPreview, 1);
 	auto *form = new QFormLayout();
@@ -1586,10 +1791,14 @@ void PresenterPanel::ShowBibleDialog()
 	canvasLayout->addLayout(form);
 	layout->addWidget(layoutGroup, 1);
 
-	auto refreshPreview = [layoutPreview, fontCombo, fontSize, alignment, referencePosition]() {
+	auto refreshPreview = [layoutPreview, fontCombo, fontSize, alignment, referencePosition, backgroundEdit,
+			       backgroundLoop]() {
+		const QString suffix = QFileInfo(backgroundEdit->text().trimmed()).suffix().toLower();
+		backgroundLoop->setVisible(videoExtensions.contains(suffix));
 		layoutPreview->SetLayout(fontCombo->currentFont().family(), fontSize->value(),
 					 alignment->currentData().toString(),
-					 referencePosition->currentData().toString());
+					 referencePosition->currentData().toString(),
+					 backgroundEdit->text().trimmed());
 	};
 	refreshPreview();
 	connect(fontCombo, &QFontComboBox::currentFontChanged, &dialog, [refreshPreview](const QFont &) {
@@ -1603,6 +1812,17 @@ void PresenterPanel::ShowBibleDialog()
 	});
 	connect(referencePosition, qOverload<int>(&QComboBox::currentIndexChanged), &dialog,
 		[refreshPreview](int) { refreshPreview(); });
+	connect(backgroundEdit, &QLineEdit::textChanged, &dialog, [refreshPreview]() { refreshPreview(); });
+	connect(backgroundBrowse, &QPushButton::clicked, &dialog, [this, backgroundEdit]() {
+		const QString filter =
+			tr("Fondos compatibles (*.bmp *.gif *.jpeg *.jpg *.png *.tga *.webp *.mp4 *.m4v *.mov *.mkv "
+			   "*.avi *.webm *.wmv *.mpeg *.mpg)");
+		const QString path = QFileDialog::getOpenFileName(main, tr("Seleccionar fondo bíblico"), QString(),
+								  filter);
+		if (!path.isEmpty())
+			backgroundEdit->setText(path);
+	});
+	connect(backgroundClear, &QPushButton::clicked, &dialog, [backgroundEdit]() { backgroundEdit->clear(); });
 	connect(browseButton, &QPushButton::clicked, &dialog, [this, pathEdit]() {
 		const QString path = QFileDialog::getOpenFileName(main, tr("Seleccionar Biblia"), QString(),
 								  tr("Archivos de texto (*.txt)"));
@@ -1630,6 +1850,8 @@ void PresenterPanel::ShowBibleDialog()
 	bibleFontSize = fontSize->value();
 	bibleTextAlignment = alignment->currentData().toString();
 	bibleReferencePosition = referencePosition->currentData().toString();
+	bibleBackgroundPath = backgroundEdit->text().trimmed();
+	bibleBackgroundLoop = backgroundLoop->isChecked();
 	SaveSettings();
 	if (!activeBibleText.isEmpty() && !activeBibleReference.isEmpty())
 		ProjectBibleVerse(activeBibleText, activeBibleReference);
@@ -1782,6 +2004,12 @@ void PresenterPanel::ApplyBibleFilter()
 QString PresenterPanel::BibleDirectoryPath() const
 {
 	BPtr<char> path(GetAppConfigPathPtr("obs-studio/bibles"));
+	return QString::fromUtf8(path.Get());
+}
+
+QString PresenterPanel::PresentationsDirectoryPath() const
+{
+	BPtr<char> path(GetAppConfigPathPtr("obs-studio/presentations"));
 	return QString::fromUtf8(path.Get());
 }
 
@@ -2031,6 +2259,8 @@ void PresenterPanel::LoadSettings()
 	bibleFontSize = std::clamp(settings.value("bible/fontSize", 96).toInt(), 24, 180);
 	bibleTextAlignment = settings.value("bible/textAlignment", "center").toString();
 	bibleReferencePosition = settings.value("bible/referencePosition", "bottom-center").toString();
+	bibleBackgroundPath = settings.value("bible/backgroundPath").toString();
+	bibleBackgroundLoop = settings.value("bible/backgroundLoop", false).toBool();
 	LoadBibleCatalog(settings.value("bible/selectedPath").toString());
 	mediaVolumeSlider->setValue(mediaVolume);
 	if (loopButton) {
@@ -2145,6 +2375,8 @@ void PresenterPanel::SaveSettings()
 	settings.setValue("bible/fontSize", bibleFontSize);
 	settings.setValue("bible/textAlignment", bibleTextAlignment);
 	settings.setValue("bible/referencePosition", bibleReferencePosition);
+	settings.setValue("bible/backgroundPath", bibleBackgroundPath);
+	settings.setValue("bible/backgroundLoop", bibleBackgroundLoop);
 	settings.setValue("audio/mediaVolume", mediaVolume);
 	settings.setValue("audio/outputVolume", outputVolume);
 	settings.setValue("audio/gain", outputGain);

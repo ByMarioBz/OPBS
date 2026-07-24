@@ -12,8 +12,11 @@ integrar funciones de forma gradual.
 - Buscador bíblico por texto o referencia, selector de traducciones locales y cuadrícula limitada de resultados para
   mantener el rendimiento con biblias completas.
 - Menú `Biblia` para importar traducciones TXT compatibles y configurar el lienzo con vista previa: tipografía, tamaño,
-  alineación del versículo y seis posiciones posibles para la referencia.
-- Proyección bíblica 16:9 con fondo negro, versículo blanco y referencia blanca de menor tamaño.
+  alineación del versículo, seis posiciones posibles para la referencia y fondo personalizado de imagen o video.
+- Proyección bíblica 16:9 con fondo negro predeterminado, versículo blanco y referencia blanca de menor tamaño. Los
+  fondos de video pueden repetirse; sin repetición conservan el último fotograma al terminar.
+- Menú `Archivo > Importar` con opciones `PowerPoint` y `PDF`. Cada página o diapositiva se convierte en una imagen
+  numerada y reemplaza la presentación importada anteriormente.
 - Menú contextual `Eliminar` en las carpetas de `Multimedia`; quita la referencia de la biblioteca sin borrar el
   archivo original del equipo.
 - Tarjetas con nombre y miniatura; una selección sustituye inmediatamente al contenido anterior.
@@ -47,6 +50,7 @@ git diff obs-original...feature/media-presenter
 - Preparar otro equipo y transferir el historial: `PRESENTADOR_CONTINUIDAD.md`.
 - Entender componentes, datos y flujo de reproducción: `PRESENTADOR_ARQUITECTURA.md`.
 - Cargar traducciones y revisar el formato de versículos: `BIBLIAS.md`.
+- Importar y sustituir presentaciones: `PRESENTACIONES.md`.
 - Revisar decisiones, commits, pruebas y trabajo pendiente: `PRESENTADOR_HISTORIAL.md`.
 - Reglas para asistentes y colaboradores: `../AGENTS.md`.
 

@@ -78,6 +78,15 @@ build_x64/rundir/RelWithDebInfo/obs-plugins/64bit/obs-ffmpeg.dll
   `Biblia incompatible`; Reina Valera 1960 fue aceptada, cargó 31,104 versículos y quedó seleccionable en la biblioteca.
   La vista previa reaccionó al cambiar el tamaño de 96 a 120 y la referencia de centro inferior a izquierda superior;
   al guardar, `Apocalipsis 22:20` se renderizó con esos mismos ajustes en la escena real.
+- Fondo bíblico: el editor acepta imagen o video, conserva la ruta y el estado de repetición y mantiene el último
+  fotograma de un video sin bucle mediante `clear_on_media_end=false`. El fondo se ajusta para cubrir el lienzo 16:9.
+- Presentaciones: `Archivo > Importar > PDF` convirtió un PDF de prueba de tres páginas en tarjetas `1`, `2`, `3`.
+  Se seleccionó la tarjeta `2` y la misma imagen apareció en la vista previa. La primera prueba reveló una ruta WinRT
+  inválida; se cambió a carga del PDF mediante flujo de memoria y la repetición de la prueba terminó correctamente.
+- PowerPoint: el importador y su error guiado se compilaron, pero la conversión real queda pendiente en un equipo con
+  Microsoft PowerPoint instalado.
+- Entrega: `Build-Presenter.cmd`, `Package-Presenter.cmd` y `Run-Presenter.cmd -SafeMode` terminaron correctamente; la
+  aplicación respondió al iniciar y `Create-Portable.cmd` regeneró `portable/bin/64bit/Presentador.exe`.
 - La selección guardada `Auriculares (BT3280)` devolvió desde Windows el error `88890004`, correspondiente a un
   dispositivo invalidado/no disponible durante esa sesión. No confundirlo con un fallo del mezclador.
 
