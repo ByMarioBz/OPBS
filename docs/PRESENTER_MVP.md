@@ -30,6 +30,8 @@ integrar funciones de forma gradual.
 - Posición y tamaño de la ventana principal persistentes.
 - Ejecución portátil en `dist/PresentadorMultimedia` y paquete compartible en `portable`, sin alterar una instalación
   normal de OBS.
+- Actualizador binario oficial deshabilitado en Presentador y flujo de revisión selectiva de nuevas versiones de OBS,
+  para impedir que una instalación automática sobrescriba las personalizaciones.
 
 ## Ramas y base
 
@@ -52,6 +54,7 @@ git diff obs-original...feature/media-presenter
 - Cargar traducciones y revisar el formato de versículos: `BIBLIAS.md`.
 - Importar y sustituir presentaciones: `PRESENTACIONES.md`.
 - Revisar decisiones, commits, pruebas y trabajo pendiente: `PRESENTADOR_HISTORIAL.md`.
+- Revisar o incorporar versiones nuevas de OBS: `OBS_ACTUALIZACIONES.md`.
 - Reglas para asistentes y colaboradores: `../AGENTS.md`.
 
 ## Licencia

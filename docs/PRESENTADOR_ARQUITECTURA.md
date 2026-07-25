@@ -90,6 +90,13 @@ error de dispositivo invalidado y el usuario debe seleccionar una salida conecta
 
 Al ampliar la biblioteca, conservar virtualización/carga diferida. No crear una fuente OBS permanente por tarjeta.
 
+## Límite de actualización
+
+El actualizador oficial de OBS opera sobre paquetes binarios completos y no es una fuente válida de actualización para
+este derivado. Los paquetes de Presentador lo deshabilitan mediante marcador y argumento de inicio. Las novedades se
+incorporan desde `obs-public` a nivel de código después de clasificarlas contra los archivos personalizados. Consultar
+`OBS_ACTUALIZACIONES.md` y `presenter-tools/obs-upstream-policy.json`.
+
 ## Invariantes de producto
 
 1. Seleccionar un archivo siempre reemplaza al anterior.

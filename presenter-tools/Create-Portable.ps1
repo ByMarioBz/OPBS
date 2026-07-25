@@ -29,6 +29,9 @@ if (Test-Path -LiteralPath $PortableExecutable) {
     Remove-Item -LiteralPath $PortableExecutable -Force
 }
 Rename-Item -LiteralPath $CopiedObsExecutable -NewName 'Presentador.exe'
+Set-Content -LiteralPath (Join-Path $PortableBin 'disable_updater.txt') `
+    -Value 'Las actualizaciones oficiales de OBS se integran mediante la revision protegida de Presentador.' `
+    -Encoding ASCII
 
 $SourceBibleDirectory = Join-Path $ProjectRoot 'dist/PresentadorMultimedia/config/obs-studio/bibles'
 $PortableBibleDirectory = Join-Path $Destination 'config/obs-studio/bibles'
@@ -40,7 +43,7 @@ if (Test-Path -LiteralPath $SourceBibleDirectory) {
 $Launcher = @'
 @echo off
 cd /d "%~dp0bin\64bit"
-start "Presentador" Presentador.exe --portable
+start "Presentador" Presentador.exe --portable --disable-updater
 '@
 Set-Content -LiteralPath (Join-Path $Destination 'INICIAR_PRESENTADOR.bat') -Value $Launcher -Encoding ASCII
 Set-Content -LiteralPath (Join-Path $Destination 'portable_mode.txt') -Value 'Presentador portable' -Encoding ASCII

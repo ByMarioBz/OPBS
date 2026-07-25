@@ -1,0 +1,24 @@
+{
+  "productBranch": "feature/media-presenter",
+  "historicalBase": {
+    "version": "32.2.0",
+    "ref": "obs-original",
+    "commit": "7546be7266dde276d82d4681fe1ab4fd8e32cf2b"
+  },
+  "lastIntegratedUpstream": {
+    "version": "32.2.0",
+    "commit": "7546be7266dde276d82d4681fe1ab4fd8e32cf2b"
+  },
+  "protectedPrefixes": [
+    "frontend/widgets/PresenterPanel",
+    "frontend/widgets/PresentationImporter",
+    "frontend/widgets/OBSBasic",
+    "frontend/cmake/ui-widgets.cmake",
+    "libobs/obs.h",
+    "libobs/obs-source.c",
+    "plugins/obs-ffmpeg/",
+    "shared/media-playback/",
+    "presenter-tools/",
+    "docs/"
+  ]
+}

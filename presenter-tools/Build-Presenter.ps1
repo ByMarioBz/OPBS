@@ -35,4 +35,9 @@ if ($Reconfigure -or -not (Test-Path -LiteralPath $Cache)) {
 & $CMake --build $BuildDirectory --config $Configuration --target obs-studio --parallel $Jobs
 if ($LASTEXITCODE -ne 0) { throw "La compilación falló (código $LASTEXITCODE)." }
 
+$BinaryDirectory = Join-Path $BuildDirectory "rundir/$Configuration/bin/64bit"
+Set-Content -LiteralPath (Join-Path $BinaryDirectory 'disable_updater.txt') `
+    -Value 'Las actualizaciones oficiales de OBS se integran mediante la revision protegida de Presentador.' `
+    -Encoding ASCII
+
 Write-Host "Compilación terminada: build_x64/rundir/$Configuration"

@@ -1,6 +1,6 @@
 # Historial y estado de ingeniería
 
-Última actualización: 23 de julio de 2026.
+Última actualización: 25 de julio de 2026.
 
 ## Base
 
@@ -87,6 +87,11 @@ build_x64/rundir/RelWithDebInfo/obs-plugins/64bit/obs-ffmpeg.dll
   Microsoft PowerPoint instalado.
 - Entrega: `Build-Presenter.cmd`, `Package-Presenter.cmd` y `Run-Presenter.cmd -SafeMode` terminaron correctamente; la
   aplicación respondió al iniciar y `Create-Portable.cmd` regeneró `portable/bin/64bit/Presentador.exe`.
+- Actualizaciones de OBS: se deshabilitó el instalador binario oficial dentro de Presentador y se añadió una revisión
+  selectiva por versión, archivo y área protegida. OBS 32.2.1 quedó revisado con cero conflictos y aplazado porque su
+  única corrección funcional respecto de 32.2.0 afecta la captura de juegos, todavía oculta en este producto.
+  La compilación, el empaquetado, el inicio en modo seguro y la regeneración de `portable` terminaron correctamente;
+  se comprobó el marcador `disable_updater.txt` en los dos paquetes y la aplicación respondió al iniciar.
 - La selección guardada `Auriculares (BT3280)` devolvió desde Windows el error `88890004`, correspondiente a un
   dispositivo invalidado/no disponible durante esa sesión. No confundirlo con un fallo del mezclador.
 

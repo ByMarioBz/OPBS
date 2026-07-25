@@ -16,11 +16,14 @@ if (-not (Test-Path -LiteralPath $Executable)) {
 
 New-Item -ItemType Directory -Path $Destination -Force | Out-Null
 Copy-Item -Path (Join-Path $RunDirectory '*') -Destination $Destination -Recurse -Force
+Set-Content -LiteralPath (Join-Path $Destination 'bin/64bit/disable_updater.txt') `
+    -Value 'Las actualizaciones oficiales de OBS se integran mediante la revision protegida de Presentador.' `
+    -Encoding ASCII
 
 $Launcher = @'
 @echo off
 cd /d "%~dp0bin\64bit"
-start "Presentador multimedia" obs64.exe --portable
+start "Presentador multimedia" obs64.exe --portable --disable-updater
 '@
 Set-Content -LiteralPath (Join-Path $Destination 'INICIAR_PRESENTADOR.bat') -Value $Launcher -Encoding ASCII
 

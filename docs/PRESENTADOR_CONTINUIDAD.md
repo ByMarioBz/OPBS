@@ -122,6 +122,9 @@ El resultado queda en `portable`. El ejecutable es `portable/bin/64bit/Presentad
 paquete aun al abrir directamente el EXE. El generador copia las biblias locales, pero no las rutas ni la biblioteca
 multimedia personal del equipo de desarrollo.
 
+Los paquetes incluyen `bin/64bit/disable_updater.txt` y los lanzadores usan `--disable-updater`. No quitar esa
+protección: el actualizador binario de OBS no preserva un derivado personalizado.
+
 La importación PDF usa las API incluidas en Windows. La importación directa de `.ppt` y `.pptx` necesita Microsoft
 PowerPoint instalado en el equipo que realiza la conversión; una vez convertidas, las diapositivas son PNG normales y
 no necesitan PowerPoint para proyectarse.
@@ -156,6 +159,12 @@ git diff --check
 .\presenter-tools\Build-Presenter.cmd
 ```
 
-Para incorporar una versión nueva de OBS, crear primero una rama específica, actualizar `obs-public`, resolver la
-integración y probar todo el presentador. Nunca mover `obs-original`: esa referencia representa la base histórica
-32.2.0 de este producto.
+Para consultar una versión nueva de OBS:
+
+```powershell
+.\presenter-tools\Review-OBS-Update.cmd
+```
+
+Después se crea una rama específica y se incorporan únicamente los commits justificados por el informe. No fusionar
+directamente `obs-public/master` ni ejecutar el actualizador binario oficial. El procedimiento completo está en
+`OBS_ACTUALIZACIONES.md`. Nunca mover `obs-original`: esa referencia representa la base histórica 32.2.0.

@@ -10,6 +10,9 @@ Antes de modificar el proyecto, leer completos:
 3. `docs/PRESENTADOR_ARQUITECTURA.md`
 4. `docs/PRESENTADOR_HISTORIAL.md`
 
+Antes de revisar o incorporar una versión nueva de OBS, leer además `docs/OBS_ACTUALIZACIONES.md` y ejecutar
+`presenter-tools/Review-OBS-Update.cmd`.
+
 ## Principios que no se deben romper
 
 - Conservar el código original de OBS. Ocultar o desacoplar funciones en el frontend antes que eliminarlas.
@@ -19,6 +22,9 @@ Antes de modificar el proyecto, leer completos:
 - Al activar otro archivo debe existir una sola fuente multimedia activa.
 - La biblioteca guarda rutas, no copia los archivos del usuario. No versionar medios ni configuración personal.
 - No versionar `.deps`, `.tools`, `build_x64`, `build_x86` ni `dist`.
+- No ejecutar el actualizador binario oficial sobre Presentador ni fusionar directamente `obs-public/master`.
+- Una actualización de OBS se incorpora por commits justificados en una rama de revisión; `AISLADO` no significa
+  automáticamente `necesario`.
 - Probar por separado imagen, video, audio, cambio de medio, búsqueda, carpetas, persistencia, salida de pantalla y salida de audio.
 - Para cambios en reproducción o audio, comprobar además el cambio repetido entre dos archivos; una primera reproducción correcta no es suficiente.
 
