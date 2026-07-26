@@ -37,7 +37,8 @@ foreach ($DirectoryName in @('bin', 'data', 'obs-plugins')) {
 
 # Los símbolos de depuración contienen rutas absolutas del equipo de compilación y no
 # son necesarios para ejecutar OPBS. Nunca deben formar parte de una entrega pública.
-Get-ChildItem -LiteralPath $Destination -Recurse -File -Include '*.pdb', '*.ilk' |
+Get-ChildItem -LiteralPath $Destination -Recurse -File |
+    Where-Object { $_.Extension -in @('.pdb', '.ilk') } |
     Remove-Item -Force
 
 $PortableBin = Join-Path $Destination 'bin/64bit'

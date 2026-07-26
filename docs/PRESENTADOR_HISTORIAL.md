@@ -107,6 +107,8 @@ build_x64/rundir/RelWithDebInfo/obs-plugins/64bit/obs-ffmpeg.dll
   local dentro del portable. Las Biblias de prueba ya no se copian a los paquetes destinados a publicación.
 - Versiones independientes: las etiquetas `opbs-vX.Y.Z` se excluyen del cálculo de versión de OBS para mantener
   separadas la versión del producto y la versión del motor upstream.
+- Empaquetado Release: el filtrado de símbolos usa la extensión real de cada archivo para evitar el comportamiento
+  ambiguo de `-Include` con `-LiteralPath` en Windows PowerShell.
 - La selección guardada `Auriculares (BT3280)` devolvió desde Windows el error `88890004`, correspondiente a un
   dispositivo invalidado/no disponible durante esa sesión. No confundirlo con un fallo del mezclador.
 

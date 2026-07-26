@@ -31,7 +31,10 @@ if (Test-Path -LiteralPath $PrivateConfiguration) {
         throw 'La entrega portable contiene configuración o datos locales. Se canceló la publicación.'
     }
 }
-$DebugFiles = @(Get-ChildItem -LiteralPath $PayloadDirectory -Recurse -File -Include '*.pdb', '*.ilk')
+$DebugFiles = @(
+    Get-ChildItem -LiteralPath $PayloadDirectory -Recurse -File |
+        Where-Object { $_.Extension -in @('.pdb', '.ilk') }
+)
 if ($DebugFiles.Count -gt 0) {
     throw 'La entrega portable contiene símbolos de depuración con rutas locales. Se canceló la publicación.'
 }
