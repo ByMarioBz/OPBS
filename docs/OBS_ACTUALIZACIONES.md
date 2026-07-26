@@ -14,8 +14,8 @@ debe instalarse directamente sobre Presentador.
 - Los archivos modificados por Presentador y las áreas críticas se clasifican antes de aceptar cualquier cambio.
 
 Esto impide que el actualizador oficial sustituya silenciosamente los binarios personalizados. Las nuevas versiones
-terminadas de OPBS se distribuyen mediante el actualizador propio descrito en `IA_LOCAL_OPBS.md`; este documento regula
-únicamente cómo incorporar código nuevo procedente de OBS.
+terminadas de OPBS se distribuyen mediante el actualizador propio descrito en `COMPILACION_Y_RELEASES.md`; este
+documento regula únicamente cómo incorporar código nuevo procedente de OBS.
 
 ## Consultar una actualización
 

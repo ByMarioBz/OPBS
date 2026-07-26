@@ -57,8 +57,8 @@ git diff obs-original...feature/media-presenter
 - Importar y sustituir presentaciones: `PRESENTACIONES.md`.
 - Revisar decisiones, commits, pruebas y trabajo pendiente: `PRESENTADOR_HISTORIAL.md`.
 - Revisar o incorporar versiones nuevas de OBS: `OBS_ACTUALIZACIONES.md`.
-- Preparar versiones con una IA local e instalador: `IA_LOCAL_OPBS.md`.
-- Reglas para asistentes y colaboradores: `../AGENTS.md`.
+- Compilar, empaquetar y publicar versiones: `COMPILACION_Y_RELEASES.md`.
+- Reglas para colaboradores: `../AGENTS.md`.
 
 ## Licencia
 

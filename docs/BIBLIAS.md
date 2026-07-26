@@ -40,7 +40,9 @@ El archivo debe guardarse como UTF-8.
   rendimiento.
 
 Los archivos bíblicos se mantienen como datos locales de la aplicación y no forman parte del historial de código de
-OBS. Al mover el programa a otro equipo debe copiarse también la carpeta `config/obs-studio/bibles`.
+OBS ni de los paquetes públicos de OPBS. La aplicación no incluye la Reina-Valera 1960 ni otra traducción. Cada
+usuario debe importar un TXT compatible que tenga derecho a utilizar. Al mover una configuración personal a otro
+equipo debe copiarse también la carpeta `config/obs-studio/bibles`.
 
 ## Layout de proyección
 

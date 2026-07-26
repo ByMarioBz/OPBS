@@ -16,8 +16,8 @@ una interfaz enfocada en biblioteca multimedia, salida a escenario, audio, Bibli
 
 ## Compilar en Windows
 
-La guía reproducible para personas y asistentes locales está en
-[`docs/IA_LOCAL_OPBS.md`](docs/IA_LOCAL_OPBS.md).
+La guía reproducible de compilación, empaquetado y publicación está en
+[`docs/COMPILACION_Y_RELEASES.md`](docs/COMPILACION_Y_RELEASES.md).
 
 ```powershell
 .\presenter-tools\Build-Presenter.cmd

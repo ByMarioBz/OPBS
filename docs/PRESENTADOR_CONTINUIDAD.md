@@ -14,7 +14,7 @@ El repositorio Git contiene el código y su historial. Estas carpetas locales so
 | `.tools` | CMake portátil usado en este equipo | No | No, si CMake está instalado |
 | `build_x64` | resultados intermedios | No | No; se regenera |
 | `dist/OPBS` | aplicación portátil compilada | No | Solo para ejecutar sin compilar |
-| `portable` | copia limpia para compartir, con `OPBS.exe` y biblias locales | No | Para pruebas en otra PC |
+| `portable` | copia limpia para compartir, con `OPBS.exe` | No | Para pruebas en otra PC |
 | `release/<versión>` | instalador, ZIP portable y SHA-256 | No | Solo para publicar el Release |
 | medios del usuario | imágenes, videos y canciones | No | Solo si se quieren conservar |
 
@@ -120,7 +120,7 @@ Para crear una copia limpia destinada a otra persona:
 
 El resultado queda en `portable`. El ejecutable es `portable/bin/64bit/OPBS.exe`; también puede iniciarse desde
 `portable/INICIAR_OPBS.bat`. El marcador `portable/portable_mode.txt` conserva la configuración dentro del
-paquete aun al abrir directamente el EXE. El generador copia las biblias locales, pero no las rutas ni la biblioteca
+paquete aun al abrir directamente el EXE. El generador no copia Biblias, rutas, preferencias ni la biblioteca
 multimedia personal del equipo de desarrollo.
 
 Los paquetes incluyen `bin/64bit/disable_updater.txt` y los lanzadores usan `--disable-updater`. No quitar esa
@@ -135,7 +135,7 @@ Para generar una versión completa con instalador:
   -GitHubRepository PROPIETARIO/REPOSITORIO
 ```
 
-La publicación y las reglas para IA local están en `IA_LOCAL_OPBS.md`.
+La publicación y sus comprobaciones están en `COMPILACION_Y_RELEASES.md`.
 
 La importación PDF usa las API incluidas en Windows. La importación directa de `.ppt` y `.pptx` necesita Microsoft
 PowerPoint instalado en el equipo que realiza la conversión; una vez convertidas, las diapositivas son PNG normales y

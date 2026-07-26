@@ -13,7 +13,8 @@ Antes de modificar el proyecto, leer completos:
 Antes de revisar o incorporar una versión nueva de OBS, leer además `docs/OBS_ACTUALIZACIONES.md` y ejecutar
 `presenter-tools/Review-OBS-Update.cmd`.
 
-Antes de cambiar la versión, crear un instalador o publicar OPBS, leer completo `docs/IA_LOCAL_OPBS.md`.
+Antes de cambiar la versión, crear un instalador o publicar OPBS, leer completo
+`docs/COMPILACION_Y_RELEASES.md`.
 
 ## Principios que no se deben romper
 
@@ -28,7 +29,7 @@ Antes de cambiar la versión, crear un instalador o publicar OPBS, leer completo
 - Una actualización de OBS se incorpora por commits justificados en una rama de revisión; `AISLADO` no significa
   automáticamente `necesario`.
 - OPBS usa SemVer desde `0.1.0`; la única fuente de versión del producto es `presenter-tools/opbs-release.json`.
-- Compilar una versión y publicarla son autorizaciones distintas. Ninguna IA debe crear etiquetas, hacer `git push` o
+- Compilar una versión y publicarla son autorizaciones distintas. No se deben crear etiquetas, hacer `git push` ni
   publicar un GitHub Release sin una instrucción explícita para esa acción.
 - No guardar credenciales de GitHub ni claves de firma en el proyecto o los artefactos.
 - Probar por separado imagen, video, audio, cambio de medio, búsqueda, carpetas, persistencia, salida de pantalla y salida de audio.

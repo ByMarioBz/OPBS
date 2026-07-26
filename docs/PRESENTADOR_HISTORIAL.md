@@ -119,6 +119,9 @@ build_x64/rundir/RelWithDebInfo/obs-plugins/64bit/obs-ffmpeg.dll
   huérfanos al compilar OPBS sin Lua/Python.
 - Residuos incrementales: `Create-Portable.ps1` elimina cualquier módulo Lua/Python conservado por una compilación
   anterior y el generador del instalador cancela la entrega si detecta alguno.
+- Auditoría de documentación: el Release público `OPBS 0.1.0` no incluye traducciones bíblicas. Se detectaron
+  referencias antiguas que afirmaban que el portable copiaba Biblias locales; deben considerarse obsoletas y
+  corregirse para reflejar que cada usuario importa sus propios archivos TXT compatibles.
 - La selección guardada `Auriculares (BT3280)` devolvió desde Windows el error `88890004`, correspondiente a un
   dispositivo invalidado/no disponible durante esa sesión. No confundirlo con un fallo del mezclador.
 
