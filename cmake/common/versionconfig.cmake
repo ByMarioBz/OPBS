@@ -8,7 +8,9 @@ set(_obs_version_canonical ${_obs_default_version})
 # Attempt to automatically discover expected OBS version
 if(NOT DEFINED OBS_VERSION_OVERRIDE AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.git")
   execute_process(
-    COMMAND git describe --always --tags --dirty=-modified
+    # OPBS uses opbs-vX.Y.Z release tags. Restrict this lookup to numeric
+    # upstream OBS tags so product releases cannot corrupt OBS_VERSION.
+    COMMAND git describe --always --tags --match "[0-9]*" --dirty=-modified
     OUTPUT_VARIABLE _obs_version
     ERROR_VARIABLE _git_describe_err
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"

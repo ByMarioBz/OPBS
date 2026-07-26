@@ -105,6 +105,8 @@ build_x64/rundir/RelWithDebInfo/obs-plugins/64bit/obs-ffmpeg.dll
   dirección al manifiesto de actualización de OPBS 0.1.0.
 - Privacidad de Releases: el empaquetador elimina símbolos de depuración y rechaza cualquier configuración o dato
   local dentro del portable. Las Biblias de prueba ya no se copian a los paquetes destinados a publicación.
+- Versiones independientes: las etiquetas `opbs-vX.Y.Z` se excluyen del cálculo de versión de OBS para mantener
+  separadas la versión del producto y la versión del motor upstream.
 - La selección guardada `Auriculares (BT3280)` devolvió desde Windows el error `88890004`, correspondiente a un
   dispositivo invalidado/no disponible durante esa sesión. No confundirlo con un fallo del mezclador.
 
