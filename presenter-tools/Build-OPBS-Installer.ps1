@@ -38,6 +38,13 @@ $DebugFiles = @(
 if ($DebugFiles.Count -gt 0) {
     throw 'La entrega portable contiene símbolos de depuración con rutas locales. Se canceló la publicación.'
 }
+$StaleScriptingFiles = @(
+    Get-ChildItem -LiteralPath $PayloadDirectory -Recurse -File |
+        Where-Object { $_.FullName -match 'obs-scripting|obslua|obspython' }
+)
+if ($StaleScriptingFiles.Count -gt 0) {
+    throw 'La entrega portable contiene módulos de scripting desactivados. Se canceló la publicación.'
+}
 
 $ReleaseDirectory = Join-Path $ProjectRoot "release/$Version"
 New-Item -ItemType Directory -Path $ReleaseDirectory -Force | Out-Null

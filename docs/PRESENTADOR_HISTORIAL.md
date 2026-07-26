@@ -117,6 +117,8 @@ build_x64/rundir/RelWithDebInfo/obs-plugins/64bit/obs-ffmpeg.dll
   utilice, evitando que los wrappers SWIG incorporen rutas locales en la entrega.
 - Frontend Tools: `forms/scripts.ui` solo participa cuando `ENABLE_SCRIPTING` está activo; esto evita símbolos MOC
   huérfanos al compilar OPBS sin Lua/Python.
+- Residuos incrementales: `Create-Portable.ps1` elimina cualquier módulo Lua/Python conservado por una compilación
+  anterior y el generador del instalador cancela la entrega si detecta alguno.
 - La selección guardada `Auriculares (BT3280)` devolvió desde Windows el error `88890004`, correspondiente a un
   dispositivo invalidado/no disponible durante esa sesión. No confundirlo con un fallo del mezclador.
 

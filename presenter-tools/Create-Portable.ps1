@@ -41,6 +41,18 @@ Get-ChildItem -LiteralPath $Destination -Recurse -File |
     Where-Object { $_.Extension -in @('.pdb', '.ilk') } |
     Remove-Item -Force
 
+# Una compilación incremental puede conservar módulos de funciones ahora
+# desactivadas. El portable de OPBS no debe arrastrar scripting obsoleto.
+$StaleScriptingTargets = @(
+    (Join-Path $Destination 'bin/64bit/obs-scripting.dll'),
+    (Join-Path $Destination 'data/obs-scripting')
+)
+foreach ($StaleTarget in $StaleScriptingTargets) {
+    if (Test-Path -LiteralPath $StaleTarget) {
+        Remove-Item -LiteralPath $StaleTarget -Recurse -Force
+    }
+}
+
 $PortableBin = Join-Path $Destination 'bin/64bit'
 $CopiedObsExecutable = Join-Path $PortableBin 'obs64.exe'
 Rename-Item -LiteralPath $CopiedObsExecutable -NewName 'OPBS.exe'
