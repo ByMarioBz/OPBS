@@ -45,7 +45,7 @@ target_sources(
 
 target_sources(
   frontend-tools
-  PRIVATE forms/auto-scene-switcher.ui forms/captions.ui forms/output-timer.ui forms/scripts.ui
+  PRIVATE forms/auto-scene-switcher.ui forms/captions.ui forms/output-timer.ui
 )
 
 target_compile_options(
@@ -69,7 +69,7 @@ target_link_libraries(
 add_subdirectory("${CMAKE_SOURCE_DIR}/shared/obs-scripting" "${CMAKE_BINARY_DIR}/shared/obs-scripting")
 
 if(ENABLE_SCRIPTING AND TARGET OBS::scripting)
-  target_sources(frontend-tools PRIVATE scripts.cpp scripts.hpp)
+  target_sources(frontend-tools PRIVATE scripts.cpp scripts.hpp forms/scripts.ui)
   target_link_libraries(frontend-tools PRIVATE OBS::scripting)
   target_enable_feature(frontend-tools "Scripting Support (Frontend)" ENABLE_SCRIPTING)
 endif()

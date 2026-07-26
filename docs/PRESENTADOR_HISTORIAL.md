@@ -115,6 +115,8 @@ build_x64/rundir/RelWithDebInfo/obs-plugins/64bit/obs-ffmpeg.dll
   compilaciones x64 y x86 para cubrir también los módulos auxiliares de 32 bits.
 - Scripting: Lua/Python se conserva en el árbol de OBS, pero `Build-Presenter.ps1` lo desactiva mientras OPBS no lo
   utilice, evitando que los wrappers SWIG incorporen rutas locales en la entrega.
+- Frontend Tools: `forms/scripts.ui` solo participa cuando `ENABLE_SCRIPTING` está activo; esto evita símbolos MOC
+  huérfanos al compilar OPBS sin Lua/Python.
 - La selección guardada `Auriculares (BT3280)` devolvió desde Windows el error `88890004`, correspondiente a un
   dispositivo invalidado/no disponible durante esa sesión. No confundirlo con un fallo del mezclador.
 
