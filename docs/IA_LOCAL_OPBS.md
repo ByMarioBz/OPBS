@@ -21,6 +21,7 @@ automatizar tareas repetibles, pero no decide por sí sola versiones, funciones,
 4. No recuperar transmisión, grabación, captura u otras funciones ocultas sin una instrucción explícita del dueño.
 5. No borrar código original de OBS para simplificar una función; ocultarlo o desacoplarlo.
 6. No borrar medios, biblias, presentaciones ni configuraciones personales.
+7. No incluir Biblias, preferencias locales ni símbolos de depuración en un Release público.
 7. No publicar con cambios sin confirmar, pruebas fallidas o un árbol Git sucio.
 8. No guardar contraseñas, tokens de GitHub o claves dentro del repositorio, scripts, instalador o aplicación.
 9. No usar `gh release upload --clobber` ni sustituir artefactos de una versión ya publicada.

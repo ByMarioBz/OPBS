@@ -24,6 +24,18 @@ if (-not $MakeNsis) {
 & (Join-Path $PSScriptRoot 'Create-Portable.ps1') -Configuration $Configuration
 
 $PayloadDirectory = Join-Path $ProjectRoot 'portable'
+$PrivateConfiguration = Join-Path $PayloadDirectory 'config'
+if (Test-Path -LiteralPath $PrivateConfiguration) {
+    $PrivateFiles = @(Get-ChildItem -LiteralPath $PrivateConfiguration -Recurse -File)
+    if ($PrivateFiles.Count -gt 0) {
+        throw 'La entrega portable contiene configuración o datos locales. Se canceló la publicación.'
+    }
+}
+$DebugFiles = @(Get-ChildItem -LiteralPath $PayloadDirectory -Recurse -File -Include '*.pdb', '*.ilk')
+if ($DebugFiles.Count -gt 0) {
+    throw 'La entrega portable contiene símbolos de depuración con rutas locales. Se canceló la publicación.'
+}
+
 $ReleaseDirectory = Join-Path $ProjectRoot "release/$Version"
 New-Item -ItemType Directory -Path $ReleaseDirectory -Force | Out-Null
 $InstallerPath = Join-Path $ReleaseDirectory ([string]$ConfigurationData.installerAsset)

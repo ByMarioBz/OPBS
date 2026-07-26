@@ -35,6 +35,11 @@ foreach ($DirectoryName in @('bin', 'data', 'obs-plugins')) {
         -Destination (Join-Path $Destination $DirectoryName) -Recurse
 }
 
+# Los símbolos de depuración contienen rutas absolutas del equipo de compilación y no
+# son necesarios para ejecutar OPBS. Nunca deben formar parte de una entrega pública.
+Get-ChildItem -LiteralPath $Destination -Recurse -File -Include '*.pdb', '*.ilk' |
+    Remove-Item -Force
+
 $PortableBin = Join-Path $Destination 'bin/64bit'
 $CopiedObsExecutable = Join-Path $PortableBin 'obs64.exe'
 Rename-Item -LiteralPath $CopiedObsExecutable -NewName 'OPBS.exe'
@@ -42,13 +47,6 @@ Set-Content -LiteralPath (Join-Path $PortableBin 'disable_updater.txt') `
     -Value 'OPBS utiliza exclusivamente su actualizador de GitHub Releases.' -Encoding ASCII
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'runtime/OPBS-Updater.ps1') -Destination $PortableBin -Force
 Copy-Item -LiteralPath $ReleaseConfigurationPath -Destination (Join-Path $PortableBin 'opbs-release.json') -Force
-
-$SourceBibleDirectory = Join-Path $ProjectRoot 'dist/OPBS/config/obs-studio/bibles'
-$PortableBibleDirectory = Join-Path $Destination 'config/obs-studio/bibles'
-if (Test-Path -LiteralPath $SourceBibleDirectory) {
-    New-Item -ItemType Directory -Path $PortableBibleDirectory -Force | Out-Null
-    Copy-Item -Path (Join-Path $SourceBibleDirectory '*.txt') -Destination $PortableBibleDirectory -Force
-}
 
 $Launcher = @'
 @echo off
@@ -65,6 +63,7 @@ OPBS $($ReleaseConfiguration.version)
 2. También puedes abrir bin\64bit\OPBS.exe directamente.
 3. La configuración se guarda dentro de esta carpeta.
 4. Los archivos multimedia importados no se copian; deben seguir disponibles en sus rutas originales.
+5. Las Biblias y preferencias locales no se incluyen en las entregas públicas.
 "@
 Set-Content -LiteralPath (Join-Path $Destination 'LEEME.txt') -Value $Readme -Encoding UTF8
 
