@@ -101,6 +101,8 @@ La versión y el repositorio de OPBS viven en `presenter-tools/opbs-release.json
 usuario en `%LOCALAPPDATA%\Programs\OPBS`, crea accesos directos y registra `Uninstall.exe`.
 Las etiquetas `opbs-vX.Y.Z` están excluidas del cálculo interno de `OBS_VERSION`; el motor solo reconoce etiquetas
 numéricas del proyecto upstream para evitar que ambas numeraciones interfieran.
+Las compilaciones públicas de Windows mapean las rutas de fuentes y PDB a nombres neutros para no exponer el
+directorio o usuario del equipo que genera el Release.
 
 ## Invariantes de producto
 

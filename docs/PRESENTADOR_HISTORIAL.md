@@ -109,6 +109,8 @@ build_x64/rundir/RelWithDebInfo/obs-plugins/64bit/obs-ffmpeg.dll
   separadas la versión del producto y la versión del motor upstream.
 - Empaquetado Release: el filtrado de símbolos usa la extensión real de cada archivo para evitar el comportamiento
   ambiguo de `-Include` con `-LiteralPath` en Windows PowerShell.
+- Rutas privadas: MSVC usa `/pathmap` y `/PDBALTPATH` para que los binarios públicos no incorporen el nombre de usuario
+  ni el directorio local de compilación.
 - La selección guardada `Auriculares (BT3280)` devolvió desde Windows el error `88890004`, correspondiente a un
   dispositivo invalidado/no disponible durante esa sesión. No confundirlo con un fallo del mezclador.
 

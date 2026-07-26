@@ -17,6 +17,12 @@ include(compilerconfig)
 include(defaults)
 include(helpers)
 
+if(MSVC)
+  # Public OPBS binaries must not expose the local build directory.
+  add_compile_options("/pathmap:${CMAKE_SOURCE_DIR}=.")
+  add_link_options("/PDBALTPATH:%_PDB%")
+endif()
+
 option(ENABLE_FRONTEND "Enable building with UI (requires Qt)" ON)
 option(ENABLE_SCRIPTING "Enable scripting support" ON)
 option(ENABLE_HEVC "Enable HEVC encoders" ON)
