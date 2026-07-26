@@ -113,6 +113,8 @@ build_x64/rundir/RelWithDebInfo/obs-plugins/64bit/obs-ffmpeg.dll
   ni el directorio local de compilación.
 - MSVC 18 requiere `/experimental:deterministic` para aplicar `/pathmap`; las opciones se definen antes de separar las
   compilaciones x64 y x86 para cubrir también los módulos auxiliares de 32 bits.
+- Scripting: Lua/Python se conserva en el árbol de OBS, pero `Build-Presenter.ps1` lo desactiva mientras OPBS no lo
+  utilice, evitando que los wrappers SWIG incorporen rutas locales en la entrega.
 - La selección guardada `Auriculares (BT3280)` devolvió desde Windows el error `88890004`, correspondiente a un
   dispositivo invalidado/no disponible durante esa sesión. No confundirlo con un fallo del mezclador.
 

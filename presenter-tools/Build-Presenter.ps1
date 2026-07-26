@@ -35,10 +35,11 @@ $Cache = Join-Path $BuildDirectory 'CMakeCache.txt'
 if ($Reconfigure -or -not (Test-Path -LiteralPath $Cache)) {
     $PrefixPath = "$($ObsDependencies.FullName);$($QtDependencies.FullName)"
     & $CMake -S $ProjectRoot -B $BuildDirectory -G $Generator -A x64 "-DCMAKE_PREFIX_PATH=$PrefixPath" `
-        -DENABLE_BROWSER=OFF "-DOPBS_VERSION=$OpbsVersion"
+        -DENABLE_BROWSER=OFF -DENABLE_SCRIPTING=OFF "-DOPBS_VERSION=$OpbsVersion"
     if ($LASTEXITCODE -ne 0) { throw "CMake no pudo configurar el proyecto (código $LASTEXITCODE)." }
 } else {
-    & $CMake -S $ProjectRoot -B $BuildDirectory -DENABLE_BROWSER=OFF "-DOPBS_VERSION=$OpbsVersion"
+    & $CMake -S $ProjectRoot -B $BuildDirectory -DENABLE_BROWSER=OFF -DENABLE_SCRIPTING=OFF `
+        "-DOPBS_VERSION=$OpbsVersion"
     if ($LASTEXITCODE -ne 0) { throw "CMake no pudo actualizar la versión de OPBS (código $LASTEXITCODE)." }
 }
 

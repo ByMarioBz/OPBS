@@ -103,6 +103,8 @@ Las etiquetas `opbs-vX.Y.Z` están excluidas del cálculo interno de `OBS_VERSIO
 numéricas del proyecto upstream para evitar que ambas numeraciones interfieran.
 Las compilaciones públicas de Windows mapean las rutas de fuentes y PDB a nombres neutros para no exponer el
 directorio o usuario del equipo que genera el Release.
+El scripting Lua/Python permanece en el código original, pero se compila desactivado mientras OPBS no lo exponga;
+esto evita distribuir módulos SWIG innecesarios y metadatos de generación locales.
 
 ## Invariantes de producto
 
