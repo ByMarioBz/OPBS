@@ -55,6 +55,7 @@
 #include <QPainter>
 #include <QProgressBar>
 #include <QProgressDialog>
+#include <QProcess>
 #include <QPushButton>
 #include <QScreen>
 #include <QScrollBar>
@@ -79,6 +80,10 @@
 #include <functional>
 
 #include "moc_PresenterPanel.cpp"
+
+#ifndef OPBS_VERSION
+#define OPBS_VERSION "0.1.0"
+#endif
 
 namespace {
 constexpr int kThumbnailWidth = 256;
@@ -421,9 +426,10 @@ void PresenterPanel::BuildInterface()
 	auto *headerLayout = new QHBoxLayout(header);
 	headerLayout->setContentsMargins(22, 14, 22, 14);
 	auto *headings = new QVBoxLayout();
-	auto *title = new QLabel(tr("Presentador multimedia"), header);
+	auto *title = new QLabel(tr("OPBS"), header);
 	title->setObjectName("presenterTitle");
-	auto *subtitle = new QLabel(tr("Selecciona un archivo para enviarlo al escenario"), header);
+	auto *subtitle =
+		new QLabel(tr("Presentador multimedia integrado · Versión %1").arg(QString::fromLatin1(OPBS_VERSION)), header);
 	subtitle->setObjectName("presenterSubtitle");
 	headings->addWidget(title);
 	headings->addWidget(subtitle);
@@ -800,6 +806,15 @@ void PresenterPanel::BuildTopMenu()
 	screensAction = main->menuBar()->addAction(tr("Pantallas"));
 	soundAction = main->menuBar()->addAction(tr("Sonido"));
 	bibleAction = main->menuBar()->addAction(tr("Biblia"));
+	auto *helpMenu = main->menuBar()->addMenu(tr("Ayuda"));
+	helpMenuAction = helpMenu->menuAction();
+	opbsUpdateAction = helpMenu->addAction(tr("Buscar actualizaciones de OPBS"));
+	helpMenu->addSeparator();
+	helpMenu->addAction(tr("Acerca de OPBS"), this, [this]() {
+		QMessageBox::about(main, tr("Acerca de OPBS"),
+				   tr("OPBS %1\nPresentador integrado basado en OBS Studio.")
+					   .arg(QString::fromLatin1(OPBS_VERSION)));
+	});
 	connect(fitToScreenAction, &QAction::toggled, this, [this](bool enabled) {
 		fitContentToScreen = enabled;
 		ApplyActiveItemBounds();
@@ -809,11 +824,12 @@ void PresenterPanel::BuildTopMenu()
 	connect(screensAction, &QAction::triggered, this, &PresenterPanel::ShowScreensDialog);
 	connect(soundAction, &QAction::triggered, this, &PresenterPanel::ShowSoundDialog);
 	connect(bibleAction, &QAction::triggered, this, &PresenterPanel::ShowBibleDialog);
+	connect(opbsUpdateAction, &QAction::triggered, this, &PresenterPanel::LaunchOpbsUpdater);
 	connect(importPowerPoint, &QAction::triggered, this, [this]() { ImportPresentation(false); });
 	connect(importPdf, &QAction::triggered, this, [this]() { ImportPresentation(true); });
 	for (QAction *action : main->menuBar()->actions())
 		action->setVisible(action == fileMenuAction || action == editMenuAction || action == screensAction ||
-				   action == soundAction || action == bibleAction);
+				   action == soundAction || action == bibleAction || action == helpMenuAction);
 
 	connect(qApp, &QGuiApplication::screenAdded, this, [this]() {
 		ResolveSelectedMonitor();
@@ -825,6 +841,33 @@ void PresenterPanel::BuildTopMenu()
 			SetStageEnabled(true, false);
 		UpdateStageStatus();
 	});
+}
+
+void PresenterPanel::LaunchOpbsUpdater(bool silent)
+{
+#ifdef _WIN32
+	const QString applicationDirectory = QCoreApplication::applicationDirPath();
+	const QString updaterPath = QDir(applicationDirectory).filePath(QStringLiteral("OPBS-Updater.ps1"));
+	if (!QFileInfo::exists(updaterPath)) {
+		QMessageBox::critical(main, tr("Actualizaciones de OPBS"),
+				      tr("No se encontró el componente de actualización de OPBS."));
+		return;
+	}
+
+	QStringList arguments = {QStringLiteral("-NoProfile"), QStringLiteral("-ExecutionPolicy"),
+				 QStringLiteral("Bypass"), QStringLiteral("-File"), updaterPath,
+				 QStringLiteral("-CurrentProcessId"),
+				 QString::number(QCoreApplication::applicationPid())};
+	if (silent)
+		arguments.append(QStringLiteral("-Silent"));
+	if (!QProcess::startDetached(QStringLiteral("powershell.exe"), arguments, applicationDirectory)) {
+		QMessageBox::critical(main, tr("Actualizaciones de OPBS"),
+				      tr("No fue posible iniciar el comprobador de actualizaciones."));
+	}
+#else
+	QMessageBox::information(main, tr("Actualizaciones de OPBS"),
+				 tr("El actualizador de OPBS está disponible actualmente para Windows."));
+#endif
 }
 
 void PresenterPanel::Initialize()
@@ -844,7 +887,8 @@ void PresenterPanel::Initialize()
 		originalCentralWidget->setParent(main);
 	}
 	main->setCentralWidget(this);
-	main->setWindowTitle(tr("Presentador multimedia — basado en OBS Studio"));
+	main->setWindowTitle(tr("OPBS %1 — Presentador integrado").arg(QString::fromLatin1(OPBS_VERSION)));
+	QTimer::singleShot(8000, this, [this]() { LaunchOpbsUpdater(true); });
 	main->statusBar()->hide();
 	// Esta variante no utiliza el asistente de transmisión/grabación de OBS.
 	config_set_bool(App()->GetUserConfig(), "General", "FirstRun", true);

@@ -1,6 +1,6 @@
 # Actualizaciones controladas de OBS
 
-Presentador es un derivado de OBS, no una instalación oficial sin modificaciones. El actualizador binario de OBS no
+OPBS es un derivado de OBS, no una instalación oficial sin modificaciones. El actualizador binario de OBS no
 puede distinguir las funciones originales de la interfaz, reproducción, audio y proyección añadidas aquí. Por eso no
 debe instalarse directamente sobre Presentador.
 
@@ -13,8 +13,9 @@ debe instalarse directamente sobre Presentador.
 - La versión integrada se declara en `presenter-tools/obs-upstream-policy.json`.
 - Los archivos modificados por Presentador y las áreas críticas se clasifican antes de aceptar cualquier cambio.
 
-Esto impide que el actualizador oficial sustituya silenciosamente los binarios personalizados. No impide consultar ni
-incorporar mejoras de OBS: cambia el proceso de una instalación automática a una integración de código revisada.
+Esto impide que el actualizador oficial sustituya silenciosamente los binarios personalizados. Las nuevas versiones
+terminadas de OPBS se distribuyen mediante el actualizador propio descrito en `IA_LOCAL_OPBS.md`; este documento regula
+únicamente cómo incorporar código nuevo procedente de OBS.
 
 ## Consultar una actualización
 

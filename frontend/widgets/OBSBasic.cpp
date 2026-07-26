@@ -1308,7 +1308,8 @@ void OBSBasic::OBSInit()
 		config_save_safe(App()->GetAppConfig(), "tmp", nullptr);
 	}
 #endif
-	TimedCheckForUpdates();
+	/* OPBS uses its own GitHub Releases updater from PresenterPanel.
+	 * Keep the original OBS updater source available, but never start it in this product. */
 
 	emit userSettingChanged("BasicWindow", "VerticalVolumeControl");
 

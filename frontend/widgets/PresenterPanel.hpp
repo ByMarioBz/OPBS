@@ -98,10 +98,12 @@ class PresenterPanel : public QWidget {
 	QPointer<QCheckBox> stageToggle;
 	QPointer<QAction> editMenuAction;
 	QPointer<QAction> fileMenuAction;
+	QPointer<QAction> helpMenuAction;
 	QPointer<QAction> fitToScreenAction;
 	QPointer<QAction> screensAction;
 	QPointer<QAction> soundAction;
 	QPointer<QAction> bibleAction;
+	QPointer<QAction> opbsUpdateAction;
 	QPointer<QWidget> originalCentralWidget;
 	QPointer<QTimer> timelineTimer;
 	QPointer<QTimer> seekTimer;
@@ -157,6 +159,7 @@ class PresenterPanel : public QWidget {
 	void ShowScreensDialog();
 	void ShowSoundDialog();
 	void ShowBibleDialog();
+	void LaunchOpbsUpdater(bool silent = false);
 	void ImportPresentation(bool pdf);
 	void ReplacePresentationSlides(const QString &temporaryDirectory, int slideCount);
 	void ClearPresentationEntries();

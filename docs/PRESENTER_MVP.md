@@ -1,6 +1,7 @@
 # Presentador multimedia
 
-Aplicación de escritorio para organizar y proyectar imágenes, videos y audio, construida sobre OBS Studio 32.2.0.
+OPBS es una aplicación de escritorio para organizar y proyectar imágenes, videos y audio, construida sobre OBS Studio
+32.2.0. La `P` identifica el Presentador integrado. La versión inicial propia es `0.1.0`.
 El frontend clásico de OBS está temporalmente oculto, pero su implementación permanece disponible para recuperar e
 integrar funciones de forma gradual.
 
@@ -28,10 +29,11 @@ integrar funciones de forma gradual.
 - Menú `Editar` con ajuste opcional de fotos y videos al área completa 16:9; la preferencia se conserva.
 - Ventanas `Pantallas`, `Sonido` y `Biblia`; se conservan monitor, dispositivo, audio y layout bíblico seleccionados.
 - Posición y tamaño de la ventana principal persistentes.
-- Ejecución portátil en `dist/PresentadorMultimedia` y paquete compartible en `portable`, sin alterar una instalación
+- Ejecución portátil en `dist/OPBS` y paquete compartible en `portable`, sin alterar una instalación
   normal de OBS.
-- Actualizador binario oficial deshabilitado en Presentador y flujo de revisión selectiva de nuevas versiones de OBS,
-  para impedir que una instalación automática sobrescriba las personalizaciones.
+- Actualizador oficial de OBS inactivo; OPBS consulta exclusivamente los Releases del repositorio GitHub configurado y
+  verifica el SHA-256 antes de abrir su instalador.
+- Instalador propio de Windows con acceso directo de escritorio, accesos del menú Inicio y desinstalador.
 
 ## Ramas y base
 
@@ -55,6 +57,7 @@ git diff obs-original...feature/media-presenter
 - Importar y sustituir presentaciones: `PRESENTACIONES.md`.
 - Revisar decisiones, commits, pruebas y trabajo pendiente: `PRESENTADOR_HISTORIAL.md`.
 - Revisar o incorporar versiones nuevas de OBS: `OBS_ACTUALIZACIONES.md`.
+- Preparar versiones con una IA local e instalador: `IA_LOCAL_OPBS.md`.
 - Reglas para asistentes y colaboradores: `../AGENTS.md`.
 
 ## Licencia

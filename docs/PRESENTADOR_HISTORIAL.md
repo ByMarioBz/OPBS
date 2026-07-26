@@ -92,6 +92,15 @@ build_x64/rundir/RelWithDebInfo/obs-plugins/64bit/obs-ffmpeg.dll
   única corrección funcional respecto de 32.2.0 afecta la captura de juegos, todavía oculta en este producto.
   La compilación, el empaquetado, el inicio en modo seguro y la regeneración de `portable` terminaron correctamente;
   se comprobó el marcador `disable_updater.txt` en los dos paquetes y la aplicación respondió al iniciar.
+- Identidad OPBS: se creó la versión propia `0.1.0`, se mostró en título y cabecera, y se añadió
+  `Ayuda > Buscar actualizaciones de OPBS`. La comprobación usa GitHub Releases del repositorio propio y exige validar
+  el SHA-256 antes de ejecutar `OPBS-Setup-x64.exe`; el repositorio queda pendiente de configurar.
+- Distribución: NSIS 3.12 generó el instalador, el ZIP portable y su SHA-256. El instalador creó `OPBS.exe`,
+  `Uninstall.exe`, un acceso directo de escritorio y accesos del menú Inicio en una instalación temporal.
+- Desinstalación: la prueba silenciosa eliminó ejecutables, complementos y accesos directos, conservó la configuración
+  del usuario y no dejó el desinstalador ni el directorio del menú Inicio.
+- Actualización OPBS: la comprobación automática silenciosa se ejecutó al iniciar sin mostrar errores cuando el
+  repositorio aún no está configurado; la comprobación manual conserva mensajes claros para orientar la configuración.
 - La selección guardada `Auriculares (BT3280)` devolvió desde Windows el error `88890004`, correspondiente a un
   dispositivo invalidado/no disponible durante esa sesión. No confundirlo con un fallo del mezclador.
 
@@ -117,5 +126,5 @@ git bisect bad feature/media-presenter
 git bisect good obs-original
 ```
 
-Los logs portátiles se encuentran en `dist/PresentadorMultimedia/config/obs-studio/logs`. Para audio buscar
+Los logs portátiles se encuentran en `dist/OPBS/config/obs-studio/logs`. Para audio buscar
 `Audio monitoring device`, `audio_monitor` y errores WASAPI; para medios buscar el nombre de la fuente y FFmpeg.

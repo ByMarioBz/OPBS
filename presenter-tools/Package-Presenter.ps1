@@ -7,25 +7,49 @@ param(
 $ErrorActionPreference = 'Stop'
 $ProjectRoot = Split-Path -Parent $PSScriptRoot
 $RunDirectory = Join-Path $ProjectRoot "build_x64/rundir/$Configuration"
-$Destination = Join-Path $ProjectRoot 'dist/PresentadorMultimedia'
-$Executable = Join-Path $RunDirectory 'bin/64bit/obs64.exe'
+$Destination = Join-Path $ProjectRoot 'dist/OPBS'
+$SourceExecutable = Join-Path $RunDirectory 'bin/64bit/obs64.exe'
+$ReleaseConfigurationPath = Join-Path $PSScriptRoot 'opbs-release.json'
+$ReleaseConfiguration = Get-Content -Raw -LiteralPath $ReleaseConfigurationPath | ConvertFrom-Json
 
-if (-not (Test-Path -LiteralPath $Executable)) {
-    throw "No existe $Executable. Ejecuta primero Build-Presenter.ps1."
+if (-not (Test-Path -LiteralPath $SourceExecutable)) {
+    throw "No existe $SourceExecutable. Ejecuta primero Build-Presenter.ps1."
 }
 
 New-Item -ItemType Directory -Path $Destination -Force | Out-Null
-Copy-Item -Path (Join-Path $RunDirectory '*') -Destination $Destination -Recurse -Force
-Set-Content -LiteralPath (Join-Path $Destination 'bin/64bit/disable_updater.txt') `
-    -Value 'Las actualizaciones oficiales de OBS se integran mediante la revision protegida de Presentador.' `
-    -Encoding ASCII
+
+$LegacyConfiguration = Join-Path $ProjectRoot 'dist/PresentadorMultimedia/config'
+$DestinationConfiguration = Join-Path $Destination 'config'
+if (-not (Test-Path -LiteralPath $DestinationConfiguration) -and (Test-Path -LiteralPath $LegacyConfiguration)) {
+    Copy-Item -LiteralPath $LegacyConfiguration -Destination $DestinationConfiguration -Recurse
+}
+
+foreach ($DirectoryName in @('bin', 'data', 'obs-plugins')) {
+    $GeneratedDestination = Join-Path $Destination $DirectoryName
+    if (Test-Path -LiteralPath $GeneratedDestination) {
+        Remove-Item -LiteralPath $GeneratedDestination -Recurse -Force
+    }
+    Copy-Item -LiteralPath (Join-Path $RunDirectory $DirectoryName) -Destination $GeneratedDestination -Recurse
+}
+
+$BinaryDirectory = Join-Path $Destination 'bin/64bit'
+$CopiedObsExecutable = Join-Path $BinaryDirectory 'obs64.exe'
+$OpbsExecutable = Join-Path $BinaryDirectory 'OPBS.exe'
+if (Test-Path -LiteralPath $OpbsExecutable) {
+    Remove-Item -LiteralPath $OpbsExecutable -Force
+}
+Rename-Item -LiteralPath $CopiedObsExecutable -NewName 'OPBS.exe'
+Set-Content -LiteralPath (Join-Path $BinaryDirectory 'disable_updater.txt') `
+    -Value 'OPBS utiliza exclusivamente su actualizador de GitHub Releases.' -Encoding ASCII
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'runtime/OPBS-Updater.ps1') -Destination $BinaryDirectory -Force
+Copy-Item -LiteralPath $ReleaseConfigurationPath -Destination (Join-Path $BinaryDirectory 'opbs-release.json') -Force
 
 $Launcher = @'
 @echo off
 cd /d "%~dp0bin\64bit"
-start "Presentador multimedia" obs64.exe --portable --disable-updater
+start "OPBS" OPBS.exe --portable --disable-updater
 '@
-Set-Content -LiteralPath (Join-Path $Destination 'INICIAR_PRESENTADOR.bat') -Value $Launcher -Encoding ASCII
+Set-Content -LiteralPath (Join-Path $Destination 'INICIAR_OPBS.bat') -Value $Launcher -Encoding ASCII
 
-Write-Host "Aplicación portátil actualizada: $Destination"
+Write-Host "OPBS $($ReleaseConfiguration.version) empaquetado en: $Destination"
 Write-Warning 'La carpeta config conserva preferencias y rutas locales existentes; no contiene los archivos multimedia.'

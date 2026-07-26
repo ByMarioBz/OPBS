@@ -39,6 +39,7 @@ target_link_libraries(
     OBS::json11
     OBS::bpm
 )
+target_compile_definitions(obs-studio PRIVATE "OPBS_VERSION=\"${OPBS_VERSION}\"")
 
 include(cmake/ui-components.cmake)
 include(cmake/ui-dialogs.cmake)

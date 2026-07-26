@@ -13,8 +13,9 @@ El repositorio Git contiene el código y su historial. Estas carpetas locales so
 | `.deps` | dependencias binarias de OBS y Qt | No | Sí, se descarga o copia |
 | `.tools` | CMake portátil usado en este equipo | No | No, si CMake está instalado |
 | `build_x64` | resultados intermedios | No | No; se regenera |
-| `dist/PresentadorMultimedia` | aplicación portátil compilada | No | Solo para ejecutar sin compilar |
-| `portable` | copia limpia para compartir, con `Presentador.exe` y biblias locales | No | Para pruebas en otra PC |
+| `dist/OPBS` | aplicación portátil compilada | No | Solo para ejecutar sin compilar |
+| `portable` | copia limpia para compartir, con `OPBS.exe` y biblias locales | No | Para pruebas en otra PC |
+| `release/<versión>` | instalador, ZIP portable y SHA-256 | No | Solo para publicar el Release |
 | medios del usuario | imágenes, videos y canciones | No | Solo si se quieren conservar |
 
 La biblioteca guarda rutas absolutas. Copiar la configuración portátil a otro equipo no copia los medios y las rutas
@@ -108,8 +109,8 @@ reutilizar un `CMakeCache.txt` creado en otra ruta o computadora.
 .\presenter-tools\Run-Presenter.cmd
 ```
 
-El empaquetado copia el contenido ejecutable de `build_x64/rundir/RelWithDebInfo` a
-`dist/PresentadorMultimedia`. La configuración se guarda dentro de esa carpeta por `--portable`.
+El empaquetado copia el contenido ejecutable de `build_x64/rundir/RelWithDebInfo` a `dist/OPBS`, renombra el ejecutable
+a `OPBS.exe` y conserva la configuración de desarrollo dentro de esa carpeta por `--portable`.
 
 Para crear una copia limpia destinada a otra persona:
 
@@ -117,13 +118,24 @@ Para crear una copia limpia destinada a otra persona:
 .\presenter-tools\Create-Portable.cmd
 ```
 
-El resultado queda en `portable`. El ejecutable es `portable/bin/64bit/Presentador.exe`; también puede iniciarse desde
-`portable/INICIAR_PRESENTADOR.bat`. El marcador `portable/portable_mode.txt` conserva la configuración dentro del
+El resultado queda en `portable`. El ejecutable es `portable/bin/64bit/OPBS.exe`; también puede iniciarse desde
+`portable/INICIAR_OPBS.bat`. El marcador `portable/portable_mode.txt` conserva la configuración dentro del
 paquete aun al abrir directamente el EXE. El generador copia las biblias locales, pero no las rutas ni la biblioteca
 multimedia personal del equipo de desarrollo.
 
 Los paquetes incluyen `bin/64bit/disable_updater.txt` y los lanzadores usan `--disable-updater`. No quitar esa
-protección: el actualizador binario de OBS no preserva un derivado personalizado.
+protección: solo desactiva el actualizador de OBS. El menú `Ayuda` inicia `OPBS-Updater.ps1`, que consulta el GitHub
+propio configurado en `opbs-release.json`.
+
+Para generar una versión completa con instalador:
+
+```powershell
+.\presenter-tools\Ensure-OPBS-InstallerTools.cmd
+.\presenter-tools\Build-OPBS-Release.cmd -Version 0.1.0 `
+  -GitHubRepository PROPIETARIO/REPOSITORIO
+```
+
+La publicación y las reglas para IA local están en `IA_LOCAL_OPBS.md`.
 
 La importación PDF usa las API incluidas en Windows. La importación directa de `.ppt` y `.pptx` necesita Microsoft
 PowerPoint instalado en el equipo que realiza la conversión; una vez convertidas, las diapositivas son PNG normales y

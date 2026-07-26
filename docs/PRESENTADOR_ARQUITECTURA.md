@@ -56,10 +56,10 @@ activa de reproducción.
 
 ## Persistencia
 
-La aplicación usa configuración portátil de OBS bajo:
+La aplicación usa configuración portátil bajo:
 
 ```text
-dist/PresentadorMultimedia/config/obs-studio
+dist/OPBS/config/obs-studio
 ```
 
 Se recuerdan biblioteca, carpetas, orden, carpeta activa, monitor, estado de salida, ajustes de sonido y geometría de
@@ -90,12 +90,15 @@ error de dispositivo invalidado y el usuario debe seleccionar una salida conecta
 
 Al ampliar la biblioteca, conservar virtualización/carga diferida. No crear una fuente OBS permanente por tarjeta.
 
-## Límite de actualización
+## Dos canales de actualización
 
-El actualizador oficial de OBS opera sobre paquetes binarios completos y no es una fuente válida de actualización para
-este derivado. Los paquetes de Presentador lo deshabilitan mediante marcador y argumento de inicio. Las novedades se
-incorporan desde `obs-public` a nivel de código después de clasificarlas contra los archivos personalizados. Consultar
-`OBS_ACTUALIZACIONES.md` y `presenter-tools/obs-upstream-policy.json`.
+1. Las novedades del código base OBS se revisan desde `obs-public`; nunca se instalan directamente. Consultar
+   `OBS_ACTUALIZACIONES.md`.
+2. Las versiones terminadas de OPBS se distribuyen como GitHub Releases propios. El comprobador descarga el instalador
+   y su SHA-256, valida la integridad y solo entonces abre el instalador.
+
+La versión y el repositorio de OPBS viven en `presenter-tools/opbs-release.json`. El instalador usa NSIS, instala por
+usuario en `%LOCALAPPDATA%\Programs\OPBS`, crea accesos directos y registra `Uninstall.exe`.
 
 ## Invariantes de producto
 
