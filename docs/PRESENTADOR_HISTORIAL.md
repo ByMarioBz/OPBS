@@ -101,6 +101,8 @@ build_x64/rundir/RelWithDebInfo/obs-plugins/64bit/obs-ffmpeg.dll
   del usuario y no dejó el desinstalador ni el directorio del menú Inicio.
 - Actualización OPBS: la comprobación automática silenciosa se ejecutó al iniciar sin mostrar errores cuando el
   repositorio aún no está configurado; la comprobación manual conserva mensajes claros para orientar la configuración.
+- Repositorio OPBS: se creó el repositorio público `ByMarioBz/OPBS`, se configuró como `origin` y se incorporó su
+  dirección al manifiesto de actualización de OPBS 0.1.0.
 - La selección guardada `Auriculares (BT3280)` devolvió desde Windows el error `88890004`, correspondiente a un
   dispositivo invalidado/no disponible durante esa sesión. No confundirlo con un fallo del mezclador.
 

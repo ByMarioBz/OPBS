@@ -1,8 +1,8 @@
 {
-  "product": "OPBS",
-  "version": "0.1.0",
-  "githubRepository": "",
-  "installerAsset": "OPBS-Setup-x64.exe",
-  "checksumAsset": "OPBS-Setup-x64.exe.sha256",
-  "portableAsset": "OPBS-Portable-x64.zip"
+    "product":  "OPBS",
+    "version":  "0.1.0",
+    "githubRepository":  "ByMarioBz/OPBS",
+    "installerAsset":  "OPBS-Setup-x64.exe",
+    "checksumAsset":  "OPBS-Setup-x64.exe.sha256",
+    "portableAsset":  "OPBS-Portable-x64.zip"
 }

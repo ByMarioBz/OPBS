@@ -24,7 +24,9 @@ $Configuration.version = $Version
 if ($GitHubRepository) {
     $Configuration.githubRepository = $GitHubRepository
 }
-$Configuration | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $ConfigurationPath -Encoding UTF8
+$Json = $Configuration | ConvertTo-Json -Depth 4
+$Utf8WithoutBom = New-Object System.Text.UTF8Encoding($false)
+[System.IO.File]::WriteAllText($ConfigurationPath, "$Json`n", $Utf8WithoutBom)
 
 Write-Host "OPBS configurado como versión $Version."
 if (-not $Configuration.githubRepository) {
