@@ -66,6 +66,18 @@ build_x64/rundir/RelWithDebInfo/obs-plugins/64bit/obs-ffmpeg.dll
   `3be3a85100e4382dc48b1058027ef02b5d1e4fbc` y se usa por defecto al cambiar entre los tres modos de transmisión. La
   compilación RelWithDebInfo incluyó el objetivo `move-transition`; el paquete se regeneró y el proceso portable cargó
   `dist/OPBS/obs-plugins/64bit/move-transition.dll` correctamente.
+- Biblioteca y archivos externos: al iniciar, OPBS descarta y deja de persistir las rutas cuyos archivos fueron
+  borrados fuera de la aplicación. Muestra un aviso propio con los nombres afectados una sola vez y mantiene desactivado
+  el reparador de la colección heredada de OBS.
+- Audio de transmisión: se añadió la página `Audio` con el presentador fijo, una entrada WASAPI seleccionable y dos
+  controles nativos `VolumeControl`. El medio original permanece en `monitor-only`; un puente independiente y la
+  entrada seleccionada ocupan exclusivamente los canales globales 1 y 2 del mix 0. Cámara y fondos no aportan audio.
+- Revisión del flujo de salida: el lienzo OPBS se fuerza a 1920 × 1080 y 60 FPS desde la configuración del perfil; el
+  destino principal usa el flujo `SimpleOutput` de OBS y el secundario reutiliza sus codificadores en otro
+  `rtmp_output`. YouTube y Facebook coinciden con los servicios de `rtmp-services`; `Personalizado` usa `rtmp_custom`.
+  La compilación, el empaquetado y el inicio portable finalizaron correctamente. Falta una prueba real con claves
+  privadas para certificar la conexión de extremo a extremo y una grabación con dos medios consecutivos para escuchar
+  físicamente la separación de mezclas.
 
 - OPBS 0.1.5: la identidad visible de la ventana, los textos traducidos y los metadatos del ejecutable de Windows usan
   `OPBS`; `ProductName`, `ProductVersion`, `FileVersion` y `OriginalFilename` se verificaron como `OPBS`, `0.1.5`,

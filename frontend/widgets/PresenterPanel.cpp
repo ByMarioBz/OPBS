@@ -17,6 +17,7 @@
 #include <OBSApp.hpp>
 #include <components/Multiview.hpp>
 #include <components/AbsoluteSlider.hpp>
+#include <components/VolumeControl.hpp>
 #include <utility/ThumbnailManager.hpp>
 #include <utility/ThumbnailView.hpp>
 #include <utility/display-helpers.hpp>
@@ -96,6 +97,7 @@ constexpr int kThumbnailHeight = 144;
 constexpr int kBibleResultLimit = 250;
 constexpr auto kBibleFolderId = "presentation-bible";
 constexpr auto kPresentationsFolderId = "presentation-slides";
+constexpr auto kTransmissionAudioBridgeId = "opbs_transmission_audio_bridge";
 const QStringList imageExtensions = {"bmp", "gif", "jpeg", "jpg", "png", "tga", "webp"};
 const QStringList audioExtensions = {"mp3", "aac", "ogg", "wav", "flac", "m4a", "wma"};
 const QStringList videoExtensions = {"mp4", "m4v", "mov", "mkv", "avi", "webm", "wmv", "mpeg", "mpg"};
@@ -104,6 +106,36 @@ long long ColorToObsInt(const QColor &color)
 {
 	return (color.red() & 0xff) | ((color.green() & 0xff) << 8) | ((color.blue() & 0xff) << 16) |
 	       ((color.alpha() & 0xff) << 24);
+}
+
+const char *TransmissionAudioBridgeName(void *)
+{
+	return "OPBS Transmission Presenter Audio";
+}
+
+void *CreateTransmissionAudioBridge(obs_data_t *, obs_source_t *)
+{
+	return new int(0);
+}
+
+void DestroyTransmissionAudioBridge(void *data)
+{
+	delete static_cast<int *>(data);
+}
+
+void RegisterTransmissionAudioBridge()
+{
+	if (obs_get_latest_input_type_id(kTransmissionAudioBridgeId))
+		return;
+	obs_source_info info = {};
+	info.id = kTransmissionAudioBridgeId;
+	info.type = OBS_SOURCE_TYPE_INPUT;
+	info.output_flags = OBS_SOURCE_AUDIO | OBS_SOURCE_DO_NOT_DUPLICATE;
+	info.get_name = TransmissionAudioBridgeName;
+	info.create = CreateTransmissionAudioBridge;
+	info.destroy = DestroyTransmissionAudioBridge;
+	info.icon_type = OBS_ICON_TYPE_AUDIO_OUTPUT;
+	obs_register_source(&info);
 }
 
 class PresenterMediaList final : public QListWidget {
@@ -992,6 +1024,11 @@ void PresenterPanel::Initialize()
 	obs_transition_set_alignment(transmissionTransition, OBS_ALIGN_CENTER);
 	obs_transition_set_scale_type(transmissionTransition, OBS_TRANSITION_SCALE_ASPECT);
 	obs_transition_set(transmissionTransition, obs_scene_get_source(transmissionPresenterScene));
+	RegisterTransmissionAudioBridge();
+	transmissionPresenterAudioSource =
+		obs_source_create_private(kTransmissionAudioBridgeId, "OPBS Presenter Audio (Transmission)", nullptr);
+	if (!transmissionPresenterAudioSource)
+		blog(LOG_ERROR, "OPBS could not create the presenter transmission audio bridge");
 	UpdateTransmissionItemBounds();
 
 	BuildTopMenu();
@@ -1042,6 +1079,10 @@ void PresenterPanel::Initialize()
 	// globales de OBS (escritorio y micrófono) pueden bloquear ese mismo dispositivo.
 	for (uint32_t channel = 1; channel < 6; ++channel)
 		obs_set_output_source(channel, nullptr);
+	ApplyTransmissionAudioMix();
+	if (transmissionPresenterAudioSource)
+		obs_set_output_source(1, transmissionPresenterAudioSource);
+	RefreshTransmissionAudioInput();
 	ApplyCombinedBackground();
 	RefreshCameraSource();
 	ApplyTransmissionView(transmissionView, false);
@@ -1071,7 +1112,8 @@ void PresenterPanel::Shutdown()
 		obs_display_remove_draw_callback(transmissionPreview->GetDisplay(), PresenterPanel::RenderTransmissionPreview,
 						 this);
 	StopSecondaryStream();
-	obs_set_output_source(0, nullptr);
+	for (uint32_t channel = 0; channel < 6; ++channel)
+		obs_set_output_source(channel, nullptr);
 	if (audioMeter) {
 		obs_volmeter_detach_source(audioMeter);
 		obs_volmeter_remove_callback(audioMeter, PresenterPanel::AudioMeterUpdated, this);
@@ -1079,6 +1121,7 @@ void PresenterPanel::Shutdown()
 		audioMeter = nullptr;
 	}
 	DetachAudioFilters();
+	DetachTransmissionPresenterAudio();
 	ClearActiveMedia();
 	ClearBiblePresentation();
 	if (transmissionTransition) {
@@ -1087,6 +1130,8 @@ void PresenterPanel::Shutdown()
 	}
 	transmissionTransition = nullptr;
 	transmissionBackgroundSource = nullptr;
+	transmissionInputSource = nullptr;
+	transmissionPresenterAudioSource = nullptr;
 	cameraSource = nullptr;
 	transmissionBackgroundItem = nullptr;
 	transmissionCameraOnlyItem = nullptr;
@@ -1372,6 +1417,7 @@ void PresenterPanel::ReleaseSource(MediaEntry *entry)
 void PresenterPanel::ClearActiveMedia(MediaEntry *keepEntry)
 {
 	MediaEntry *previousEntry = activeEntry;
+	DetachTransmissionPresenterAudio();
 	if (audioMeter)
 		obs_volmeter_detach_source(audioMeter);
 	DetachAudioFilters();
@@ -1553,6 +1599,10 @@ void PresenterPanel::ActivateMedia(MediaEntry *entry)
 	ClearActiveMedia(entry);
 	activeEntry = entry;
 	activeSource = entry->source;
+	/* La fuente original alimenta exclusivamente el monitor local. La mezcla
+	 * de transmisión recibe una copia cruda mediante el puente independiente. */
+	obs_source_set_monitoring_type(activeSource, OBS_MONITORING_TYPE_MONITOR_ONLY);
+	AttachTransmissionPresenterAudio();
 	cachedDuration = 0;
 	pendingSeekValue = -1;
 	activeItem = obs_scene_add(stageScene, activeSource);
@@ -1654,6 +1704,93 @@ void PresenterPanel::DetachAudioFilters()
 	gainFilter = nullptr;
 	compressorFilter = nullptr;
 	limiterFilter = nullptr;
+}
+
+void PresenterPanel::PresenterAudioCaptured(void *data, obs_source_t *, const struct audio_data *audio, bool muted)
+{
+	auto *panel = static_cast<PresenterPanel *>(data);
+	if (!panel || !audio || muted || !panel->transmissionPresenterAudioSource)
+		return;
+	obs_audio_info audioInfo = {};
+	if (!obs_get_audio_info(&audioInfo))
+		return;
+	obs_source_audio output = {};
+	for (size_t plane = 0; plane < MAX_AV_PLANES; ++plane)
+		output.data[plane] = audio->data[plane];
+	output.frames = audio->frames;
+	output.speakers = audioInfo.speakers;
+	output.format = AUDIO_FORMAT_FLOAT_PLANAR;
+	output.samples_per_sec = audioInfo.samples_per_sec;
+	output.timestamp = audio->timestamp;
+	obs_source_output_audio(panel->transmissionPresenterAudioSource, &output);
+}
+
+void PresenterPanel::AttachTransmissionPresenterAudio()
+{
+	if (!activeSource || !transmissionPresenterAudioSource || transmissionPresenterAudioAttached)
+		return;
+	obs_source_add_audio_capture_callback(activeSource, PresenterPanel::PresenterAudioCaptured, this);
+	transmissionPresenterAudioAttached = true;
+}
+
+void PresenterPanel::DetachTransmissionPresenterAudio()
+{
+	if (activeSource && transmissionPresenterAudioAttached)
+		obs_source_remove_audio_capture_callback(activeSource, PresenterPanel::PresenterAudioCaptured, this);
+	transmissionPresenterAudioAttached = false;
+}
+
+OBSSource PresenterPanel::CreateTransmissionAudioInput(const QString &deviceId, const QString &sourceName) const
+{
+	if (deviceId.isEmpty())
+		return nullptr;
+	const char *sourceType = obs_get_latest_input_type_id("wasapi_input_capture");
+	if (!sourceType)
+		return nullptr;
+	OBSDataAutoRelease settings = obs_data_create();
+	obs_data_set_string(settings, "device_id", deviceId.toUtf8().constData());
+	obs_data_set_bool(settings, "use_device_timing", false);
+	OBSSourceAutoRelease source =
+		obs_source_create_private(sourceType, sourceName.toUtf8().constData(), settings);
+	return source.Get();
+}
+
+void PresenterPanel::ApplyTransmissionAudioMix()
+{
+	if (transmissionPresenterAudioSource) {
+		obs_source_set_audio_mixers(transmissionPresenterAudioSource, 1u);
+		obs_source_set_monitoring_type(transmissionPresenterAudioSource, OBS_MONITORING_TYPE_NONE);
+		obs_source_set_volume(transmissionPresenterAudioSource,
+				      obs_db_to_mul(static_cast<float>(transmissionPresenterDb)));
+		obs_source_set_muted(transmissionPresenterAudioSource, transmissionPresenterMuted);
+	}
+	if (transmissionInputSource) {
+		obs_source_set_audio_mixers(transmissionInputSource, 1u);
+		obs_source_set_monitoring_type(transmissionInputSource, OBS_MONITORING_TYPE_NONE);
+		obs_source_set_volume(transmissionInputSource, obs_db_to_mul(static_cast<float>(transmissionInputDb)));
+		obs_source_set_muted(transmissionInputSource, transmissionInputMuted);
+	}
+}
+
+void PresenterPanel::RefreshTransmissionAudioInput()
+{
+	obs_set_output_source(2, nullptr);
+	transmissionInputSource = nullptr;
+	if (selectedTransmissionInputId.isEmpty())
+		return;
+	transmissionInputSource = CreateTransmissionAudioInput(
+		selectedTransmissionInputId,
+		selectedTransmissionInputName.isEmpty() ? tr("Entrada adicional de transmisión")
+							  : selectedTransmissionInputName);
+	if (!transmissionInputSource) {
+		blog(LOG_WARNING, "OPBS could not create transmission audio input '%s'",
+		     selectedTransmissionInputId.toUtf8().constData());
+		return;
+	}
+	ApplyTransmissionAudioMix();
+	obs_set_output_source(2, transmissionInputSource);
+	blog(LOG_INFO, "OPBS transmission audio input ready: '%s' on global channel 2",
+	     selectedTransmissionInputName.toUtf8().constData());
 }
 
 void PresenterPanel::RefreshTimeline()
@@ -1935,6 +2072,7 @@ void PresenterPanel::ShowTransmissionDialog()
 	sections->addItem(tr("📡  Emisión"));
 	sections->addItem(tr("🖥  Salida"));
 	sections->addItem(tr("📷  Cámaras"));
+	sections->addItem(tr("🎙  Audio"));
 	sections->addItem(tr("▣  Lienzo de ambos"));
 	auto *pages = new QStackedWidget(&dialog);
 	body->addWidget(sections);
@@ -2060,11 +2198,129 @@ void PresenterPanel::ShowTransmissionDialog()
 	cameraForm->addRow(tr("Asignar cámara"), cameraSelector);
 	cameraLayout->addWidget(cameraGroup);
 	auto *cameraHint = new QLabel(
-		tr("La cámara seleccionada se usará en los modos Cámaras y Cámaras y presentador."), cameraPage);
+		tr("La cámara seleccionada se usará en los modos Cámaras y Ambos."), cameraPage);
 	cameraHint->setWordWrap(true);
 	cameraLayout->addWidget(cameraHint);
 	cameraLayout->addStretch();
 	pages->addWidget(cameraPage);
+
+	auto *audioPage = new QWidget(pages);
+	auto *audioLayout = new QVBoxLayout(audioPage);
+	auto *audioSourcesGroup = new QGroupBox(tr("Entradas de audio de transmisión"), audioPage);
+	auto *audioSourcesForm = new QFormLayout(audioSourcesGroup);
+	auto *presenterAudioFixed = new QLineEdit(tr("Audio del presentador (fijo)"), audioSourcesGroup);
+	presenterAudioFixed->setReadOnly(true);
+	presenterAudioFixed->setEnabled(false);
+	auto *transmissionInputSelector = new QComboBox(audioSourcesGroup);
+	transmissionInputSelector->addItem(tr("Sin entrada adicional"), QString());
+	OBSProperties inputProperties = obs_get_source_properties("wasapi_input_capture");
+	if (inputProperties) {
+		obs_property_t *devices = obs_properties_get(inputProperties, "device_id");
+		if (devices) {
+			const size_t count = obs_property_list_item_count(devices);
+			for (size_t index = 0; index < count; ++index) {
+				const QString name = QString::fromUtf8(obs_property_list_item_name(devices, index));
+				const QString id = QString::fromUtf8(obs_property_list_item_string(devices, index));
+				if (!id.isEmpty())
+					transmissionInputSelector->addItem(name, id);
+			}
+		}
+	}
+	int transmissionInputIndex = transmissionInputSelector->findData(selectedTransmissionInputId);
+	if (transmissionInputIndex < 0 && !selectedTransmissionInputId.isEmpty()) {
+		transmissionInputSelector->addItem(
+			selectedTransmissionInputName.isEmpty() ? tr("Entrada no disponible")
+								: selectedTransmissionInputName,
+			selectedTransmissionInputId);
+		transmissionInputIndex = transmissionInputSelector->count() - 1;
+	}
+	transmissionInputSelector->setCurrentIndex(std::max(transmissionInputIndex, 0));
+	audioSourcesForm->addRow(tr("Presentador"), presenterAudioFixed);
+	audioSourcesForm->addRow(tr("Entrada adicional"), transmissionInputSelector);
+	audioLayout->addWidget(audioSourcesGroup);
+
+	auto *transmissionMixerGroup = new QGroupBox(tr("Mezclador de audio de transmisión"), audioPage);
+	auto *transmissionMixerLayout = new QVBoxLayout(transmissionMixerGroup);
+	const float originalPresenterVolume =
+		transmissionPresenterAudioSource ? obs_source_get_volume(transmissionPresenterAudioSource) : 1.0f;
+	const bool originalPresenterMuted =
+		transmissionPresenterAudioSource && obs_source_muted(transmissionPresenterAudioSource);
+	QPointer<VolumeControl> presenterTransmissionMixer;
+	if (transmissionPresenterAudioSource) {
+		presenterTransmissionMixer =
+			new VolumeControl(transmissionPresenterAudioSource, transmissionMixerGroup, false);
+		presenterTransmissionMixer->setGlobalInMixer(true);
+		transmissionMixerLayout->addWidget(presenterTransmissionMixer);
+	} else {
+		transmissionMixerLayout->addWidget(
+			new QLabel(tr("La entrada del presentador no está disponible."), transmissionMixerGroup));
+	}
+	auto *inputMixerContainer = new QWidget(transmissionMixerGroup);
+	auto *inputMixerLayout = new QVBoxLayout(inputMixerContainer);
+	inputMixerLayout->setContentsMargins(0, 0, 0, 0);
+	transmissionMixerLayout->addWidget(inputMixerContainer);
+	auto *audioHint = new QLabel(
+		tr("Estos controles solo afectan la transmisión y la grabación; no cambian el volumen que sale por "
+		   "los altavoces del presentador."),
+		transmissionMixerGroup);
+	audioHint->setWordWrap(true);
+	transmissionMixerLayout->addWidget(audioHint);
+	audioLayout->addWidget(transmissionMixerGroup);
+	audioLayout->addStretch();
+	pages->addWidget(audioPage);
+
+	OBSSource pendingTransmissionInput;
+	QPointer<VolumeControl> pendingInputMixer;
+	bool pendingInputActive = false;
+	double pendingInputDb = transmissionInputDb;
+	bool pendingInputMuted = transmissionInputMuted;
+	auto releasePendingInput = [&]() {
+		if (pendingTransmissionInput) {
+			const float db = obs_mul_to_db(obs_source_get_volume(pendingTransmissionInput));
+			if (std::isfinite(db))
+				pendingInputDb = std::clamp<double>(db, -60.0, 20.0);
+			pendingInputMuted = obs_source_muted(pendingTransmissionInput);
+		}
+		while (QLayoutItem *item = inputMixerLayout->takeAt(0)) {
+			delete item->widget();
+			delete item;
+		}
+		pendingInputMixer = nullptr;
+		if (pendingTransmissionInput && pendingInputActive) {
+			obs_source_dec_active(pendingTransmissionInput);
+			obs_source_dec_showing(pendingTransmissionInput);
+		}
+		pendingInputActive = false;
+		pendingTransmissionInput = nullptr;
+	};
+	auto rebuildPendingInput = [&]() {
+		releasePendingInput();
+		const QString deviceId = transmissionInputSelector->currentData().toString();
+		if (deviceId.isEmpty()) {
+			inputMixerLayout->addWidget(
+				new QLabel(tr("No se seleccionó una entrada adicional."), inputMixerContainer));
+			return;
+		}
+		pendingTransmissionInput = CreateTransmissionAudioInput(deviceId, tr("Entrada adicional (prueba)"));
+		if (!pendingTransmissionInput) {
+			inputMixerLayout->addWidget(
+				new QLabel(tr("No fue posible abrir esta entrada de audio."), inputMixerContainer));
+			return;
+		}
+		obs_source_set_audio_mixers(pendingTransmissionInput, 1u);
+		obs_source_set_monitoring_type(pendingTransmissionInput, OBS_MONITORING_TYPE_NONE);
+		obs_source_set_volume(pendingTransmissionInput, obs_db_to_mul(static_cast<float>(pendingInputDb)));
+		obs_source_set_muted(pendingTransmissionInput, pendingInputMuted);
+		obs_source_inc_showing(pendingTransmissionInput);
+		obs_source_inc_active(pendingTransmissionInput);
+		pendingInputActive = true;
+		pendingInputMixer = new VolumeControl(pendingTransmissionInput, inputMixerContainer, false);
+		pendingInputMixer->setGlobalInMixer(true);
+		inputMixerLayout->addWidget(pendingInputMixer);
+	};
+	connect(transmissionInputSelector, qOverload<int>(&QComboBox::currentIndexChanged), &dialog,
+		[&](int) { rebuildPendingInput(); });
+	rebuildPendingInput();
 
 	auto *bothScroll = new QScrollArea(pages);
 	bothScroll->setWidgetResizable(true);
@@ -2219,8 +2475,28 @@ void PresenterPanel::ShowTransmissionDialog()
 	connect(buttons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
 	connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
 	root->addWidget(buttons);
-	if (dialog.exec() != QDialog::Accepted)
+	const bool accepted = dialog.exec() == QDialog::Accepted;
+	double pendingPresenterDb = transmissionPresenterDb;
+	bool pendingPresenterMuted = transmissionPresenterMuted;
+	if (transmissionPresenterAudioSource) {
+		const float db = obs_mul_to_db(obs_source_get_volume(transmissionPresenterAudioSource));
+		if (std::isfinite(db))
+			pendingPresenterDb = std::clamp<double>(db, -60.0, 20.0);
+		pendingPresenterMuted = obs_source_muted(transmissionPresenterAudioSource);
+	}
+	const QString pendingInputId = transmissionInputSelector->currentData().toString();
+	const QString pendingInputName = transmissionInputSelector->currentText();
+	releasePendingInput();
+	if (presenterTransmissionMixer)
+		delete presenterTransmissionMixer.data();
+	if (!accepted) {
+		if (transmissionPresenterAudioSource) {
+			obs_source_set_volume(transmissionPresenterAudioSource, originalPresenterVolume);
+			obs_source_set_muted(transmissionPresenterAudioSource, originalPresenterMuted);
+			obs_source_set_monitoring_type(transmissionPresenterAudioSource, OBS_MONITORING_TYPE_NONE);
+		}
 		return;
+	}
 
 	for (int index = 0; index < 2; ++index) {
 		streamDestinations[index].service = destinationControls[index].service->currentText();
@@ -2233,6 +2509,12 @@ void PresenterPanel::ShowTransmissionDialog()
 	recordingPath = recordingPathEdit->text().trimmed();
 	selectedCameraId = cameraSelector->currentData().toString();
 	selectedCameraName = cameraSelector->currentText();
+	selectedTransmissionInputId = pendingInputId;
+	selectedTransmissionInputName = pendingInputId.isEmpty() ? QString() : pendingInputName;
+	transmissionPresenterDb = pendingPresenterDb;
+	transmissionPresenterMuted = pendingPresenterMuted;
+	transmissionInputDb = pendingInputDb;
+	transmissionInputMuted = pendingInputMuted;
 	combinedCameraX = cameraX->value();
 	combinedCameraY = cameraY->value();
 	combinedCameraWidth = cameraWidth->value();
@@ -2249,6 +2531,8 @@ void PresenterPanel::ShowTransmissionDialog()
 	ApplyCombinedBackground();
 	UpdateTransmissionItemBounds();
 	RefreshCameraSource();
+	ApplyTransmissionAudioMix();
+	RefreshTransmissionAudioInput();
 	ApplyPrimaryStreamService();
 	if (!main->Active())
 		main->ResetOutputs();
@@ -2795,6 +3079,14 @@ void PresenterPanel::LoadSettings()
 	selectedEffect = settings.value("audio/effect", "none").toString();
 	selectedCameraId = settings.value("transmission/cameraId").toString();
 	selectedCameraName = settings.value("transmission/cameraName").toString();
+	selectedTransmissionInputId = settings.value("transmission/audio/inputId").toString();
+	selectedTransmissionInputName = settings.value("transmission/audio/inputName").toString();
+	transmissionPresenterDb =
+		std::clamp(settings.value("transmission/audio/presenterDb", 0.0).toDouble(), -60.0, 20.0);
+	transmissionInputDb =
+		std::clamp(settings.value("transmission/audio/inputDb", 0.0).toDouble(), -60.0, 20.0);
+	transmissionPresenterMuted = settings.value("transmission/audio/presenterMuted", false).toBool();
+	transmissionInputMuted = settings.value("transmission/audio/inputMuted", false).toBool();
 	streamVideoBitrate = std::clamp(settings.value("transmission/videoBitrate", 6000).toInt(), 1000, 51000);
 	streamAudioBitrate = std::clamp(settings.value("transmission/audioBitrate", 160).toInt(), 64, 320);
 	recordingPath = settings.value("transmission/recordingPath",
@@ -2923,21 +3215,45 @@ void PresenterPanel::LoadSettings()
 		}
 	}
 
+	QStringList missingMediaNames;
+	const auto loadMediaPath = [this, &missingMediaNames](const QString &path, const QString &folderId) {
+		const QFileInfo file(path);
+		if (path.isEmpty())
+			return;
+		if (!file.exists() || !file.isFile()) {
+			missingMediaNames.append(file.fileName().isEmpty() ? path : file.fileName());
+			return;
+		}
+		AddMediaFile(path, folderId, false);
+	};
 	const int mediaEntryCount = settings.beginReadArray("media");
 	for (int index = 0; index < mediaEntryCount; ++index) {
 		settings.setArrayIndex(index);
-		AddMediaFile(settings.value("path").toString(), settings.value("folderId", "general").toString(), false);
+		loadMediaPath(settings.value("path").toString(),
+			      settings.value("folderId", "general").toString());
 	}
 	settings.endArray();
 	if (mediaEntryCount == 0) {
 		for (const QString &path : settings.value("library/files").toStringList())
-			AddMediaFile(path, "general", false);
+			loadMediaPath(path, "general");
 	}
 	ApplyLibraryFilter();
 	ResolveSelectedMonitor();
 	SetStageEnabled(stageEnabled, false);
 	restoring = false;
 	SaveSettings();
+	missingMediaNames.removeDuplicates();
+	if (!missingMediaNames.isEmpty()) {
+		QTimer::singleShot(0, this, [this, missingMediaNames]() {
+			QMessageBox notice(main);
+			notice.setWindowTitle(tr("Fuentes eliminadas"));
+			notice.setIcon(QMessageBox::Information);
+			notice.setText(tr("Se eliminaron unas fuentes de la computadora por el usuario."));
+			notice.setInformativeText(QStringLiteral("• ") + missingMediaNames.join(QStringLiteral("\n• ")));
+			notice.addButton(tr("Aceptar"), QMessageBox::AcceptRole);
+			notice.exec();
+		});
+	}
 }
 
 void PresenterPanel::SaveSettings()
@@ -2986,6 +3302,12 @@ void PresenterPanel::SaveSettings()
 	settings.setValue("audio/deviceId", audioDeviceId);
 	settings.setValue("transmission/cameraId", selectedCameraId);
 	settings.setValue("transmission/cameraName", selectedCameraName);
+	settings.setValue("transmission/audio/inputId", selectedTransmissionInputId);
+	settings.setValue("transmission/audio/inputName", selectedTransmissionInputName);
+	settings.setValue("transmission/audio/presenterDb", transmissionPresenterDb);
+	settings.setValue("transmission/audio/inputDb", transmissionInputDb);
+	settings.setValue("transmission/audio/presenterMuted", transmissionPresenterMuted);
+	settings.setValue("transmission/audio/inputMuted", transmissionInputMuted);
 	settings.setValue("transmission/videoBitrate", streamVideoBitrate);
 	settings.setValue("transmission/audioBitrate", streamAudioBitrate);
 	settings.setValue("transmission/recordingPath", recordingPath);
@@ -3169,6 +3491,8 @@ void PresenterPanel::ApplyCombinedBackground()
 		obs_source_create_private(sourceId.constData(), "OPBS Both Background", settings);
 	if (!transmissionBackgroundSource)
 		return;
+	obs_source_set_audio_mixers(transmissionBackgroundSource, 0u);
+	obs_source_set_volume(transmissionBackgroundSource, 0.0f);
 	transmissionBackgroundItem = obs_scene_add(transmissionScene, transmissionBackgroundSource);
 	if (transmissionBackgroundItem)
 		obs_sceneitem_set_order(transmissionBackgroundItem, OBS_ORDER_MOVE_BOTTOM);
@@ -3222,6 +3546,10 @@ void PresenterPanel::RefreshCameraSource()
 		blog(LOG_WARNING, "OPBS could not create camera source '%s'", selectedCameraId.toUtf8().constData());
 		return;
 	}
+	/* El audio de la cámara no forma parte de la mezcla OPBS. Solo se usan
+	 * el puente del presentador y la entrada elegida en Transmisión > Audio. */
+	obs_source_set_audio_mixers(cameraSource, 0u);
+	obs_source_set_monitoring_type(cameraSource, OBS_MONITORING_TYPE_NONE);
 	transmissionCameraItem = obs_scene_add(transmissionScene, cameraSource);
 	transmissionCameraOnlyItem = obs_scene_add(transmissionCameraScene, cameraSource);
 	if (transmissionPresenterItem)
@@ -3313,6 +3641,13 @@ void PresenterPanel::ToggleStreaming()
 		UpdateTransmissionButtons();
 		return;
 	}
+	if (!transmissionPresenterAudioSource ||
+	    (!selectedTransmissionInputId.isEmpty() && !transmissionInputSource)) {
+		QMessageBox::warning(main, tr("Audio de transmisión"),
+				     tr("No fue posible preparar una de las dos entradas de audio. Revisa "
+					"Transmisión > Audio antes de emitir."));
+		return;
+	}
 	ApplyPrimaryStreamService();
 	main->StartStreaming();
 }
@@ -3322,6 +3657,12 @@ void PresenterPanel::ToggleRecording()
 	if (main->RecordingActive())
 		main->StopRecording();
 	else {
+		if (!transmissionPresenterAudioSource ||
+		    (!selectedTransmissionInputId.isEmpty() && !transmissionInputSource)) {
+			QMessageBox::warning(main, tr("Audio de grabación"),
+					     tr("No fue posible preparar una de las entradas de audio configuradas."));
+			return;
+		}
 		ApplyPrimaryStreamService();
 		main->StartRecording();
 	}

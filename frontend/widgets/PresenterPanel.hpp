@@ -85,6 +85,8 @@ class PresenterPanel : public QWidget {
 	OBSSource cameraSource;
 	OBSSource transmissionTransition;
 	OBSSource transmissionBackgroundSource;
+	OBSSource transmissionPresenterAudioSource;
+	OBSSource transmissionInputSource;
 	OBSSource bibleBackgroundSource;
 	OBSSource bibleVerseSource;
 	OBSSource bibleReferenceSource;
@@ -151,6 +153,8 @@ class PresenterPanel : public QWidget {
 	QString selectedEffect;
 	QString selectedCameraId;
 	QString selectedCameraName;
+	QString selectedTransmissionInputId;
+	QString selectedTransmissionInputName;
 	QString combinedBackgroundType = "color";
 	QString combinedBackgroundColor = "#000000";
 	QString combinedBackgroundPath;
@@ -165,6 +169,8 @@ class PresenterPanel : public QWidget {
 	int streamVideoBitrate = 6000;
 	int streamAudioBitrate = 160;
 	int transmissionTransitionDuration = 600;
+	double transmissionPresenterDb = 0.0;
+	double transmissionInputDb = 0.0;
 	double combinedCameraX = 3.5;
 	double combinedCameraY = 31.0;
 	double combinedCameraWidth = 35.0;
@@ -186,6 +192,9 @@ class PresenterPanel : public QWidget {
 	bool restoring = false;
 	bool secondaryStreamStarting = false;
 	bool combinedBackgroundLoop = true;
+	bool transmissionPresenterMuted = false;
+	bool transmissionInputMuted = false;
+	bool transmissionPresenterAudioAttached = false;
 	qint64 seekGuardUntil = 0;
 	int64_t cachedDuration = 0;
 	int pendingSeekValue = -1;
@@ -194,6 +203,7 @@ class PresenterPanel : public QWidget {
 	static void RenderTransmissionPreview(void *data, uint32_t cx, uint32_t cy);
 	static void AudioMeterUpdated(void *data, const float magnitude[], const float peak[], const float inputPeak[]);
 	static void MediaStarted(void *data, calldata_t *calldata);
+	static void PresenterAudioCaptured(void *data, obs_source_t *source, const struct audio_data *audio, bool muted);
 	void BuildInterface();
 	void BuildTopMenu();
 	void AddMediaFile(const QString &path, const QString &folderId = QString(), bool save = true);
@@ -216,6 +226,11 @@ class PresenterPanel : public QWidget {
 	void ApplyCombinedBackground();
 	obs_source_t *TransmissionSceneSource(TransmissionView view) const;
 	void RefreshCameraSource();
+	void AttachTransmissionPresenterAudio();
+	void DetachTransmissionPresenterAudio();
+	void RefreshTransmissionAudioInput();
+	OBSSource CreateTransmissionAudioInput(const QString &deviceId, const QString &sourceName) const;
+	void ApplyTransmissionAudioMix();
 	void ToggleStreaming();
 	void ToggleRecording();
 	void StartSecondaryStream();

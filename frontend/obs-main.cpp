@@ -1105,6 +1105,10 @@ int main(int argc, char *argv[])
 	}
 #endif
 
+	/* OPBS administra sus medios desde PresenterPanel. La colección heredada
+	 * permanece oculta y no debe abrir el reparador de archivos de OBS. */
+	opt_disable_missing_files_check = true;
+
 	fstream logFile;
 
 	curl_global_init(CURL_GLOBAL_ALL);

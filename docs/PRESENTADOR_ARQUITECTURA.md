@@ -96,6 +96,11 @@ personalizado y repetición del fondo. Las diapositivas convertidas viven bajo l
 atómicamente la importación anterior. Los registros de ejecución están bajo `config/obs-studio/logs` y son la primera
 fuente para diagnosticar fallos.
 
+Al restaurar la biblioteca, las rutas que ya no sean archivos válidos se descartan antes de reconstruir las tarjetas y
+se vuelve a guardar la lista limpia. OPBS informa una sola vez los nombres eliminados; el aviso no se repite porque las
+rutas ausentes dejan de formar parte de `presenter.ini`. El reparador de archivos de la colección heredada de OBS está
+desactivado en este frontend: esa colección permanece oculta y no es la fuente de verdad de la biblioteca.
+
 La geometría del divisor principal conserva la distribución aproximada 31/69 entre vistas previas y biblioteca. La
 configuración de transmisión recuerda el modo activo, la duración de Move, el fondo de `Ambos` y las ocho medidas de la
 composición.
@@ -111,6 +116,21 @@ que antes solo ocurría al cambiar manualmente el dispositivo en `Sonido`.
 Las fuentes globales heredadas de escritorio/micrófono se desactivan en el modo presentador para evitar competencia o
 duplicación. Un dispositivo Bluetooth desconectado puede seguir siendo una preferencia guardada; Windows devolverá un
 error de dispositivo invalidado y el usuario debe seleccionar una salida conectada.
+
+La mezcla de transmisión es independiente de la monitorización local:
+
+```text
+medio activo --monitor-only--> salida local elegida en Sonido
+      |
+      +-- callback de audio crudo --> puente OPBS -- canal global 1 --+
+entrada WASAPI elegida --------------------------- canal global 2 --+--> mezcla 0 --> emitir/grabar
+escena de transmisión ---------------------------- canal global 0 --+    (video)
+```
+
+El puente copia el audio procesado del medio antes del volumen local, de modo que su control de dB y silencio pertenece
+solo a la transmisión. La segunda entrada es una fuente privada `wasapi_input_capture`. Ambas permanecen en los canales
+globales 1 y 2, por lo que siguen oyéndose al cambiar entre `Cámaras`, `Presentador` y `Ambos`. Cámara, fondo de video y
+las entradas globales heredadas tienen sus mezcladores desactivados; por diseño no entran otras fuentes al mix 0.
 
 ## Rendimiento
 
