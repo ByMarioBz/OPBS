@@ -47,7 +47,7 @@ $ReleaseNotesPath = Join-Path $ProjectRoot "docs/releases/OPBS-$Version.md"
 if (-not (Test-Path -LiteralPath $ReleaseNotesPath)) {
     throw "Faltan las notas de la versión en $ReleaseNotesPath."
 }
-$ReleaseNotes = Get-Content -Raw -LiteralPath $ReleaseNotesPath
+$ReleaseNotes = [IO.File]::ReadAllText($ReleaseNotesPath, [Text.Encoding]::UTF8)
 $InstallerHash = (Get-FileHash -LiteralPath $Assets[0] -Algorithm SHA256).Hash.ToLowerInvariant()
 $PortableHash = (Get-FileHash -LiteralPath $Assets[2] -Algorithm SHA256).Hash.ToLowerInvariant()
 $PublishedNotesPath = Join-Path $ReleaseDirectory 'release-notes.md'
