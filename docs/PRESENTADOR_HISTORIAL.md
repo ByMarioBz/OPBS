@@ -1,6 +1,6 @@
 # Historial y estado de ingeniería
 
-Última actualización: 25 de julio de 2026.
+Última actualización: 7 de agosto de 2026.
 
 ## Base
 
@@ -54,6 +54,14 @@ build_x64/rundir/RelWithDebInfo/obs-plugins/64bit/obs-ffmpeg.dll
 ```
 
 ## Pruebas realizadas
+
+- OPBS 0.1.5: la identidad visible de la ventana, los textos traducidos y los metadatos del ejecutable de Windows usan
+  `OPBS`; `ProductName`, `ProductVersion`, `FileVersion` y `OriginalFilename` se verificaron como `OPBS`, `0.1.5`,
+  `0.1.5` y `OPBS.exe` respectivamente.
+- Configuración bíblica 0.1.5: el contenido vive dentro de un área desplazable, la vista previa mantiene una proporción
+  16:9 y los botones Guardar/Cancelar permanecen visibles en una ventana de 776 × 859 píxeles.
+- Barra lateral 0.1.5: la zona multimedia y el espacio inferior usan una proporción adaptable 65/35. En una ventana de
+  1009 píxeles de alto, `Presentación` quedó en Y=667, seguida por `Biblia` y `Presentaciones` sin recortes.
 
 - Video: la línea de tiempo saltó de aproximadamente `0:01` a `1:20` en un archivo de `1:45` y continuó.
 - Audio: medidores estéreo activos y duración detectada.

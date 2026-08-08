@@ -3,7 +3,7 @@
 OPBS es una aplicación de presentación multimedia basada en OBS Studio. La **P** representa el presentador integrado:
 una interfaz enfocada en biblioteca multimedia, salida a escenario, audio, Biblia y presentaciones.
 
-> Estado actual: **OPBS 0.1.0**, versión inicial de prueba para Windows.
+> Estado actual: **OPBS 0.1.5**, versión de prueba para Windows.
 
 ## Funciones actuales
 

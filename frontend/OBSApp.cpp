@@ -912,6 +912,10 @@ OBSApp::OBSApp(int &argc, char **argv, profiler_name_store_t *store)
 	  profilerNameStore(store),
 	  appLaunchUUID_(QUuid::createUuid())
 {
+	setApplicationName(QStringLiteral("OPBS"));
+	setApplicationDisplayName(QStringLiteral("OPBS"));
+	setOrganizationName(QStringLiteral("OPBS"));
+
 	installNativeEventFilter(new OBS::NativeEventFilter);
 
 	/* fix float handling */
@@ -950,7 +954,7 @@ OBSApp::OBSApp(int &argc, char **argv, profiler_name_store_t *store)
 		crashHandler_ = std::make_unique<OBS::CrashHandler>(appLaunchUUID_);
 	}
 
-	sleepInhibitor = os_inhibit_sleep_create("OBS Video/audio");
+	sleepInhibitor = os_inhibit_sleep_create("OPBS Video/audio");
 
 #ifndef __APPLE__
 	setWindowIcon(QIcon::fromTheme("obs", QIcon(":/res/images/obs.png")));

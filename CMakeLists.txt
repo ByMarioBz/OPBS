@@ -5,6 +5,10 @@ include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/common/bootstrap.cmake" NO_POLICY_SCO
 project(obs-studio VERSION ${OBS_VERSION_CANONICAL})
 
 set(OPBS_VERSION "0.1.0" CACHE STRING "OPBS product version")
+set(OBS_PRODUCT_NAME "OPBS")
+set(OBS_COMPANY_NAME "OPBS")
+set(OBS_COMMENTS "OPBS multimedia presenter")
+string(REPLACE "." "," OPBS_FILE_VERSION_COMMAS "${OPBS_VERSION}")
 
 if(MSVC)
   # Public OPBS binaries must not expose the local build directory. This is

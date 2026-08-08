@@ -59,6 +59,7 @@
 #include <QPushButton>
 #include <QScreen>
 #include <QScrollBar>
+#include <QScrollArea>
 #include <QSaveFile>
 #include <QSettings>
 #include <QSignalBlocker>
@@ -233,8 +234,12 @@ public:
 	explicit BibleLayoutPreview(QWidget *parent = nullptr) : QWidget(parent)
 	{
 		setMinimumSize(480, 270);
-		setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+		setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
 	}
+
+	bool hasHeightForWidth() const override { return true; }
+	int heightForWidth(int width) const override { return std::max(270, width * 9 / 16); }
+	QSize sizeHint() const override { return QSize(640, 360); }
 
 	void SetLayout(const QString &family, int size, const QString &alignment, const QString &reference,
 		       const QString &background)
@@ -611,8 +616,7 @@ void PresenterPanel::BuildInterface()
 	foldersWidget->setObjectName("presenterFolderList");
 	foldersWidget->setSelectionMode(QAbstractItemView::SingleSelection);
 	foldersWidget->setMinimumHeight(220);
-	foldersWidget->setMaximumHeight(390);
-	folderLayout->addWidget(foldersWidget);
+	folderLayout->addWidget(foldersWidget, 65);
 	auto *folderButtons = new QHBoxLayout();
 	auto *addFolder = new QToolButton(folderPanel);
 	addFolder->setText("+");
@@ -640,7 +644,7 @@ void PresenterPanel::BuildInterface()
 	addPresentationFolder(QString::fromLatin1(kBibleFolderId), tr("Biblia"));
 	addPresentationFolder(QString::fromLatin1(kPresentationsFolderId), tr("Presentaciones"));
 	folderLayout->addWidget(presentationsWidget);
-	folderLayout->addStretch(1);
+	folderLayout->addStretch(35);
 	libraryBody->addWidget(folderPanel);
 	auto *mediaArea = new QVBoxLayout();
 	auto *bibleToolbar = new QFrame(library);
@@ -1754,7 +1758,7 @@ void PresenterPanel::ShowSoundDialog()
 	if (!newDeviceId.isEmpty() &&
 	    !obs_set_audio_monitoring_device(newDeviceName.toUtf8().constData(), newDeviceId.toUtf8().constData())) {
 		QMessageBox::warning(main, tr("Salida de audio"),
-				     tr("OBS no pudo abrir los altavoces seleccionados. Comprueba que sigan conectados."));
+				     tr("OPBS no pudo abrir los altavoces seleccionados. Comprueba que sigan conectados."));
 		return;
 	}
 	audioDeviceName = newDeviceName;
@@ -1771,10 +1775,19 @@ void PresenterPanel::ShowBibleDialog()
 {
 	QDialog dialog(main);
 	dialog.setWindowTitle(tr("Configuración de Biblia"));
-	dialog.setMinimumSize(680, 760);
+	dialog.setMinimumSize(620, 480);
+	const QRect available = main->screen() ? main->screen()->availableGeometry()
+					      : QGuiApplication::primaryScreen()->availableGeometry();
+	dialog.resize(std::min(760, std::max(620, available.width() - 80)),
+		      std::min(820, std::max(480, available.height() - 80)));
 	auto *layout = new QVBoxLayout(&dialog);
+	auto *scrollArea = new QScrollArea(&dialog);
+	scrollArea->setWidgetResizable(true);
+	scrollArea->setFrameShape(QFrame::NoFrame);
+	auto *content = new QWidget(scrollArea);
+	auto *contentLayout = new QVBoxLayout(content);
 
-	auto *importGroup = new QGroupBox(tr("Agregar Biblia"), &dialog);
+	auto *importGroup = new QGroupBox(tr("Agregar Biblia"), content);
 	auto *importLayout = new QVBoxLayout(importGroup);
 	importLayout->addWidget(new QLabel(
 		tr("Selecciona un TXT con bloques [VErsiculo], texto, [referencia] y referencia."), importGroup));
@@ -1787,9 +1800,9 @@ void PresenterPanel::ShowBibleDialog()
 	importLayout->addLayout(pathLayout);
 	auto *addButton = new QPushButton(tr("Agregar Biblia"), importGroup);
 	importLayout->addWidget(addButton, 0, Qt::AlignRight);
-	layout->addWidget(importGroup);
+	contentLayout->addWidget(importGroup);
 
-	auto *layoutGroup = new QGroupBox(tr("Layout / lienzo de proyección"), &dialog);
+	auto *layoutGroup = new QGroupBox(tr("Layout / lienzo de proyección"), content);
 	auto *canvasLayout = new QVBoxLayout(layoutGroup);
 	auto *backgroundLabel = new QLabel(tr("Fondo personalizado (imagen o video)"), layoutGroup);
 	canvasLayout->addWidget(backgroundLabel);
@@ -1807,7 +1820,7 @@ void PresenterPanel::ShowBibleDialog()
 	backgroundLoop->setChecked(bibleBackgroundLoop);
 	canvasLayout->addWidget(backgroundLoop);
 	auto *layoutPreview = new BibleLayoutPreview(layoutGroup);
-	canvasLayout->addWidget(layoutPreview, 1);
+	canvasLayout->addWidget(layoutPreview);
 	auto *form = new QFormLayout();
 	auto *fontCombo = new QFontComboBox(layoutGroup);
 	fontCombo->setCurrentFont(QFont(bibleFontFamily));
@@ -1833,7 +1846,10 @@ void PresenterPanel::ShowBibleDialog()
 	form->addRow(tr("Alineación del versículo"), alignment);
 	form->addRow(tr("Posición de la referencia"), referencePosition);
 	canvasLayout->addLayout(form);
-	layout->addWidget(layoutGroup, 1);
+	contentLayout->addWidget(layoutGroup);
+	contentLayout->addStretch();
+	scrollArea->setWidget(content);
+	layout->addWidget(scrollArea, 1);
 
 	auto refreshPreview = [layoutPreview, fontCombo, fontSize, alignment, referencePosition, backgroundEdit,
 			       backgroundLoop]() {

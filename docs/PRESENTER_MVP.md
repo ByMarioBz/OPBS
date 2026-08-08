@@ -1,7 +1,7 @@
 # Presentador multimedia
 
 OPBS es una aplicación de escritorio para organizar y proyectar imágenes, videos y audio, construida sobre OBS Studio
-32.2.0. La `P` identifica el Presentador integrado. La versión inicial propia es `0.1.0`.
+32.2.0. La `P` identifica el Presentador integrado. La versión actual de desarrollo es `0.1.5`.
 El frontend clásico de OBS está temporalmente oculto, pero su implementación permanece disponible para recuperar e
 integrar funciones de forma gradual.
 

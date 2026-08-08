@@ -273,7 +273,10 @@ inline const char *Str(const char *lookup)
 }
 inline QString QTStr(const char *lookupVal)
 {
-	return QString::fromUtf8(Str(lookupVal));
+	QString text = QString::fromUtf8(Str(lookupVal));
+	text.replace(QStringLiteral("OBS Studio"), QStringLiteral("OPBS"));
+	text.replace(QStringLiteral("OBS"), QStringLiteral("OPBS"));
+	return text;
 }
 
 int GetProgramDataPath(char *path, size_t size, const char *name);
