@@ -54,6 +54,34 @@ de insertar la nueva; no deben existir dos contenidos superpuestos.
 La miniatura de una canción puede seguir generándose antes mediante la biblioteca. `audio_only` solo afecta la fuente
 activa de reproducción.
 
+## Composición de transmisión
+
+La transmisión usa tres escenas privadas coordinadas por `PresenterPanel`:
+
+```text
+OPBS Transmission Camera     --> cámara a lienzo completo
+OPBS Transmission Presenter  --> Presenter Stage a lienzo completo
+OPBS Transmission Both       --> fondo + cámara izquierda + presentador derecha
+              |
+              v
+       OPBS Move Transition
+              |
+              +-- vista previa de transmisión
+              +-- salida principal de transmisión/grabación
+```
+
+`Presenter Stage` sigue siendo la fuente de verdad del contenido multimedia, bíblico o de presentaciones. Las escenas
+de transmisión solo reutilizan esa fuente y la cámara asignada para componer los tres modos; no deben crear una segunda
+reproducción del contenido.
+
+El modo `Ambos` guarda en porcentajes independientes X, Y, ancho y alto para cámara y presentador. Su fondo puede ser
+un `color_source`, `image_source` o `ffmpeg_source`; el valor predeterminado es negro. La transición entre `Cámaras`,
+`Presentador` y `Ambos` es `move_transition`, con fundido como respaldo si el módulo no pudiera cargarse.
+
+Move Transition 3.2.1 está fijado dentro de `plugins/move-transition` desde el commit upstream
+`3be3a85100e4382dc48b1058027ef02b5d1e4fbc`. Su procedencia y licencia GPL-2.0 están documentadas en
+`plugins/move-transition/OPBS_UPSTREAM.md`; no actualizarlo desde `master` sin una revisión explícita.
+
 ## Persistencia
 
 La aplicación usa configuración portátil bajo:
@@ -67,6 +95,10 @@ ventana. También se conservan la Biblia seleccionada, su tipografía, tamaño, 
 personalizado y repetición del fondo. Las diapositivas convertidas viven bajo la configuración portátil y sustituyen
 atómicamente la importación anterior. Los registros de ejecución están bajo `config/obs-studio/logs` y son la primera
 fuente para diagnosticar fallos.
+
+La geometría del divisor principal conserva la distribución aproximada 31/69 entre vistas previas y biblioteca. La
+configuración de transmisión recuerda el modo activo, la duración de Move, el fondo de `Ambos` y las ocho medidas de la
+composición.
 
 No versionar esa configuración: contiene rutas locales y preferencias del usuario.
 

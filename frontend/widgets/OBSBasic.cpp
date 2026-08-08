@@ -865,6 +865,16 @@ bool OBSBasic::InitBasicConfigDefaults()
 	config_set_default_uint(activeConfiguration, "Video", "SdrWhiteLevel", 300);
 	config_set_default_uint(activeConfiguration, "Video", "HdrNominalPeakLevel", 1000);
 
+	/* OPBS keeps its transmission canvas intentionally fixed and hides the
+	 * original video settings page from the presenter interface. */
+	config_set_uint(activeConfiguration, "Video", "BaseCX", 1920);
+	config_set_uint(activeConfiguration, "Video", "BaseCY", 1080);
+	config_set_uint(activeConfiguration, "Video", "OutputCX", 1920);
+	config_set_uint(activeConfiguration, "Video", "OutputCY", 1080);
+	config_set_uint(activeConfiguration, "Video", "FPSType", 0);
+	config_set_string(activeConfiguration, "Video", "FPSCommon", "60");
+	config_set_string(activeConfiguration, "Output", "Mode", "Simple");
+
 	config_set_default_string(activeConfiguration, "Audio", "MonitoringDeviceId", "default");
 	config_set_default_string(activeConfiguration, "Audio", "MonitoringDeviceName",
 				  Str("Basic.Settings.Advanced.Audio.MonitoringDevice"

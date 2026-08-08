@@ -22,16 +22,19 @@
 #include <utility/display-helpers.hpp>
 
 #include <obs-audio-controls.h>
+#include <obs-frontend-api.h>
 
 #include <QAction>
 #include <QApplication>
 #include <QCheckBox>
+#include <QColorDialog>
 #include <QComboBox>
 #include <QDialog>
 #include <QDialogButtonBox>
 #include <QDateTime>
 #include <QDir>
 #include <QDockWidget>
+#include <QDoubleSpinBox>
 #include <QDragEnterEvent>
 #include <QDragMoveEvent>
 #include <QFile>
@@ -68,6 +71,7 @@
 #include <QSpinBox>
 #include <QSplitter>
 #include <QStatusBar>
+#include <QStackedWidget>
 #include <QStyle>
 #include <QTextStream>
 #include <QTimer>
@@ -95,6 +99,12 @@ constexpr auto kPresentationsFolderId = "presentation-slides";
 const QStringList imageExtensions = {"bmp", "gif", "jpeg", "jpg", "png", "tga", "webp"};
 const QStringList audioExtensions = {"mp3", "aac", "ogg", "wav", "flac", "m4a", "wma"};
 const QStringList videoExtensions = {"mp4", "m4v", "mov", "mkv", "avi", "webm", "wmv", "mpeg", "mpg"};
+
+long long ColorToObsInt(const QColor &color)
+{
+	return (color.red() & 0xff) | ((color.green() & 0xff) << 8) | ((color.blue() & 0xff) << 16) |
+	       ((color.alpha() & 0xff) << 24);
+}
 
 class PresenterMediaList final : public QListWidget {
 public:
@@ -421,6 +431,14 @@ void PresenterPanel::BuildInterface()
 		QToolButton#presenterTransport:hover { background: #313747; border-color: #7b6cff; }
 		QToolButton#presenterTransport:checked { background: #6d5dfc; border-color: #8d82ff; color: white; }
 		QToolButton#presenterTransport:disabled { color: #666d7b; background: #20242c; }
+		#transmissionPreviewFrame { background: #15181f; border: 1px solid #2a2e38; border-radius: 8px; }
+		QToolButton#transmissionMode { background: #252a35; color: #f4f6fb; border: 1px solid #373e4c;
+			border-radius: 7px; padding: 7px 10px; font-weight: 600; }
+		QToolButton#transmissionMode:hover { border-color: #7b6cff; }
+		QToolButton#transmissionMode:checked { background: #6d5dfc; border-color: #8d82ff; }
+		QToolButton#transmissionLive { background: #b62f3b; color: white; border: 0; border-radius: 7px;
+			padding: 7px 12px; font-weight: 700; }
+		QToolButton#transmissionLive:checked { background: #e04a58; }
 	)" );
 
 	auto *root = new QVBoxLayout(this);
@@ -456,17 +474,20 @@ void PresenterPanel::BuildInterface()
 	root->addWidget(header);
 
 	auto *splitter = new QSplitter(Qt::Horizontal, this);
+	mainSplitter = splitter;
 	splitter->setChildrenCollapsible(false);
 	splitter->setHandleWidth(8);
 	auto *previewFrame = new QFrame(splitter);
 	previewFrame->setObjectName("presenterPreviewFrame");
+	previewFrame->setMinimumWidth(420);
 	auto *previewLayout = new QVBoxLayout(previewFrame);
+	previewLayout->setSizeConstraint(QLayout::SetNoConstraint);
 	previewLayout->setContentsMargins(16, 16, 16, 16);
 	auto *live = new QLabel(tr("●  VISTA PREVIA EN VIVO"), previewFrame);
 	live->setObjectName("presenterLive");
 	previewLayout->addWidget(live);
 	preview = new OBSQTDisplay(previewFrame);
-	preview->setMinimumSize(320, 180);
+	preview->setMinimumSize(288, 162);
 	preview->SetDisplayBackgroundColor(QColor("#08090c"));
 	previewLayout->addWidget(preview, 1);
 	currentMedia = new QLabel(tr("Ningún contenido seleccionado"), previewFrame);
@@ -589,6 +610,49 @@ void PresenterPanel::BuildInterface()
 		if (!restoring)
 			SaveSettings();
 	});
+
+	auto *transmissionFrame = new QFrame(previewFrame);
+	transmissionFrame->setObjectName("transmissionPreviewFrame");
+	auto *transmissionLayout = new QVBoxLayout(transmissionFrame);
+	transmissionLayout->setContentsMargins(10, 10, 10, 10);
+	auto *transmissionLabel = new QLabel(tr("●  VISTA PREVIA DE TRANSMISIÓN"), transmissionFrame);
+	transmissionLabel->setObjectName("presenterLive");
+	transmissionLayout->addWidget(transmissionLabel);
+	transmissionPreview = new OBSQTDisplay(transmissionFrame);
+	transmissionPreview->setMinimumSize(288, 162);
+	transmissionPreview->SetDisplayBackgroundColor(QColor("#08090c"));
+	transmissionLayout->addWidget(transmissionPreview, 1);
+	auto *transmissionButtons = new QHBoxLayout();
+	transmissionButtons->setSpacing(7);
+	auto makeTransmissionButton = [transmissionFrame, transmissionButtons](const QString &text, const QString &tip,
+								 bool checkable = true) {
+		auto *button = new QToolButton(transmissionFrame);
+		button->setObjectName("transmissionMode");
+		button->setText(text);
+		button->setToolTip(tip);
+		button->setCheckable(checkable);
+		transmissionButtons->addWidget(button);
+		return button;
+	};
+	streamButton = makeTransmissionButton(tr("Transmitir"), tr("Iniciar o detener los destinos configurados"));
+	streamButton->setObjectName("transmissionLive");
+	recordButton = makeTransmissionButton(tr("Grabar"), tr("Iniciar o detener la grabación"));
+	recordButton->setObjectName("transmissionLive");
+	transmissionButtons->addStretch();
+	camerasViewButton = makeTransmissionButton(tr("Cámaras"), tr("Mostrar solo la cámara asignada"));
+	presenterViewButton = makeTransmissionButton(tr("Presentador"), tr("Mostrar solo el contenido del presentador"));
+	combinedViewButton = makeTransmissionButton(tr("Ambos"),
+						      tr("Mostrar la cámara con el presentador en recuadro"));
+	transmissionLayout->addLayout(transmissionButtons);
+	previewLayout->addWidget(transmissionFrame, 1);
+	connect(streamButton, &QToolButton::clicked, this, &PresenterPanel::ToggleStreaming);
+	connect(recordButton, &QToolButton::clicked, this, &PresenterPanel::ToggleRecording);
+	connect(camerasViewButton, &QToolButton::clicked, this,
+		[this]() { ApplyTransmissionView(TransmissionView::Cameras); });
+	connect(presenterViewButton, &QToolButton::clicked, this,
+		[this]() { ApplyTransmissionView(TransmissionView::Presenter); });
+	connect(combinedViewButton, &QToolButton::clicked, this,
+		[this]() { ApplyTransmissionView(TransmissionView::CamerasAndPresenter); });
 
 	auto *library = new QFrame(splitter);
 	library->setObjectName("presenterLibrary");
@@ -783,9 +847,15 @@ void PresenterPanel::BuildInterface()
 
 	splitter->addWidget(previewFrame);
 	splitter->addWidget(library);
-	splitter->setStretchFactor(0, 1);
-	splitter->setStretchFactor(1, 1);
-	splitter->setSizes({600, 600});
+	// La composición inicial reserva aproximadamente un tercio para las
+	// previsualizaciones y deja el resto del espacio a la biblioteca.
+	splitter->setStretchFactor(0, 31);
+	splitter->setStretchFactor(1, 69);
+	splitter->setSizes({310, 690});
+	connect(splitter, &QSplitter::splitterMoved, this, [this]() {
+		if (!restoring)
+			SaveSettings();
+	});
 	root->addWidget(splitter, 1);
 
 	timelineTimer = new QTimer(this);
@@ -810,6 +880,7 @@ void PresenterPanel::BuildTopMenu()
 	screensAction = main->menuBar()->addAction(tr("Pantallas"));
 	soundAction = main->menuBar()->addAction(tr("Sonido"));
 	bibleAction = main->menuBar()->addAction(tr("Biblia"));
+	transmissionAction = main->menuBar()->addAction(tr("Transmisión"));
 	auto *helpMenu = main->menuBar()->addMenu(tr("Ayuda"));
 	helpMenuAction = helpMenu->menuAction();
 	opbsUpdateAction = helpMenu->addAction(tr("Buscar actualizaciones de OPBS"));
@@ -828,12 +899,14 @@ void PresenterPanel::BuildTopMenu()
 	connect(screensAction, &QAction::triggered, this, &PresenterPanel::ShowScreensDialog);
 	connect(soundAction, &QAction::triggered, this, &PresenterPanel::ShowSoundDialog);
 	connect(bibleAction, &QAction::triggered, this, &PresenterPanel::ShowBibleDialog);
+	connect(transmissionAction, &QAction::triggered, this, &PresenterPanel::ShowTransmissionDialog);
 	connect(opbsUpdateAction, &QAction::triggered, this, &PresenterPanel::LaunchOpbsUpdater);
 	connect(importPowerPoint, &QAction::triggered, this, [this]() { ImportPresentation(false); });
 	connect(importPdf, &QAction::triggered, this, [this]() { ImportPresentation(true); });
 	for (QAction *action : main->menuBar()->actions())
 		action->setVisible(action == fileMenuAction || action == editMenuAction || action == screensAction ||
-				   action == soundAction || action == bibleAction || action == helpMenuAction);
+				   action == soundAction || action == bibleAction || action == transmissionAction ||
+				   action == helpMenuAction);
 
 	connect(qApp, &QGuiApplication::screenAdded, this, [this]() {
 		ResolveSelectedMonitor();
@@ -884,6 +957,43 @@ void PresenterPanel::Initialize()
 		QMessageBox::critical(this, tr("Presentador multimedia"), tr("No fue posible crear el escenario de reproducción."));
 		return;
 	}
+	OBSSceneAutoRelease combinedScene = obs_scene_create_private("OPBS Transmission Both");
+	OBSSceneAutoRelease cameraScene = obs_scene_create_private("OPBS Transmission Camera");
+	OBSSceneAutoRelease presenterScene = obs_scene_create_private("OPBS Transmission Presenter");
+	transmissionScene = combinedScene.Get();
+	transmissionCameraScene = cameraScene.Get();
+	transmissionPresenterScene = presenterScene.Get();
+	if (!transmissionScene || !transmissionCameraScene || !transmissionPresenterScene) {
+		QMessageBox::critical(this, tr("Transmisión"), tr("No fue posible crear el lienzo de transmisión."));
+		stageScene = nullptr;
+		transmissionScene = nullptr;
+		transmissionCameraScene = nullptr;
+		transmissionPresenterScene = nullptr;
+		return;
+	}
+	transmissionPresenterItem = obs_scene_add(transmissionScene, obs_scene_get_source(stageScene));
+	transmissionPresenterOnlyItem = obs_scene_add(transmissionPresenterScene, obs_scene_get_source(stageScene));
+	obs_sceneitem_set_bounds_alignment(transmissionPresenterItem, OBS_ALIGN_CENTER);
+	obs_sceneitem_set_bounds_alignment(transmissionPresenterOnlyItem, OBS_ALIGN_CENTER);
+	transmissionTransition = obs_source_create_private("move_transition", "OPBS Move Transition", nullptr);
+	if (!transmissionTransition) {
+		blog(LOG_WARNING, "OPBS Move Transition is unavailable; using fade transition fallback");
+		transmissionTransition = obs_source_create_private("fade_transition", "OPBS Transmission Transition", nullptr);
+	}
+	if (!transmissionTransition) {
+		QMessageBox::critical(this, tr("Transmisión"), tr("No fue posible crear la transición de transmisión."));
+		stageScene = nullptr;
+		transmissionScene = nullptr;
+		transmissionCameraScene = nullptr;
+		transmissionPresenterScene = nullptr;
+		return;
+	}
+	obs_transition_set_size(transmissionTransition, 1920, 1080);
+	obs_transition_set_alignment(transmissionTransition, OBS_ALIGN_CENTER);
+	obs_transition_set_scale_type(transmissionTransition, OBS_TRANSITION_SCALE_ASPECT);
+	obs_transition_set(transmissionTransition, obs_scene_get_source(transmissionPresenterScene));
+	UpdateTransmissionItemBounds();
+
 	BuildTopMenu();
 	originalCentralWidget = main->takeCentralWidget();
 	if (originalCentralWidget) {
@@ -904,6 +1014,19 @@ void PresenterPanel::Initialize()
 	connect(preview, &OBSQTDisplay::DisplayCreated, this, [this](OBSQTDisplay *display) {
 		obs_display_add_draw_callback(display->GetDisplay(), PresenterPanel::RenderPreview, this);
 	});
+	connect(transmissionPreview, &OBSQTDisplay::DisplayCreated, this, [this](OBSQTDisplay *display) {
+		obs_display_add_draw_callback(display->GetDisplay(), PresenterPanel::RenderTransmissionPreview, this);
+	});
+	connect(main, &OBSBasic::StreamingStarted, this, [this]() {
+		StartSecondaryStream();
+		UpdateTransmissionButtons();
+	});
+	connect(main, &OBSBasic::StreamingStopped, this, [this]() {
+		StopSecondaryStream();
+		UpdateTransmissionButtons();
+	});
+	connect(main, &OBSBasic::RecordingStarted, this, [this]() { UpdateTransmissionButtons(); });
+	connect(main, &OBSBasic::RecordingStopped, this, [this]() { UpdateTransmissionButtons(); });
 	obs_source_t *stageSource = obs_scene_get_source(stageScene);
 	obs_source_inc_showing(stageSource);
 	stageShowing = true;
@@ -919,6 +1042,15 @@ void PresenterPanel::Initialize()
 	// globales de OBS (escritorio y micrófono) pueden bloquear ese mismo dispositivo.
 	for (uint32_t channel = 1; channel < 6; ++channel)
 		obs_set_output_source(channel, nullptr);
+	ApplyCombinedBackground();
+	RefreshCameraSource();
+	ApplyTransmissionView(transmissionView, false);
+	ApplyPrimaryStreamService();
+	UpdateTransmissionButtons();
+	QTimer::singleShot(0, this, [this]() {
+		if (transmissionTransition)
+			obs_set_output_source(0, transmissionTransition);
+	});
 	timelineTimer->start();
 }
 
@@ -935,6 +1067,11 @@ void PresenterPanel::Shutdown()
 	}
 	if (preview && preview->GetDisplay())
 		obs_display_remove_draw_callback(preview->GetDisplay(), PresenterPanel::RenderPreview, this);
+	if (transmissionPreview && transmissionPreview->GetDisplay())
+		obs_display_remove_draw_callback(transmissionPreview->GetDisplay(), PresenterPanel::RenderTransmissionPreview,
+						 this);
+	StopSecondaryStream();
+	obs_set_output_source(0, nullptr);
 	if (audioMeter) {
 		obs_volmeter_detach_source(audioMeter);
 		obs_volmeter_remove_callback(audioMeter, PresenterPanel::AudioMeterUpdated, this);
@@ -944,6 +1081,21 @@ void PresenterPanel::Shutdown()
 	DetachAudioFilters();
 	ClearActiveMedia();
 	ClearBiblePresentation();
+	if (transmissionTransition) {
+		obs_transition_force_stop(transmissionTransition);
+		obs_transition_clear(transmissionTransition);
+	}
+	transmissionTransition = nullptr;
+	transmissionBackgroundSource = nullptr;
+	cameraSource = nullptr;
+	transmissionBackgroundItem = nullptr;
+	transmissionCameraOnlyItem = nullptr;
+	transmissionPresenterOnlyItem = nullptr;
+	transmissionCameraItem = nullptr;
+	transmissionPresenterItem = nullptr;
+	transmissionScene = nullptr;
+	transmissionCameraScene = nullptr;
+	transmissionPresenterScene = nullptr;
 	entries.clear();
 	if (stageScene && stageActive) {
 		obs_source_dec_active(obs_scene_get_source(stageScene));
@@ -1771,6 +1923,338 @@ void PresenterPanel::ShowSoundDialog()
 	SaveSettings();
 }
 
+void PresenterPanel::ShowTransmissionDialog()
+{
+	QDialog dialog(main);
+	dialog.setWindowTitle(tr("Configuración de transmisión"));
+	dialog.resize(900, 650);
+	auto *root = new QVBoxLayout(&dialog);
+	auto *body = new QHBoxLayout();
+	auto *sections = new QListWidget(&dialog);
+	sections->setFixedWidth(170);
+	sections->addItem(tr("📡  Emisión"));
+	sections->addItem(tr("🖥  Salida"));
+	sections->addItem(tr("📷  Cámaras"));
+	sections->addItem(tr("▣  Lienzo de ambos"));
+	auto *pages = new QStackedWidget(&dialog);
+	body->addWidget(sections);
+	body->addWidget(pages, 1);
+	root->addLayout(body, 1);
+
+	struct DestinationControls {
+		QCheckBox *enabled = nullptr;
+		QComboBox *service = nullptr;
+		QLineEdit *server = nullptr;
+		QLineEdit *key = nullptr;
+	};
+	DestinationControls destinationControls[2];
+	auto defaultServer = [](const QString &service) {
+		if (service == QStringLiteral("Facebook"))
+			return QStringLiteral("rtmps://rtmp-api.facebook.com:443/rtmp/");
+		if (service == QStringLiteral("YouTube"))
+			return QStringLiteral("rtmps://a.rtmps.youtube.com:443/live2");
+		return QString();
+	};
+
+	auto *emissionPage = new QWidget(pages);
+	auto *emissionLayout = new QVBoxLayout(emissionPage);
+	auto *emissionIntro = new QLabel(
+		tr("OPBS puede enviar la misma composición a dos destinos de forma nativa. Configura al menos el primero."),
+		emissionPage);
+	emissionIntro->setWordWrap(true);
+	emissionLayout->addWidget(emissionIntro);
+	for (int index = 0; index < 2; ++index) {
+		auto *group = new QGroupBox(tr("Destino %1").arg(index + 1), emissionPage);
+		auto *form = new QFormLayout(group);
+		if (index == 1) {
+			destinationControls[index].enabled = new QCheckBox(tr("Activar segundo destino"), group);
+			destinationControls[index].enabled->setChecked(streamDestinations[index].enabled);
+			form->addRow(destinationControls[index].enabled);
+		}
+		destinationControls[index].service = new QComboBox(group);
+		destinationControls[index].service->addItems({QStringLiteral("YouTube"), QStringLiteral("Facebook"),
+							      QStringLiteral("Personalizado")});
+		destinationControls[index].service->setCurrentText(streamDestinations[index].service);
+		destinationControls[index].server = new QLineEdit(streamDestinations[index].server, group);
+		if (destinationControls[index].server->text().isEmpty())
+			destinationControls[index].server->setText(defaultServer(streamDestinations[index].service));
+		destinationControls[index].key = new QLineEdit(streamDestinations[index].key, group);
+		destinationControls[index].key->setEchoMode(QLineEdit::Password);
+		destinationControls[index].key->setPlaceholderText(tr("Clave de transmisión"));
+		form->addRow(tr("Servicio"), destinationControls[index].service);
+		form->addRow(tr("Servidor"), destinationControls[index].server);
+		form->addRow(tr("Clave"), destinationControls[index].key);
+		connect(destinationControls[index].service, &QComboBox::currentTextChanged, group,
+			[destinationControls, index, defaultServer](const QString &service) {
+				if (service != QStringLiteral("Personalizado"))
+					destinationControls[index].server->setText(defaultServer(service));
+			});
+		emissionLayout->addWidget(group);
+	}
+	emissionLayout->addStretch();
+	pages->addWidget(emissionPage);
+
+	auto *outputPage = new QWidget(pages);
+	auto *outputLayout = new QVBoxLayout(outputPage);
+	auto *fixedVideo = new QGroupBox(tr("Video interno"), outputPage);
+	auto *fixedVideoLayout = new QFormLayout(fixedVideo);
+	fixedVideoLayout->addRow(tr("Resolución del lienzo"), new QLabel(tr("1920 × 1080 (16:9)"), fixedVideo));
+	fixedVideoLayout->addRow(tr("Resolución de salida"), new QLabel(tr("1920 × 1080"), fixedVideo));
+	fixedVideoLayout->addRow(tr("Fotogramas por segundo"), new QLabel(tr("60 FPS"), fixedVideo));
+	outputLayout->addWidget(fixedVideo);
+	auto *outputGroup = new QGroupBox(tr("Salida"), outputPage);
+	auto *outputForm = new QFormLayout(outputGroup);
+	auto *videoBitrate = new QSpinBox(outputGroup);
+	videoBitrate->setRange(1000, 51000);
+	videoBitrate->setSuffix(tr(" kbps"));
+	videoBitrate->setValue(streamVideoBitrate);
+	auto *audioBitrate = new QSpinBox(outputGroup);
+	audioBitrate->setRange(64, 320);
+	audioBitrate->setSingleStep(32);
+	audioBitrate->setSuffix(tr(" kbps"));
+	audioBitrate->setValue(streamAudioBitrate);
+	auto *recordingPathEdit = new QLineEdit(recordingPath, outputGroup);
+	auto *recordingPathRow = new QHBoxLayout();
+	auto *browseRecordingPath = new QPushButton(tr("Examinar…"), outputGroup);
+	recordingPathRow->addWidget(recordingPathEdit, 1);
+	recordingPathRow->addWidget(browseRecordingPath);
+	outputForm->addRow(tr("Tasa de bits de video"), videoBitrate);
+	outputForm->addRow(tr("Tasa de bits de audio"), audioBitrate);
+	outputForm->addRow(tr("Carpeta de grabaciones"), recordingPathRow);
+	connect(browseRecordingPath, &QPushButton::clicked, &dialog, [&dialog, recordingPathEdit]() {
+		const QString path = QFileDialog::getExistingDirectory(&dialog, QObject::tr("Carpeta de grabaciones"),
+								      recordingPathEdit->text());
+		if (!path.isEmpty())
+			recordingPathEdit->setText(path);
+	});
+	outputLayout->addWidget(outputGroup);
+	outputLayout->addStretch();
+	pages->addWidget(outputPage);
+
+	auto *cameraPage = new QWidget(pages);
+	auto *cameraLayout = new QVBoxLayout(cameraPage);
+	auto *cameraGroup = new QGroupBox(tr("Configurar cámara"), cameraPage);
+	auto *cameraForm = new QFormLayout(cameraGroup);
+	auto *cameraSelector = new QComboBox(cameraGroup);
+	cameraSelector->addItem(tr("Sin cámara"), QString());
+	OBSProperties cameraProperties = obs_get_source_properties("dshow_input");
+	if (cameraProperties) {
+		obs_property_t *devices = obs_properties_get(cameraProperties, "video_device_id");
+		if (devices) {
+			const size_t count = obs_property_list_item_count(devices);
+			for (size_t index = 0; index < count; ++index) {
+				const QString name = QString::fromUtf8(obs_property_list_item_name(devices, index));
+				const QString id = QString::fromUtf8(obs_property_list_item_string(devices, index));
+				if (!id.isEmpty())
+					cameraSelector->addItem(name, id);
+			}
+		}
+	}
+	int cameraIndex = cameraSelector->findData(selectedCameraId);
+	if (cameraIndex < 0 && !selectedCameraId.isEmpty()) {
+		cameraSelector->addItem(selectedCameraName.isEmpty() ? tr("Cámara no disponible") : selectedCameraName,
+					selectedCameraId);
+		cameraIndex = cameraSelector->count() - 1;
+	}
+	cameraSelector->setCurrentIndex(std::max(cameraIndex, 0));
+	cameraForm->addRow(tr("Asignar cámara"), cameraSelector);
+	cameraLayout->addWidget(cameraGroup);
+	auto *cameraHint = new QLabel(
+		tr("La cámara seleccionada se usará en los modos Cámaras y Cámaras y presentador."), cameraPage);
+	cameraHint->setWordWrap(true);
+	cameraLayout->addWidget(cameraHint);
+	cameraLayout->addStretch();
+	pages->addWidget(cameraPage);
+
+	auto *bothScroll = new QScrollArea(pages);
+	bothScroll->setWidgetResizable(true);
+	auto *bothPage = new QWidget(bothScroll);
+	auto *bothLayout = new QVBoxLayout(bothPage);
+	auto *canvasPreview = new QFrame(bothPage);
+	canvasPreview->setFixedSize(480, 270);
+	canvasPreview->setFrameShape(QFrame::StyledPanel);
+	auto *cameraPreview = new QLabel(tr("Cámara"), canvasPreview);
+	cameraPreview->setAlignment(Qt::AlignCenter);
+	cameraPreview->setStyleSheet("background:#d6aa00; color:#111; border:1px solid #ffe16b; font-weight:700;");
+	auto *presenterPreview = new QLabel(tr("Presentador"), canvasPreview);
+	presenterPreview->setAlignment(Qt::AlignCenter);
+	presenterPreview->setStyleSheet("background:#08090c; color:white; border:1px solid #3a3f4b; font-weight:700;");
+	auto *previewRow = new QHBoxLayout();
+	previewRow->addStretch();
+	previewRow->addWidget(canvasPreview);
+	previewRow->addStretch();
+	bothLayout->addLayout(previewRow);
+
+	auto makePercentSpin = [bothPage](double value) {
+		auto *spin = new QDoubleSpinBox(bothPage);
+		spin->setRange(0.0, 100.0);
+		spin->setDecimals(1);
+		spin->setSingleStep(0.5);
+		spin->setSuffix(" %");
+		spin->setValue(value);
+		return spin;
+	};
+	auto *compositionGroup = new QGroupBox(tr("Composición"), bothPage);
+	auto *compositionGrid = new QGridLayout(compositionGroup);
+	compositionGrid->addWidget(new QLabel(tr("Elemento"), compositionGroup), 0, 0);
+	compositionGrid->addWidget(new QLabel(tr("X"), compositionGroup), 0, 1);
+	compositionGrid->addWidget(new QLabel(tr("Y"), compositionGroup), 0, 2);
+	compositionGrid->addWidget(new QLabel(tr("Ancho"), compositionGroup), 0, 3);
+	compositionGrid->addWidget(new QLabel(tr("Alto"), compositionGroup), 0, 4);
+	auto *cameraX = makePercentSpin(combinedCameraX);
+	auto *cameraY = makePercentSpin(combinedCameraY);
+	auto *cameraWidth = makePercentSpin(combinedCameraWidth);
+	auto *cameraHeight = makePercentSpin(combinedCameraHeight);
+	auto *presenterX = makePercentSpin(combinedPresenterX);
+	auto *presenterY = makePercentSpin(combinedPresenterY);
+	auto *presenterWidth = makePercentSpin(combinedPresenterWidth);
+	auto *presenterHeight = makePercentSpin(combinedPresenterHeight);
+	compositionGrid->addWidget(new QLabel(tr("Cámara"), compositionGroup), 1, 0);
+	compositionGrid->addWidget(cameraX, 1, 1);
+	compositionGrid->addWidget(cameraY, 1, 2);
+	compositionGrid->addWidget(cameraWidth, 1, 3);
+	compositionGrid->addWidget(cameraHeight, 1, 4);
+	compositionGrid->addWidget(new QLabel(tr("Presentador"), compositionGroup), 2, 0);
+	compositionGrid->addWidget(presenterX, 2, 1);
+	compositionGrid->addWidget(presenterY, 2, 2);
+	compositionGrid->addWidget(presenterWidth, 2, 3);
+	compositionGrid->addWidget(presenterHeight, 2, 4);
+	bothLayout->addWidget(compositionGroup);
+
+	auto *backgroundGroup = new QGroupBox(tr("Fondo"), bothPage);
+	auto *backgroundForm = new QFormLayout(backgroundGroup);
+	auto *backgroundType = new QComboBox(backgroundGroup);
+	backgroundType->addItem(tr("Color"), "color");
+	backgroundType->addItem(tr("Imagen"), "image");
+	backgroundType->addItem(tr("Video"), "video");
+	backgroundType->setCurrentIndex(std::max(backgroundType->findData(combinedBackgroundType), 0));
+	QColor pendingBackgroundColor(combinedBackgroundColor);
+	if (!pendingBackgroundColor.isValid())
+		pendingBackgroundColor = Qt::black;
+	auto *colorButton = new QPushButton(pendingBackgroundColor.name(QColor::HexRgb), backgroundGroup);
+	auto *backgroundPathEdit = new QLineEdit(combinedBackgroundPath, backgroundGroup);
+	auto *backgroundBrowse = new QPushButton(tr("Examinar…"), backgroundGroup);
+	auto *backgroundPathRow = new QHBoxLayout();
+	backgroundPathRow->addWidget(backgroundPathEdit, 1);
+	backgroundPathRow->addWidget(backgroundBrowse);
+	auto *backgroundLoop = new QCheckBox(tr("Repetir video en bucle"), backgroundGroup);
+	backgroundLoop->setChecked(combinedBackgroundLoop);
+	backgroundForm->addRow(tr("Tipo"), backgroundType);
+	backgroundForm->addRow(tr("Color"), colorButton);
+	backgroundForm->addRow(tr("Archivo"), backgroundPathRow);
+	backgroundForm->addRow(QString(), backgroundLoop);
+	bothLayout->addWidget(backgroundGroup);
+
+	auto *transitionGroup = new QGroupBox(tr("Transición"), bothPage);
+	auto *transitionForm = new QFormLayout(transitionGroup);
+	auto *transitionName = new QLabel(tr("Move Transition (predeterminada)"), transitionGroup);
+	auto *transitionDuration = new QSpinBox(transitionGroup);
+	transitionDuration->setRange(100, 3000);
+	transitionDuration->setSuffix(tr(" ms"));
+	transitionDuration->setValue(transmissionTransitionDuration);
+	transitionForm->addRow(tr("Tipo"), transitionName);
+	transitionForm->addRow(tr("Duración"), transitionDuration);
+	bothLayout->addWidget(transitionGroup);
+	bothLayout->addStretch();
+	bothScroll->setWidget(bothPage);
+	pages->addWidget(bothScroll);
+
+	auto refreshCanvasPreview = [&]() {
+		const int previewWidth = canvasPreview->width();
+		const int previewHeight = canvasPreview->height();
+		auto geometryFromControls = [previewWidth, previewHeight](QDoubleSpinBox *x, QDoubleSpinBox *y,
+								     QDoubleSpinBox *width, QDoubleSpinBox *height) {
+			return QRect(qRound(previewWidth * x->value() / 100.0), qRound(previewHeight * y->value() / 100.0),
+				     std::max(qRound(previewWidth * width->value() / 100.0), 1),
+				     std::max(qRound(previewHeight * height->value() / 100.0), 1));
+		};
+		cameraPreview->setGeometry(geometryFromControls(cameraX, cameraY, cameraWidth, cameraHeight));
+		presenterPreview->setGeometry(
+			geometryFromControls(presenterX, presenterY, presenterWidth, presenterHeight));
+		const QString type = backgroundType->currentData().toString();
+		if (type == QStringLiteral("color"))
+			canvasPreview->setStyleSheet(QString("background:%1; border:1px solid #3a3f4b;")
+						     .arg(pendingBackgroundColor.name(QColor::HexRgb)));
+		else
+			canvasPreview->setStyleSheet("background:#707070; border:1px solid #3a3f4b;");
+	};
+	for (QDoubleSpinBox *spin : {cameraX, cameraY, cameraWidth, cameraHeight, presenterX, presenterY,
+				     presenterWidth, presenterHeight})
+		connect(spin, qOverload<double>(&QDoubleSpinBox::valueChanged), &dialog,
+			[&](double) { refreshCanvasPreview(); });
+	auto updateBackgroundControls = [&]() {
+		const QString type = backgroundType->currentData().toString();
+		colorButton->setVisible(type == QStringLiteral("color"));
+		backgroundPathEdit->setVisible(type != QStringLiteral("color"));
+		backgroundBrowse->setVisible(type != QStringLiteral("color"));
+		backgroundLoop->setVisible(type == QStringLiteral("video"));
+		refreshCanvasPreview();
+	};
+	connect(backgroundType, qOverload<int>(&QComboBox::currentIndexChanged), &dialog,
+		[&](int) { updateBackgroundControls(); });
+	connect(colorButton, &QPushButton::clicked, &dialog, [&]() {
+		const QColor selected = QColorDialog::getColor(pendingBackgroundColor, &dialog, tr("Color del fondo"));
+		if (!selected.isValid())
+			return;
+		pendingBackgroundColor = selected;
+		colorButton->setText(selected.name(QColor::HexRgb));
+		refreshCanvasPreview();
+	});
+	connect(backgroundBrowse, &QPushButton::clicked, &dialog, [&]() {
+		const bool video = backgroundType->currentData().toString() == QStringLiteral("video");
+		const QString filter = video ? tr("Videos (*.mp4 *.mkv *.mov *.webm *.avi);;Todos (*.*)")
+					     : tr("Imágenes (*.png *.jpg *.jpeg *.webp *.bmp);;Todos (*.*)");
+		const QString path = QFileDialog::getOpenFileName(&dialog, tr("Seleccionar fondo"),
+							       backgroundPathEdit->text(), filter);
+		if (!path.isEmpty())
+			backgroundPathEdit->setText(path);
+	});
+	updateBackgroundControls();
+
+	connect(sections, &QListWidget::currentRowChanged, pages, &QStackedWidget::setCurrentIndex);
+	sections->setCurrentRow(0);
+	auto *buttons = new QDialogButtonBox(QDialogButtonBox::Save | QDialogButtonBox::Cancel, &dialog);
+	buttons->button(QDialogButtonBox::Save)->setText(tr("Guardar"));
+	buttons->button(QDialogButtonBox::Cancel)->setText(tr("Cancelar"));
+	connect(buttons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
+	connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+	root->addWidget(buttons);
+	if (dialog.exec() != QDialog::Accepted)
+		return;
+
+	for (int index = 0; index < 2; ++index) {
+		streamDestinations[index].service = destinationControls[index].service->currentText();
+		streamDestinations[index].server = destinationControls[index].server->text().trimmed();
+		streamDestinations[index].key = destinationControls[index].key->text().trimmed();
+		streamDestinations[index].enabled = index == 0 || destinationControls[index].enabled->isChecked();
+	}
+	streamVideoBitrate = videoBitrate->value();
+	streamAudioBitrate = audioBitrate->value();
+	recordingPath = recordingPathEdit->text().trimmed();
+	selectedCameraId = cameraSelector->currentData().toString();
+	selectedCameraName = cameraSelector->currentText();
+	combinedCameraX = cameraX->value();
+	combinedCameraY = cameraY->value();
+	combinedCameraWidth = cameraWidth->value();
+	combinedCameraHeight = cameraHeight->value();
+	combinedPresenterX = presenterX->value();
+	combinedPresenterY = presenterY->value();
+	combinedPresenterWidth = presenterWidth->value();
+	combinedPresenterHeight = presenterHeight->value();
+	combinedBackgroundType = backgroundType->currentData().toString();
+	combinedBackgroundColor = pendingBackgroundColor.name(QColor::HexRgb);
+	combinedBackgroundPath = backgroundPathEdit->text().trimmed();
+	combinedBackgroundLoop = backgroundLoop->isChecked();
+	transmissionTransitionDuration = transitionDuration->value();
+	ApplyCombinedBackground();
+	UpdateTransmissionItemBounds();
+	RefreshCameraSource();
+	ApplyPrimaryStreamService();
+	if (!main->Active())
+		main->ResetOutputs();
+	SaveSettings();
+}
+
 void PresenterPanel::ShowBibleDialog()
 {
 	QDialog dialog(main);
@@ -2309,6 +2793,46 @@ void PresenterPanel::LoadSettings()
 	outputVolume = settings.value("audio/outputVolume", 100).toInt();
 	outputGain = settings.value("audio/gain", 0).toInt();
 	selectedEffect = settings.value("audio/effect", "none").toString();
+	selectedCameraId = settings.value("transmission/cameraId").toString();
+	selectedCameraName = settings.value("transmission/cameraName").toString();
+	streamVideoBitrate = std::clamp(settings.value("transmission/videoBitrate", 6000).toInt(), 1000, 51000);
+	streamAudioBitrate = std::clamp(settings.value("transmission/audioBitrate", 160).toInt(), 64, 320);
+	recordingPath = settings.value("transmission/recordingPath",
+				       QString::fromUtf8(config_get_string(main->Config(), "SimpleOutput", "FilePath")))
+			.toString();
+	streamDestinations[0].service = settings.value("transmission/destination1/service", "YouTube").toString();
+	streamDestinations[0].server = settings
+					       .value("transmission/destination1/server",
+						      "rtmps://a.rtmps.youtube.com:443/live2")
+					       .toString();
+	streamDestinations[0].key = settings.value("transmission/destination1/key").toString();
+	streamDestinations[0].enabled = true;
+	streamDestinations[1].service = settings.value("transmission/destination2/service", "Facebook").toString();
+	streamDestinations[1].server = settings
+					       .value("transmission/destination2/server",
+						      "rtmps://rtmp-api.facebook.com:443/rtmp/")
+					       .toString();
+	streamDestinations[1].key = settings.value("transmission/destination2/key").toString();
+	streamDestinations[1].enabled = settings.value("transmission/destination2/enabled", false).toBool();
+	transmissionView = static_cast<TransmissionView>(
+		std::clamp(settings.value("transmission/view", int(TransmissionView::Presenter)).toInt(), 0, 2));
+	transmissionTransitionDuration =
+		std::clamp(settings.value("transmission/transitionDuration", 600).toInt(), 100, 3000);
+	combinedBackgroundType = settings.value("transmission/both/backgroundType", "color").toString();
+	combinedBackgroundColor = settings.value("transmission/both/backgroundColor", "#000000").toString();
+	combinedBackgroundPath = settings.value("transmission/both/backgroundPath").toString();
+	combinedBackgroundLoop = settings.value("transmission/both/backgroundLoop", true).toBool();
+	auto loadPercent = [&settings](const char *key, double fallback) {
+		return std::clamp(settings.value(QString::fromLatin1(key), fallback).toDouble(), 0.0, 100.0);
+	};
+	combinedCameraX = loadPercent("transmission/both/cameraX", 3.5);
+	combinedCameraY = loadPercent("transmission/both/cameraY", 31.0);
+	combinedCameraWidth = loadPercent("transmission/both/cameraWidth", 35.0);
+	combinedCameraHeight = loadPercent("transmission/both/cameraHeight", 35.0);
+	combinedPresenterX = loadPercent("transmission/both/presenterX", 41.0);
+	combinedPresenterY = loadPercent("transmission/both/presenterY", 19.0);
+	combinedPresenterWidth = loadPercent("transmission/both/presenterWidth", 57.0);
+	combinedPresenterHeight = loadPercent("transmission/both/presenterHeight", 57.0);
 	audioDeviceName = settings.value("audio/deviceName").toString();
 	audioDeviceId = settings.value("audio/deviceId").toString();
 	selectedMonitorName = settings.value("stage/monitorName").toString();
@@ -2336,6 +2860,23 @@ void PresenterPanel::LoadSettings()
 	const QByteArray geometry = settings.value("window/geometry").toByteArray();
 	if (!geometry.isEmpty())
 		main->restoreGeometry(geometry);
+	const int layoutVersion = settings.value("window/layoutVersion", 0).toInt();
+	const QByteArray splitterState = settings.value("window/mainSplitter").toByteArray();
+	if (mainSplitter) {
+		if (layoutVersion >= 5 && !splitterState.isEmpty()) {
+			mainSplitter->restoreState(splitterState);
+		} else {
+			// QSplitter necesita conocer el ancho definitivo de la ventana para
+			// aplicar con precisión el reparto inicial 31/69.
+			QTimer::singleShot(0, this, [this]() {
+				if (!mainSplitter)
+					return;
+				const int width = mainSplitter->width();
+				const int previewWidth = qRound(width * 0.31);
+				mainSplitter->setSizes({previewWidth, std::max(width - previewWidth, 1)});
+			});
+		}
+	}
 	if (!audioDeviceId.isEmpty())
 		obs_set_audio_monitoring_device(audioDeviceName.toUtf8().constData(), audioDeviceId.toUtf8().constData());
 
@@ -2443,7 +2984,36 @@ void PresenterPanel::SaveSettings()
 	settings.setValue("audio/effect", selectedEffect);
 	settings.setValue("audio/deviceName", audioDeviceName);
 	settings.setValue("audio/deviceId", audioDeviceId);
+	settings.setValue("transmission/cameraId", selectedCameraId);
+	settings.setValue("transmission/cameraName", selectedCameraName);
+	settings.setValue("transmission/videoBitrate", streamVideoBitrate);
+	settings.setValue("transmission/audioBitrate", streamAudioBitrate);
+	settings.setValue("transmission/recordingPath", recordingPath);
+	settings.setValue("transmission/view", int(transmissionView));
+	settings.setValue("transmission/transitionDuration", transmissionTransitionDuration);
+	settings.setValue("transmission/both/backgroundType", combinedBackgroundType);
+	settings.setValue("transmission/both/backgroundColor", combinedBackgroundColor);
+	settings.setValue("transmission/both/backgroundPath", combinedBackgroundPath);
+	settings.setValue("transmission/both/backgroundLoop", combinedBackgroundLoop);
+	settings.setValue("transmission/both/cameraX", combinedCameraX);
+	settings.setValue("transmission/both/cameraY", combinedCameraY);
+	settings.setValue("transmission/both/cameraWidth", combinedCameraWidth);
+	settings.setValue("transmission/both/cameraHeight", combinedCameraHeight);
+	settings.setValue("transmission/both/presenterX", combinedPresenterX);
+	settings.setValue("transmission/both/presenterY", combinedPresenterY);
+	settings.setValue("transmission/both/presenterWidth", combinedPresenterWidth);
+	settings.setValue("transmission/both/presenterHeight", combinedPresenterHeight);
+	settings.setValue("transmission/destination1/service", streamDestinations[0].service);
+	settings.setValue("transmission/destination1/server", streamDestinations[0].server);
+	settings.setValue("transmission/destination1/key", streamDestinations[0].key);
+	settings.setValue("transmission/destination2/service", streamDestinations[1].service);
+	settings.setValue("transmission/destination2/server", streamDestinations[1].server);
+	settings.setValue("transmission/destination2/key", streamDestinations[1].key);
+	settings.setValue("transmission/destination2/enabled", streamDestinations[1].enabled);
 	settings.setValue("window/geometry", main->saveGeometry());
+	settings.setValue("window/layoutVersion", 5);
+	if (mainSplitter)
+		settings.setValue("window/mainSplitter", mainSplitter->saveState());
 	settings.sync();
 }
 
@@ -2498,4 +3068,275 @@ void PresenterPanel::RenderPreview(void *data, uint32_t cx, uint32_t cy)
 	startRegion(x, y, newCX, newCY, 0.0f, float(targetCX), 0.0f, float(targetCY));
 	obs_source_video_render(source);
 	endRegion();
+}
+
+void PresenterPanel::RenderTransmissionPreview(void *data, uint32_t cx, uint32_t cy)
+{
+	auto *panel = static_cast<PresenterPanel *>(data);
+	if (!panel || !panel->transmissionTransition)
+		return;
+	obs_source_t *source = panel->transmissionTransition;
+	const uint32_t targetCX = std::max(obs_source_get_width(source), 1u);
+	const uint32_t targetCY = std::max(obs_source_get_height(source), 1u);
+	int x, y;
+	float scale;
+	GetScaleAndCenterPos(targetCX, targetCY, cx, cy, x, y, scale);
+	const int newCX = int(scale * float(targetCX));
+	const int newCY = int(scale * float(targetCY));
+	startRegion(x, y, newCX, newCY, 0.0f, float(targetCX), 0.0f, float(targetCY));
+	obs_source_video_render(source);
+	endRegion();
+}
+
+void PresenterPanel::UpdateTransmissionItemBounds()
+{
+	obs_video_info videoInfo = {};
+	const bool hasVideoInfo = obs_get_video_info(&videoInfo);
+	const float canvasWidth = hasVideoInfo ? float(videoInfo.base_width) : 1920.0f;
+	const float canvasHeight = hasVideoInfo ? float(videoInfo.base_height) : 1080.0f;
+	const vec2 fullSize = {canvasWidth, canvasHeight};
+	const vec2 origin = {0.0f, 0.0f};
+	auto setFullCanvas = [&fullSize, &origin](obs_sceneitem_t *item) {
+		if (!item)
+			return;
+		obs_sceneitem_set_bounds_type(item, OBS_BOUNDS_STRETCH);
+		obs_sceneitem_set_bounds_alignment(item, OBS_ALIGN_CENTER);
+		obs_sceneitem_set_bounds(item, &fullSize);
+		obs_sceneitem_set_pos(item, &origin);
+	};
+	setFullCanvas(transmissionPresenterOnlyItem);
+	setFullCanvas(transmissionCameraOnlyItem);
+	setFullCanvas(transmissionBackgroundItem);
+	auto setCombinedBounds = [canvasWidth, canvasHeight](obs_sceneitem_t *item, double x, double y, double width,
+							       double height) {
+		if (!item)
+			return;
+		const vec2 bounds = {canvasWidth * float(width / 100.0), canvasHeight * float(height / 100.0)};
+		const vec2 position = {canvasWidth * float(x / 100.0), canvasHeight * float(y / 100.0)};
+		obs_sceneitem_set_bounds_type(item, OBS_BOUNDS_SCALE_INNER);
+		obs_sceneitem_set_bounds_alignment(item, OBS_ALIGN_CENTER);
+		obs_sceneitem_set_bounds(item, &bounds);
+		obs_sceneitem_set_pos(item, &position);
+	};
+	setCombinedBounds(transmissionCameraItem, combinedCameraX, combinedCameraY, combinedCameraWidth,
+			  combinedCameraHeight);
+	setCombinedBounds(transmissionPresenterItem, combinedPresenterX, combinedPresenterY, combinedPresenterWidth,
+			  combinedPresenterHeight);
+}
+
+obs_source_t *PresenterPanel::TransmissionSceneSource(TransmissionView view) const
+{
+	if (view == TransmissionView::Cameras)
+		return transmissionCameraScene ? obs_scene_get_source(transmissionCameraScene) : nullptr;
+	if (view == TransmissionView::CamerasAndPresenter)
+		return transmissionScene ? obs_scene_get_source(transmissionScene) : nullptr;
+	return transmissionPresenterScene ? obs_scene_get_source(transmissionPresenterScene) : nullptr;
+}
+
+void PresenterPanel::ApplyCombinedBackground()
+{
+	if (!transmissionScene)
+		return;
+	if (transmissionBackgroundItem) {
+		obs_sceneitem_remove(transmissionBackgroundItem);
+		transmissionBackgroundItem = nullptr;
+	}
+	transmissionBackgroundSource = nullptr;
+	OBSDataAutoRelease settings = obs_data_create();
+	QByteArray sourceId;
+	if (combinedBackgroundType == QStringLiteral("image") && QFileInfo::exists(combinedBackgroundPath)) {
+		sourceId = "image_source";
+		obs_data_set_string(settings, "file", combinedBackgroundPath.toUtf8().constData());
+	} else if (combinedBackgroundType == QStringLiteral("video") && QFileInfo::exists(combinedBackgroundPath)) {
+		sourceId = "ffmpeg_source";
+		obs_data_set_bool(settings, "is_local_file", true);
+		obs_data_set_string(settings, "local_file", combinedBackgroundPath.toUtf8().constData());
+		obs_data_set_bool(settings, "looping", combinedBackgroundLoop);
+		obs_data_set_bool(settings, "clear_on_media_end", false);
+		obs_data_set_bool(settings, "restart_on_activate", false);
+	} else {
+		combinedBackgroundType = QStringLiteral("color");
+		sourceId = "color_source";
+		QColor color(combinedBackgroundColor);
+		if (!color.isValid())
+			color = Qt::black;
+		color.setAlpha(255);
+		obs_data_set_int(settings, "color", ColorToObsInt(color));
+		obs_data_set_int(settings, "width", 1920);
+		obs_data_set_int(settings, "height", 1080);
+	}
+	transmissionBackgroundSource =
+		obs_source_create_private(sourceId.constData(), "OPBS Both Background", settings);
+	if (!transmissionBackgroundSource)
+		return;
+	transmissionBackgroundItem = obs_scene_add(transmissionScene, transmissionBackgroundSource);
+	if (transmissionBackgroundItem)
+		obs_sceneitem_set_order(transmissionBackgroundItem, OBS_ORDER_MOVE_BOTTOM);
+	UpdateTransmissionItemBounds();
+}
+
+void PresenterPanel::ApplyTransmissionView(TransmissionView view, bool save)
+{
+	transmissionView = view;
+	UpdateTransmissionItemBounds();
+	obs_source_t *target = TransmissionSceneSource(view);
+	if (transmissionTransition && target) {
+		if (save)
+			obs_transition_start(transmissionTransition, OBS_TRANSITION_MODE_AUTO,
+					     uint32_t(transmissionTransitionDuration), target);
+		else
+			obs_transition_set(transmissionTransition, target);
+	}
+	if (camerasViewButton)
+		camerasViewButton->setChecked(view == TransmissionView::Cameras);
+	if (presenterViewButton)
+		presenterViewButton->setChecked(view == TransmissionView::Presenter);
+	if (combinedViewButton)
+		combinedViewButton->setChecked(view == TransmissionView::CamerasAndPresenter);
+	if (save && !restoring)
+		SaveSettings();
+}
+
+void PresenterPanel::RefreshCameraSource()
+{
+	if (!transmissionScene || !transmissionCameraScene)
+		return;
+	if (transmissionCameraItem) {
+		obs_sceneitem_remove(transmissionCameraItem);
+		transmissionCameraItem = nullptr;
+	}
+	if (transmissionCameraOnlyItem) {
+		obs_sceneitem_remove(transmissionCameraOnlyItem);
+		transmissionCameraOnlyItem = nullptr;
+	}
+	cameraSource = nullptr;
+	if (selectedCameraId.isEmpty()) {
+		ApplyTransmissionView(transmissionView, false);
+		return;
+	}
+	OBSDataAutoRelease settings = obs_data_create();
+	obs_data_set_string(settings, "video_device_id", selectedCameraId.toUtf8().constData());
+	obs_data_set_int(settings, "res_type", 0);
+	cameraSource = obs_source_create_private("dshow_input", "OPBS Camera", settings);
+	if (!cameraSource) {
+		blog(LOG_WARNING, "OPBS could not create camera source '%s'", selectedCameraId.toUtf8().constData());
+		return;
+	}
+	transmissionCameraItem = obs_scene_add(transmissionScene, cameraSource);
+	transmissionCameraOnlyItem = obs_scene_add(transmissionCameraScene, cameraSource);
+	if (transmissionPresenterItem)
+		obs_sceneitem_set_order(transmissionPresenterItem, OBS_ORDER_MOVE_TOP);
+	ApplyTransmissionView(transmissionView, false);
+}
+
+OBSServiceAutoRelease PresenterPanel::CreateStreamService(const StreamDestination &destination, const char *name) const
+{
+	OBSDataAutoRelease settings = obs_data_create();
+	obs_data_set_string(settings, "server", destination.server.toUtf8().constData());
+	obs_data_set_string(settings, "key", destination.key.toUtf8().constData());
+	if (destination.service == QStringLiteral("Personalizado"))
+		return obs_service_create("rtmp_custom", name, settings, nullptr);
+	obs_data_set_string(settings, "service",
+			    destination.service == QStringLiteral("Facebook") ? "Facebook Live" : "YouTube - RTMPS");
+	return obs_service_create("rtmp_common", name, settings, nullptr);
+}
+
+void PresenterPanel::ApplyPrimaryStreamService()
+{
+	if (!main || main->StreamingActive())
+		return;
+	OBSServiceAutoRelease service = CreateStreamService(streamDestinations[0], "OPBS Primary Service");
+	if (!service)
+		return;
+	main->SetService(service);
+	main->SaveService();
+	config_t *profileConfig = main->Config();
+	config_set_string(profileConfig, "Output", "Mode", "Simple");
+	config_set_uint(profileConfig, "SimpleOutput", "VBitrate", streamVideoBitrate);
+	config_set_uint(profileConfig, "SimpleOutput", "ABitrate", streamAudioBitrate);
+	if (!recordingPath.isEmpty())
+		config_set_string(profileConfig, "SimpleOutput", "FilePath", recordingPath.toUtf8().constData());
+	config_save_safe(profileConfig, "tmp", nullptr);
+}
+
+void PresenterPanel::StartSecondaryStream()
+{
+	if (secondaryStreamStarting || !streamDestinations[1].enabled || streamDestinations[1].key.trimmed().isEmpty() ||
+	    streamDestinations[1].server.trimmed().isEmpty())
+		return;
+	secondaryStreamStarting = true;
+	OBSOutputAutoRelease primaryOutput = obs_frontend_get_streaming_output();
+	if (!primaryOutput) {
+		secondaryStreamStarting = false;
+		return;
+	}
+	secondaryStreamService = CreateStreamService(streamDestinations[1], "OPBS Secondary Service");
+	secondaryStreamOutput = obs_output_create("rtmp_output", "OPBS Secondary Stream", nullptr, nullptr);
+	if (!secondaryStreamService || !secondaryStreamOutput) {
+		secondaryStreamStarting = false;
+		QMessageBox::warning(main, tr("Segundo destino"), tr("No fue posible preparar el segundo destino."));
+		return;
+	}
+	obs_output_set_video_encoder(secondaryStreamOutput, obs_output_get_video_encoder(primaryOutput));
+	obs_output_set_audio_encoder(secondaryStreamOutput, obs_output_get_audio_encoder(primaryOutput, 0), 0);
+	obs_output_set_service(secondaryStreamOutput, secondaryStreamService);
+	obs_output_set_reconnect_settings(secondaryStreamOutput, 25, 2);
+	if (!obs_output_start(secondaryStreamOutput)) {
+		const char *error = obs_output_get_last_error(secondaryStreamOutput);
+		QMessageBox::warning(main, tr("Segundo destino"),
+				     tr("La transmisión principal inició, pero el segundo destino falló: %1")
+					     .arg(QString::fromUtf8(error ? error : "Error desconocido")));
+	}
+	secondaryStreamStarting = false;
+}
+
+void PresenterPanel::StopSecondaryStream()
+{
+	if (secondaryStreamOutput && obs_output_active(secondaryStreamOutput))
+		obs_output_force_stop(secondaryStreamOutput);
+	secondaryStreamOutput = nullptr;
+	secondaryStreamService = nullptr;
+	secondaryStreamStarting = false;
+}
+
+void PresenterPanel::ToggleStreaming()
+{
+	if (main->StreamingActive()) {
+		StopSecondaryStream();
+		main->StopStreaming();
+		return;
+	}
+	const StreamDestination &primary = streamDestinations[0];
+	if (primary.server.trimmed().isEmpty() || primary.key.trimmed().isEmpty()) {
+		QMessageBox::information(main, tr("Configurar transmisión"),
+					 tr("Abre Transmisión y completa el servidor y la clave del primer destino."));
+		UpdateTransmissionButtons();
+		return;
+	}
+	ApplyPrimaryStreamService();
+	main->StartStreaming();
+}
+
+void PresenterPanel::ToggleRecording()
+{
+	if (main->RecordingActive())
+		main->StopRecording();
+	else {
+		ApplyPrimaryStreamService();
+		main->StartRecording();
+	}
+}
+
+void PresenterPanel::UpdateTransmissionButtons()
+{
+	const bool streaming = main && main->StreamingActive();
+	const bool recording = main && main->RecordingActive();
+	if (streamButton) {
+		streamButton->setChecked(streaming);
+		streamButton->setText(streaming ? tr("Finalizar") : tr("Transmitir"));
+	}
+	if (recordButton) {
+		recordButton->setChecked(recording);
+		recordButton->setText(recording ? tr("Detener") : tr("Grabar"));
+	}
 }

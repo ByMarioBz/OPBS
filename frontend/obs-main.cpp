@@ -43,6 +43,7 @@
 #include <sstream>
 #ifdef _WIN32
 #include <shellapi.h>
+#include <shobjidl.h>
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #else
@@ -934,6 +935,7 @@ int main(int argc, char *argv[])
 
 	obs_init_win32_crash_handler();
 	SetErrorMode(SEM_FAILCRITICALERRORS);
+	SetCurrentProcessExplicitAppUserModelID(L"OPBS.Presenter");
 	SetSearchPathMode(BASE_SEARCH_PATH_ENABLE_SAFE_SEARCHMODE | BASE_SEARCH_PATH_PERMANENT);
 	SetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
 	SetDllDirectoryW(L"");
@@ -1073,6 +1075,23 @@ int main(int argc, char *argv[])
 				os_file_exists(BASE_PATH "/obs_portable_mode") ||
 				os_file_exists(BASE_PATH "/portable_mode.txt") ||
 				os_file_exists(BASE_PATH "/obs_portable_mode.txt");
+	}
+
+	if (portable_mode) {
+		const filesystem::path legacyConfig = filesystem::path(BASE_PATH) / "config" / "obs-studio";
+		const filesystem::path opbsConfig = filesystem::path(BASE_PATH) / "config" / "opbs";
+		if (filesystem::exists(legacyConfig) && !filesystem::exists(opbsConfig)) {
+			try {
+				filesystem::create_directories(opbsConfig);
+				filesystem::copy(legacyConfig, opbsConfig,
+						 filesystem::copy_options::recursive | filesystem::copy_options::skip_existing);
+				/* A copied crash sentinel belongs to the old portable instance and
+				 * must not make the first OPBS launch look like a new crash. */
+				filesystem::remove_all(opbsConfig / ".sentinel");
+			} catch (const filesystem::filesystem_error &error) {
+				blog(LOG_WARNING, "Could not migrate portable OPBS configuration: %s", error.what());
+			}
+		}
 	}
 
 	if (!opt_disable_updater) {

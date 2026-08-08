@@ -1,6 +1,6 @@
 # Historial y estado de ingeniería
 
-Última actualización: 7 de agosto de 2026.
+Última actualización: 8 de agosto de 2026.
 
 ## Base
 
@@ -54,6 +54,18 @@ build_x64/rundir/RelWithDebInfo/obs-plugins/64bit/obs-ffmpeg.dll
 ```
 
 ## Pruebas realizadas
+
+- Interfaz principal 0.1.5: el divisor horizontal usa por defecto aproximadamente 31 % para las dos vistas previas y
+  69 % para la biblioteca, conserva el ajuste del usuario y migra distribuciones anteriores mediante la versión 5 del
+  layout.
+- Transmisión 0.1.5: se separaron las escenas privadas `Cámaras`, `Presentador` y `Ambos`. La composición predeterminada
+  de `Ambos` coloca una cámara menor a la izquierda y el presentador mayor a la derecha sobre fondo negro.
+- Lienzo de ambos: el diálogo de transmisión permite editar X, Y, ancho y alto de ambas tomas y seleccionar fondo de
+  color, imagen o video con repetición opcional. Todos los valores quedan persistidos en la configuración portable.
+- Move Transition: se integró la versión 3.2.1 fijada al commit upstream
+  `3be3a85100e4382dc48b1058027ef02b5d1e4fbc` y se usa por defecto al cambiar entre los tres modos de transmisión. La
+  compilación RelWithDebInfo incluyó el objetivo `move-transition`; el paquete se regeneró y el proceso portable cargó
+  `dist/OPBS/obs-plugins/64bit/move-transition.dll` correctamente.
 
 - OPBS 0.1.5: la identidad visible de la ventana, los textos traducidos y los metadatos del ejecutable de Windows usan
   `OPBS`; `ProductName`, `ProductVersion`, `FileVersion` y `OriginalFilename` se verificaron como `OPBS`, `0.1.5`,

@@ -456,9 +456,9 @@ static bool MakeUserDirs()
 	return true;
 }
 
-constexpr std::string_view OBSProfileSubDirectory = "obs-studio/basic/profiles";
-constexpr std::string_view OBSScenesSubDirectory = "obs-studio/basic/scenes";
-constexpr std::string_view OBSPluginManagerSubDirectory = "obs-studio/plugin_manager";
+constexpr std::string_view OBSProfileSubDirectory = "opbs/basic/profiles";
+constexpr std::string_view OBSScenesSubDirectory = "opbs/basic/scenes";
+constexpr std::string_view OBSPluginManagerSubDirectory = "opbs/plugin_manager";
 
 static bool MakeUserProfileDirs()
 {
@@ -611,7 +611,7 @@ bool OBSApp::InitGlobalConfig()
 
 bool OBSApp::InitUserConfig(std::filesystem::path &userConfigLocation, uint32_t lastVersion)
 {
-	const std::string userConfigFile = userConfigLocation.u8string() + "/obs-studio/user.ini";
+	const std::string userConfigFile = userConfigLocation.u8string() + "/opbs/user.ini";
 
 	int errorCode = userConfig.Open(userConfigFile.c_str(), CONFIG_OPEN_ALWAYS);
 
@@ -671,8 +671,8 @@ void OBSApp::MigrateLegacySettings(const uint32_t lastVersion)
 	}
 }
 
-static constexpr string_view OBSGlobalIniPath = "/obs-studio/global.ini";
-static constexpr string_view OBSUserIniPath = "/obs-studio/user.ini";
+static constexpr string_view OBSGlobalIniPath = "/opbs/global.ini";
+static constexpr string_view OBSUserIniPath = "/opbs/user.ini";
 
 bool OBSApp::MigrateGlobalSettings()
 {
@@ -987,7 +987,7 @@ static void move_basic_to_profiles(void)
 	}
 
 	const std::filesystem::path profilesPath =
-		App()->userProfilesLocation / std::filesystem::u8path("obs-studio/basic/profiles");
+		App()->userProfilesLocation / std::filesystem::u8path("opbs/basic/profiles");
 
 	if (std::filesystem::exists(profilesPath)) {
 		return;
@@ -1051,7 +1051,7 @@ static void move_basic_to_scene_collections(void)
 	}
 
 	const std::filesystem::path sceneCollectionPath =
-		App()->userScenesLocation / std::filesystem::u8path("obs-studio/basic/scenes");
+		App()->userScenesLocation / std::filesystem::u8path("opbs/basic/scenes");
 
 	if (std::filesystem::exists(sceneCollectionPath)) {
 		return;
@@ -1728,6 +1728,12 @@ vector<pair<string, string>> GetLocaleNames()
 
 int GetAppConfigPath(char *path, size_t size, const char *name)
 {
+	std::string opbsName;
+	if (name && strncmp(name, "obs-studio", 10) == 0) {
+		opbsName = "opbs";
+		opbsName += name + 10;
+		name = opbsName.c_str();
+	}
 #if ALLOW_PORTABLE_MODE
 	if (portable_mode) {
 		if (name && *name) {
@@ -1745,6 +1751,12 @@ int GetAppConfigPath(char *path, size_t size, const char *name)
 
 char *GetAppConfigPathPtr(const char *name)
 {
+	std::string opbsName;
+	if (name && strncmp(name, "obs-studio", 10) == 0) {
+		opbsName = "opbs";
+		opbsName += name + 10;
+		name = opbsName.c_str();
+	}
 #if ALLOW_PORTABLE_MODE
 	if (portable_mode) {
 		char path[512];

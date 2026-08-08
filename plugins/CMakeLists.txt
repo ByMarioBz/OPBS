@@ -59,6 +59,7 @@ add_obs_plugin(
     WITH_MESSAGE
 )
 add_obs_plugin(image-source)
+add_obs_plugin(move-transition PLATFORMS WINDOWS MACOS LINUX)
 add_obs_plugin(linux-alsa PLATFORMS LINUX FREEBSD OPENBSD)
 add_obs_plugin(linux-capture PLATFORMS LINUX FREEBSD OPENBSD)
 add_obs_plugin(linux-jack PLATFORMS LINUX FREEBSD OPENBSD)

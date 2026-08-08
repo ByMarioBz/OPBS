@@ -29,7 +29,7 @@
 
 // MARK: Constant Expressions
 
-constexpr std::string_view OBSProfilePath = "/obs-studio/basic/profiles/";
+constexpr std::string_view OBSProfilePath = "/opbs/basic/profiles/";
 constexpr std::string_view OBSProfileSettingsFile = "basic.ini";
 
 // MARK: Forward Declarations
