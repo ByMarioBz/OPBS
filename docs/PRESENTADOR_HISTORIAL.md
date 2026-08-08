@@ -78,6 +78,10 @@ build_x64/rundir/RelWithDebInfo/obs-plugins/64bit/obs-ffmpeg.dll
   La compilación, el empaquetado y el inicio portable finalizaron correctamente. Falta una prueba real con claves
   privadas para certificar la conexión de extremo a extremo y una grabación con dos medios consecutivos para escuchar
   físicamente la separación de mezclas.
+- Release 0.1.5: las notas públicas se mantienen en `docs/releases/OPBS-0.1.5.md`; el publicador las usa como cuerpo del
+  Release y agrega automáticamente los SHA-256 del instalador y del ZIP portable. El actualizador incluido a partir de
+  0.1.5 muestra el cuerpo del Release en una ventana desplazable antes de descargar, conserva la validación SHA-256 y
+  ejecuta el instalador solamente después de verificarlo.
 
 - OPBS 0.1.5: la identidad visible de la ventana, los textos traducidos y los metadatos del ejecutable de Windows usan
   `OPBS`; `ProductName`, `ProductVersion`, `FileVersion` y `OriginalFilename` se verificaron como `OPBS`, `0.1.5`,

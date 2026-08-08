@@ -43,8 +43,27 @@ foreach ($Asset in $Assets) {
     }
 }
 
+$ReleaseNotesPath = Join-Path $ProjectRoot "docs/releases/OPBS-$Version.md"
+if (-not (Test-Path -LiteralPath $ReleaseNotesPath)) {
+    throw "Faltan las notas de la versión en $ReleaseNotesPath."
+}
+$ReleaseNotes = Get-Content -Raw -LiteralPath $ReleaseNotesPath
+$InstallerHash = (Get-FileHash -LiteralPath $Assets[0] -Algorithm SHA256).Hash.ToLowerInvariant()
+$PortableHash = (Get-FileHash -LiteralPath $Assets[2] -Algorithm SHA256).Hash.ToLowerInvariant()
+$PublishedNotesPath = Join-Path $ReleaseDirectory 'release-notes.md'
+$PublishedNotes = @"
+$($ReleaseNotes.Trim())
+
+## Checksums SHA-256
+
+    $([IO.Path]::GetFileName($Assets[0])): $InstallerHash
+    $([IO.Path]::GetFileName($Assets[2])): $PortableHash
+"@
+$Utf8WithoutBom = New-Object System.Text.UTF8Encoding($false)
+[IO.File]::WriteAllText($PublishedNotesPath, "$PublishedNotes`n", $Utf8WithoutBom)
+
 & $Gh.Source release create $Tag @Assets --repo $Repository --verify-tag --title "OPBS $Version" `
-    --generate-notes --latest
+    --notes-file $PublishedNotesPath --latest
 if ($LASTEXITCODE -ne 0) {
     throw "GitHub CLI no pudo publicar OPBS $Version."
 }
