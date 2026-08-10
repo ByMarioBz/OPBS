@@ -192,6 +192,7 @@ class PresenterPanel : public QWidget {
 	bool restoring = false;
 	bool secondaryStreamStarting = false;
 	bool combinedBackgroundLoop = true;
+	bool cameraEnabled = true;
 	bool transmissionPresenterMuted = false;
 	bool transmissionInputMuted = false;
 	bool transmissionPresenterAudioAttached = false;
@@ -226,6 +227,7 @@ class PresenterPanel : public QWidget {
 	void ApplyCombinedBackground();
 	obs_source_t *TransmissionSceneSource(TransmissionView view) const;
 	void RefreshCameraSource();
+	void SetCameraEnabled(bool enabled);
 	void AttachTransmissionPresenterAudio();
 	void DetachTransmissionPresenterAudio();
 	void RefreshTransmissionAudioInput();

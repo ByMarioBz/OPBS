@@ -55,6 +55,16 @@ build_x64/rundir/RelWithDebInfo/obs-plugins/64bit/obs-ffmpeg.dll
 
 ## Pruebas realizadas
 
+- Parche de cámara posterior a 0.1.5: `Transmisión > Cámaras` incorpora `Activar/Desactivar` mediante el procedimiento
+  nativo de DirectShow. El estado se persiste, cambiar la selección la aplica en vivo y Cancelar restaura la anterior.
+- Separación USB de video/audio: la fuente de cámara OPBS no abre el pin de audio DirectShow; la segunda entrada conserva
+  su endpoint WASAPI y un nombre interno independiente. Esto permite seleccionar video y audio del mismo dispositivo
+  físico aunque Windows muestre el mismo nombre en ambas listas.
+- Verificación del parche: `Build-Presenter.cmd` y `Package-Presenter.cmd` terminaron correctamente y la copia empaquetada
+  arrancó como OPBS. El registro `2026-08-09 19-00-40.txt` confirmó simultáneamente `video device audio disabled by
+  OPBS`, la creación de `OPBS Camera` y la inicialización WASAPI de `OPBS Audio - Micrófono (HyperX SoloCast)`; cámara y
+  entrada adicional quedaron abiertas por rutas independientes.
+
 - Interfaz principal 0.1.5: el divisor horizontal usa por defecto aproximadamente 31 % para las dos vistas previas y
   69 % para la biblioteca, conserva el ajuste del usuario y migra distribuciones anteriores mediante la versión 5 del
   layout.

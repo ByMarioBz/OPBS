@@ -47,6 +47,7 @@ using namespace DShow;
 #define AUDIO_OUTPUT_MODE "audio_output_mode"
 #define USE_CUSTOM_AUDIO  "use_custom_audio_device"
 #define AUDIO_DEVICE_ID   "audio_device_id"
+#define OPBS_DISABLE_AUDIO "opbs_disable_device_audio"
 #define COLOR_SPACE       "color_space"
 #define COLOR_RANGE       "color_range"
 #define DEACTIVATE_WNS    "deactivate_when_not_showing"
@@ -1002,6 +1003,14 @@ bool DShowInput::UpdateVideoConfig(obs_data_t *settings)
 
 bool DShowInput::UpdateAudioConfig(obs_data_t *settings)
 {
+	/* OPBS usa una fuente WASAPI independiente para la mezcla de transmisión.
+	 * No abrir el pin de audio de la capturadora evita conflictos cuando el
+	 * endpoint de video y el de audio pertenecen al mismo dispositivo USB. */
+	if (obs_data_get_bool(settings, OPBS_DISABLE_AUDIO)) {
+		obs_source_set_audio_active(source, false);
+		blog(LOG_INFO, "\tvideo device audio disabled by OPBS");
+		return true;
+	}
 	string audio_device_id = obs_data_get_string(settings, AUDIO_DEVICE_ID);
 	bool useCustomAudio = obs_data_get_bool(settings, USE_CUSTOM_AUDIO);
 
@@ -1236,6 +1245,7 @@ static void GetDShowDefaults(obs_data_t *settings)
 	obs_data_set_default_int(settings, RES_TYPE, ResType_Preferred);
 	obs_data_set_default_int(settings, VIDEO_FORMAT, (int)VideoFormat::Any);
 	obs_data_set_default_bool(settings, "active", true);
+	obs_data_set_default_bool(settings, OPBS_DISABLE_AUDIO, false);
 	obs_data_set_default_string(settings, COLOR_SPACE, "default");
 	obs_data_set_default_string(settings, COLOR_RANGE, "default");
 	obs_data_set_default_int(settings, AUDIO_OUTPUT_MODE, (int)AudioMode::Capture);

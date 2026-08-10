@@ -74,6 +74,11 @@ OPBS Transmission Both       --> fondo + cámara izquierda + presentador derecha
 de transmisión solo reutilizan esa fuente y la cámara asignada para componer los tres modos; no deben crear una segunda
 reproducción del contenido.
 
+La fuente DirectShow de cámara conserva un estado `cameraEnabled` y expone en el diálogo el mismo procedimiento nativo
+`activate(bool)` que usa OBS. Desactivar libera el grafo de captura; volver a activar lo construye otra vez, permitiendo
+recuperar una capturadora USB después de desconectarla y conectarla. La selección se aplica en vivo y Cancelar restaura
+la cámara y el estado anteriores.
+
 El modo `Ambos` guarda en porcentajes independientes X, Y, ancho y alto para cámara y presentador. Su fondo puede ser
 un `color_source`, `image_source` o `ffmpeg_source`; el valor predeterminado es negro. La transición entre `Cámaras`,
 `Presentador` y `Ambos` es `move_transition`, con fundido como respaldo si el módulo no pudiera cargarse.
@@ -131,6 +136,11 @@ El puente copia el audio procesado del medio antes del volumen local, de modo qu
 solo a la transmisión. La segunda entrada es una fuente privada `wasapi_input_capture`. Ambas permanecen en los canales
 globales 1 y 2, por lo que siguen oyéndose al cambiar entre `Cámaras`, `Presentador` y `Ambos`. Cámara, fondo de video y
 las entradas globales heredadas tienen sus mezcladores desactivados; por diseño no entran otras fuentes al mix 0.
+
+La fuente DirectShow creada por OPBS lleva `opbs_disable_device_audio=true`. Este ajuste privado impide que el grafo de
+video abra el pin de audio integrado de la capturadora; la entrada sonora se abre exclusivamente como WASAPI. Por eso
+el dispositivo de video y el endpoint de audio pueden pertenecer al mismo equipo USB e incluso compartir nombre visible
+sin competir: se identifican por IDs de subsistemas distintos y usan nombres internos OPBS diferentes.
 
 ## Rendimiento
 

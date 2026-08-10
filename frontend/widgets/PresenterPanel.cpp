@@ -1780,8 +1780,9 @@ void PresenterPanel::RefreshTransmissionAudioInput()
 		return;
 	transmissionInputSource = CreateTransmissionAudioInput(
 		selectedTransmissionInputId,
-		selectedTransmissionInputName.isEmpty() ? tr("Entrada adicional de transmisión")
-							  : selectedTransmissionInputName);
+		selectedTransmissionInputName.isEmpty()
+			? tr("OPBS Audio - Entrada adicional")
+			: tr("OPBS Audio - %1").arg(selectedTransmissionInputName));
 	if (!transmissionInputSource) {
 		blog(LOG_WARNING, "OPBS could not create transmission audio input '%s'",
 		     selectedTransmissionInputId.toUtf8().constData());
@@ -2173,6 +2174,9 @@ void PresenterPanel::ShowTransmissionDialog()
 	auto *cameraLayout = new QVBoxLayout(cameraPage);
 	auto *cameraGroup = new QGroupBox(tr("Configurar cámara"), cameraPage);
 	auto *cameraForm = new QFormLayout(cameraGroup);
+	const QString originalCameraId = selectedCameraId;
+	const QString originalCameraName = selectedCameraName;
+	const bool originalCameraEnabled = cameraEnabled;
 	auto *cameraSelector = new QComboBox(cameraGroup);
 	cameraSelector->addItem(tr("Sin cámara"), QString());
 	OBSProperties cameraProperties = obs_get_source_properties("dshow_input");
@@ -2196,9 +2200,36 @@ void PresenterPanel::ShowTransmissionDialog()
 	}
 	cameraSelector->setCurrentIndex(std::max(cameraIndex, 0));
 	cameraForm->addRow(tr("Asignar cámara"), cameraSelector);
+	auto *cameraToggle = new QPushButton(cameraGroup);
+	auto updateCameraToggle = [this, cameraSelector, cameraToggle]() {
+		const bool hasCamera = !cameraSelector->currentData().toString().isEmpty();
+		cameraToggle->setEnabled(hasCamera);
+		cameraToggle->setText(hasCamera && cameraEnabled ? tr("Desactivar") : tr("Activar"));
+	};
+	cameraForm->addRow(QString(), cameraToggle);
+	connect(cameraSelector, qOverload<int>(&QComboBox::currentIndexChanged), &dialog,
+		[this, cameraSelector, updateCameraToggle](int) {
+			const QString newId = cameraSelector->currentData().toString();
+			const bool changed = newId != selectedCameraId;
+			selectedCameraId = newId;
+			selectedCameraName = newId.isEmpty() ? QString() : cameraSelector->currentText();
+			if (changed)
+				cameraEnabled = !newId.isEmpty();
+			RefreshCameraSource();
+			updateCameraToggle();
+		});
+	connect(cameraToggle, &QPushButton::clicked, &dialog, [this, cameraSelector, updateCameraToggle]() {
+		if (cameraSelector->currentData().toString().isEmpty())
+			return;
+		SetCameraEnabled(!cameraEnabled);
+		updateCameraToggle();
+	});
+	updateCameraToggle();
 	cameraLayout->addWidget(cameraGroup);
 	auto *cameraHint = new QLabel(
-		tr("La cámara seleccionada se usará en los modos Cámaras y Ambos."), cameraPage);
+		tr("La cámara seleccionada se usará en los modos Cámaras y Ambos. Si vuelves a conectar "
+		   "una capturadora, pulsa Desactivar y luego Activar para reiniciarla."),
+		cameraPage);
 	cameraHint->setWordWrap(true);
 	cameraLayout->addWidget(cameraHint);
 	cameraLayout->addStretch();
@@ -2490,6 +2521,10 @@ void PresenterPanel::ShowTransmissionDialog()
 	if (presenterTransmissionMixer)
 		delete presenterTransmissionMixer.data();
 	if (!accepted) {
+		selectedCameraId = originalCameraId;
+		selectedCameraName = originalCameraName;
+		cameraEnabled = originalCameraEnabled;
+		RefreshCameraSource();
 		if (transmissionPresenterAudioSource) {
 			obs_source_set_volume(transmissionPresenterAudioSource, originalPresenterVolume);
 			obs_source_set_muted(transmissionPresenterAudioSource, originalPresenterMuted);
@@ -2508,7 +2543,9 @@ void PresenterPanel::ShowTransmissionDialog()
 	streamAudioBitrate = audioBitrate->value();
 	recordingPath = recordingPathEdit->text().trimmed();
 	selectedCameraId = cameraSelector->currentData().toString();
-	selectedCameraName = cameraSelector->currentText();
+	selectedCameraName = selectedCameraId.isEmpty() ? QString() : cameraSelector->currentText();
+	if (selectedCameraId.isEmpty())
+		cameraEnabled = false;
 	selectedTransmissionInputId = pendingInputId;
 	selectedTransmissionInputName = pendingInputId.isEmpty() ? QString() : pendingInputName;
 	transmissionPresenterDb = pendingPresenterDb;
@@ -3079,6 +3116,7 @@ void PresenterPanel::LoadSettings()
 	selectedEffect = settings.value("audio/effect", "none").toString();
 	selectedCameraId = settings.value("transmission/cameraId").toString();
 	selectedCameraName = settings.value("transmission/cameraName").toString();
+	cameraEnabled = settings.value("transmission/cameraEnabled", true).toBool();
 	selectedTransmissionInputId = settings.value("transmission/audio/inputId").toString();
 	selectedTransmissionInputName = settings.value("transmission/audio/inputName").toString();
 	transmissionPresenterDb =
@@ -3302,6 +3340,7 @@ void PresenterPanel::SaveSettings()
 	settings.setValue("audio/deviceId", audioDeviceId);
 	settings.setValue("transmission/cameraId", selectedCameraId);
 	settings.setValue("transmission/cameraName", selectedCameraName);
+	settings.setValue("transmission/cameraEnabled", cameraEnabled);
 	settings.setValue("transmission/audio/inputId", selectedTransmissionInputId);
 	settings.setValue("transmission/audio/inputName", selectedTransmissionInputName);
 	settings.setValue("transmission/audio/presenterDb", transmissionPresenterDb);
@@ -3541,6 +3580,11 @@ void PresenterPanel::RefreshCameraSource()
 	OBSDataAutoRelease settings = obs_data_create();
 	obs_data_set_string(settings, "video_device_id", selectedCameraId.toUtf8().constData());
 	obs_data_set_int(settings, "res_type", 0);
+	obs_data_set_bool(settings, "active", cameraEnabled);
+	/* OPBS captura el audio de transmisión con una fuente WASAPI separada.
+	 * Evitar que DirectShow abra también el pin de audio permite usar video
+	 * y audio del mismo dispositivo USB sin competir por el endpoint. */
+	obs_data_set_bool(settings, "opbs_disable_device_audio", true);
 	cameraSource = obs_source_create_private("dshow_input", "OPBS Camera", settings);
 	if (!cameraSource) {
 		blog(LOG_WARNING, "OPBS could not create camera source '%s'", selectedCameraId.toUtf8().constData());
@@ -3555,6 +3599,25 @@ void PresenterPanel::RefreshCameraSource()
 	if (transmissionPresenterItem)
 		obs_sceneitem_set_order(transmissionPresenterItem, OBS_ORDER_MOVE_TOP);
 	ApplyTransmissionView(transmissionView, false);
+}
+
+void PresenterPanel::SetCameraEnabled(bool enabled)
+{
+	cameraEnabled = enabled && !selectedCameraId.isEmpty();
+	if (!cameraSource) {
+		if (cameraEnabled)
+			RefreshCameraSource();
+		return;
+	}
+	calldata_t data = {0};
+	calldata_set_bool(&data, "active", cameraEnabled);
+	proc_handler_t *handler = obs_source_get_proc_handler(cameraSource);
+	const bool called = handler && proc_handler_call(handler, "activate", &data);
+	calldata_free(&data);
+	if (!called && cameraEnabled)
+		RefreshCameraSource();
+	blog(LOG_INFO, "OPBS camera source %s: '%s'", cameraEnabled ? "activated" : "deactivated",
+	     selectedCameraName.toUtf8().constData());
 }
 
 OBSServiceAutoRelease PresenterPanel::CreateStreamService(const StreamDestination &destination, const char *name) const
