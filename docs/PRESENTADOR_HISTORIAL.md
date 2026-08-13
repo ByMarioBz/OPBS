@@ -204,6 +204,22 @@ build_x64/rundir/RelWithDebInfo/obs-plugins/64bit/obs-ffmpeg.dll
 - Esta fue una prueba local del instalador completo, no una descarga desde GitHub: la publicación de `opbs-v0.1.6`
   sigue requiriendo autorización explícita separada.
 
+## 2026-08-12 - Identidad visual y Captura
+
+- La interfaz adopta una paleta propia de negro, grafito, blanco y azul, con separadores negros, paneles más planos y
+  azul reservado para acciones y estados activos. La inspección visual a 1920 × 1032 confirmó la distribución completa.
+- Multimedia y Herramientas dejaron de compartir físicamente la cuadrícula. La búsqueda multimedia permanece visible
+  en su panel al seleccionar Presentación o Captura, mientras Herramientas solo muestra buscador en Biblia.
+- Se eliminó la aceptación de archivos en la lista lateral de Herramientas. Las rutas externas que anteriormente
+  terminaron en secciones reservadas se devuelven a `General`; las diapositivas generadas por OPBS permanecen separadas.
+- Captura muestra la cámara elegida en Transmisión y añade un botón inferior derecho con `Dispositivo de captura de
+  video…` y `Captura de ventana…`. Las fuentes adicionales se conservan en la configuración y pueden enviarse al
+  escenario al seleccionar su tarjeta.
+- `Build-Presenter.cmd` terminó correctamente. En la prueba visual se abrió Captura, se verificó el botón y se enumeró
+  correctamente una ventana disponible; el selector se canceló para no guardar una fuente de ensayo.
+- `Package-Presenter.cmd`, el arranque final en modo seguro y la regeneración de `OPBS-Setup-x64.exe` 0.1.6 terminaron
+  correctamente después de la revisión visual.
+
 ## Prueba pendiente inmediata
 
 La línea de tiempo de música quedó verificada. Sigue pendiente comprobar el audio físico con una salida conectada:

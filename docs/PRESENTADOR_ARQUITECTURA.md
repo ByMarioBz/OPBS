@@ -114,10 +114,17 @@ La distribución inicial mantiene aproximadamente 31/69 entre las vistas previas
 La configuración de transmisión recuerda el modo activo, la duración de Move, el fondo de `Ambos` y las ocho medidas de
 la composición.
 
-`libraryContentHost` contiene la cuadrícula ya existente y se mueve entre los destinos de Multimedia y Herramientas al
-cambiar de sección. De esta forma Biblia y Presentaciones conservan su lógica sin duplicar modelos ni fuentes. Las
-importaciones de presentaciones se guardan en directorios con identificador propio; se recuerdan como máximo cuatro y
-al exceder el límite se retira solamente el directorio generado más antiguo.
+Multimedia y Herramientas tienen vistas independientes: `mediaList` nunca abandona Multimedia y
+`presentationMediaList`, `bibleResultsList` y `captureList` pertenecen permanentemente a Herramientas. Los archivos
+soltados sobre una herramienta se redirigen a la carpeta multimedia activa y las rutas antiguas asignadas por error a
+Biblia, Captura, NDI o Presentación se migran a `General`, salvo las diapositivas generadas dentro del directorio propio
+de presentaciones. Las importaciones se guardan en directorios con identificador propio; se recuerdan como máximo cuatro
+y al exceder el límite se retira solamente el directorio generado más antiguo.
+
+Captura reutiliza directamente `cameraSource` para la tarjeta de la cámara configurada en Transmisión. Las cámaras
+adicionales usan `dshow_input` sin abrir su pin de audio y las ventanas usan `window_capture`; ambas se guardan como
+identificador de tipo, propiedad y valor en `captures`. Al seleccionar una tarjeta, su fuente se incorpora a
+`Presenter Stage`, conservando esa escena como única fuente de verdad para vista previa y escenario.
 
 No versionar esa configuración: contiene rutas locales y preferencias del usuario.
 

@@ -60,6 +60,16 @@ class PresenterPanel : public QWidget {
 		QString reference;
 		QString searchableText;
 	};
+	struct CaptureEntry {
+		QString id;
+		QString name;
+		QString sourceType;
+		QString propertyName;
+		QString propertyValue;
+		OBSSource source;
+		QListWidgetItem *item = nullptr;
+		QPointer<ThumbnailView> thumbnailView;
+	};
 	struct StreamDestination {
 		QString service = "YouTube";
 		QString server;
@@ -101,16 +111,19 @@ class PresenterPanel : public QWidget {
 	QPointer<OBSQTDisplay> preview;
 	QPointer<OBSQTDisplay> transmissionPreview;
 	QPointer<QListWidget> mediaList;
+	QPointer<QListWidget> presentationMediaList;
 	QPointer<QListWidget> folderList;
 	QPointer<QListWidget> presentationFolderList;
 	QPointer<QListWidget> bibleResultsList;
 	QPointer<QListWidget> recentPresentationsList;
+	QPointer<QListWidget> captureList;
 	QPointer<QListWidget> audioPlaylistList;
 	QPointer<QLineEdit> searchEdit;
 	QPointer<QLineEdit> bibleSearchEdit;
 	QPointer<QComboBox> bibleSelector;
 	QPointer<QWidget> bibleControls;
 	QPointer<QLabel> emptyState;
+	QPointer<QLabel> toolsEmptyState;
 	QPointer<QLabel> mediaCount;
 	QPointer<QLabel> currentMedia;
 	QPointer<QLabel> stageStatus;
@@ -125,6 +138,7 @@ class PresenterPanel : public QWidget {
 	QPointer<QWidget> libraryContentHost;
 	QPointer<QWidget> multimediaContentTarget;
 	QPointer<QWidget> toolsContentTarget;
+	QPointer<QWidget> captureControls;
 	QPointer<QToolButton> playPauseButton;
 	QPointer<QToolButton> audioPlayerPlayPauseButton;
 	QPointer<QToolButton> loopButton;
@@ -133,6 +147,7 @@ class PresenterPanel : public QWidget {
 	QPointer<QToolButton> camerasViewButton;
 	QPointer<QToolButton> presenterViewButton;
 	QPointer<QToolButton> combinedViewButton;
+	QPointer<ThumbnailView> configuredCameraThumbnailView;
 	QPointer<QCheckBox> stageToggle;
 	QPointer<QAction> editMenuAction;
 	QPointer<QAction> fileMenuAction;
@@ -150,7 +165,9 @@ class PresenterPanel : public QWidget {
 	std::vector<std::unique_ptr<MediaEntry>> entries;
 	std::vector<FolderEntry> folders;
 	std::vector<BibleVerse> bibleVerses;
+	std::vector<std::unique_ptr<CaptureEntry>> captureEntries;
 	QString currentFolderId = "general";
+	QString currentMultimediaFolderId = "general";
 	QString currentBiblePath;
 	QString bibleFontFamily = "Arial";
 	QString bibleTextAlignment = "center";
@@ -230,6 +247,11 @@ class PresenterPanel : public QWidget {
 	void StopAudioPlayer();
 	void RefreshAudioPlayerTimeline();
 	void RefreshRecentPresentations();
+	void RefreshCaptureList();
+	void AddCaptureSource(bool camera);
+	bool EnsureCaptureSource(CaptureEntry *entry);
+	void ActivateCaptureSource(obs_source_t *source, const QString &name, QListWidgetItem *item = nullptr);
+	void LoadCaptureThumbnail(CaptureEntry *entry);
 	void ActivateRecentPresentation(int row);
 	void AddMediaFile(const QString &path, const QString &folderId = QString(), bool save = true);
 	bool EnsureSource(MediaEntry *entry);

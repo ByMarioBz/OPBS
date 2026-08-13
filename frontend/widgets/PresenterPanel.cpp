@@ -470,57 +470,64 @@ PresenterPanel::~PresenterPanel()
 void PresenterPanel::BuildInterface()
 {
 	setStyleSheet(R"(
-		#presenterPanel { background: #111318; color: #f4f6fb; }
-		#presenterHeader { background: #181b22; border-bottom: 1px solid #2a2e38; }
+		#presenterPanel { background: #000000; color: #f5f7fa; }
+		#presenterHeader { background: #111318; border-bottom: 1px solid #292e35; }
 		#presenterTitle { font-size: 21px; font-weight: 700; }
-		#presenterSubtitle, #presenterMediaCount, #presenterScreenStatus, #presenterTime { color: #9ca4b4; }
-		#presenterLive { color: #ff5c68; font-size: 11px; font-weight: 700; }
-		#presenterPreviewFrame, #presenterLibrary { background: #181b22; border: 1px solid #2a2e38; border-radius: 10px; }
-		#presenterCurrent { color: #d7dbea; font-weight: 600; }
-		#presenterEmpty { color: #858d9d; font-size: 15px; }
-		QToolButton#presenterImport { background: #6d5dfc; color: white; border: 0; border-radius: 7px; padding: 9px 15px; font-weight: 700; }
-		QToolButton#presenterImport:hover { background: #8072ff; }
+		#presenterSubtitle, #presenterMediaCount, #presenterScreenStatus, #presenterTime { color: #9aa4af; }
+		#presenterLive { color: #f5f7fa; font-size: 11px; font-weight: 700; }
+		#presenterPreviewFrame, #presenterLibrary { background: #15191a; border: 1px solid #2c3238; border-radius: 3px; }
+		#presenterCurrent { color: #eef1f4; font-weight: 600; }
+		#presenterEmpty { color: #8793a1; font-size: 15px; }
+		#presenterDockWorkspace { background: #000000; }
+		QDockWidget { color: #f5f7fa; font-weight: 700; }
+		QDockWidget::title { background: #15191a; border: 1px solid #2c3238; padding: 7px 9px; text-align: left; }
+		QMainWindow::separator { background: #000000; width: 10px; height: 10px; }
+		QToolButton#presenterImport { background: #087ff5; color: white; border: 1px solid #2794ff; border-radius: 8px; padding: 9px 15px; font-weight: 700; }
+		QToolButton#presenterImport:hover { background: #1990ff; }
 		QListWidget#presenterMediaList { background: transparent; border: 0; outline: 0; }
-		QListWidget#presenterMediaList::item { background: #20242d; color: #eef0f6; border: 1px solid #303643; border-radius: 9px; padding: 8px; }
-		QListWidget#presenterMediaList::item:hover { border-color: #6d5dfc; background: #252a35; }
-		QListWidget#presenterMediaList::item:selected { border: 2px solid #7b6cff; background: #29263d; }
-		#presenterFolderPanel { background: #15181f; border: 1px solid #2a2e38; border-radius: 8px; }
+		QListWidget#presenterMediaList::item { background: #171b1d; color: #eef1f4; border: 1px solid #30373e; border-radius: 7px; padding: 7px; }
+		QListWidget#presenterMediaList::item:hover { border-color: #65717d; background: #202527; }
+		QListWidget#presenterMediaList::item:selected { border: 2px solid #087ff5; background: #22282c; }
+		#presenterFolderPanel { background: #121617; border: 1px solid #2c3238; border-radius: 7px; }
 		QListWidget#presenterFolderList, QListWidget#presenterPresentationList {
 			background: transparent; border: 0; outline: 0; }
 		QListWidget#presenterFolderList::item, QListWidget#presenterPresentationList::item {
 			padding: 8px; margin: 2px; border-radius: 6px; }
 		QListWidget#presenterFolderList::item:selected, QListWidget#presenterPresentationList::item:selected {
-			background: #343052; color: white; }
-		QLineEdit#presenterSearch { background: #20242d; color: #eef0f6; border: 1px solid #303643;
+			background: #343a40; border: 1px solid #68737e; color: white; }
+		QLineEdit#presenterSearch { background: #111516; color: #eef1f4; border: 1px solid #30373e;
 			border-radius: 7px; padding: 8px 11px; }
-		QLineEdit#presenterSearch:focus { border-color: #7b6cff; }
-		#presenterBibleControls { background: #15181f; border: 1px solid #2a2e38; border-radius: 8px; }
-		QComboBox#presenterBibleSelector { background: #20242d; color: #eef0f6; border: 1px solid #303643;
+		QLineEdit#presenterSearch:focus { border-color: #087ff5; }
+		#presenterBibleControls { background: #121617; border: 1px solid #2c3238; border-radius: 7px; }
+		QComboBox#presenterBibleSelector { background: #171b1d; color: #eef1f4; border: 1px solid #30373e;
 			border-radius: 7px; padding: 8px 11px; min-width: 190px; }
 		QComboBox#presenterBibleSelector::drop-down { border: 0; width: 28px; }
 		QListWidget#presenterBibleList { background: transparent; border: 0; outline: 0; }
-		QListWidget#presenterBibleList::item { background: #20242d; color: #eef0f6; border: 1px solid #303643;
+		QListWidget#presenterBibleList::item { background: #171b1d; color: #eef1f4; border: 1px solid #30373e;
 			border-radius: 9px; padding: 12px; }
-		QListWidget#presenterBibleList::item:hover { border-color: #6d5dfc; background: #252a35; }
-		QListWidget#presenterBibleList::item:selected { border: 2px solid #7b6cff; background: #29263d; }
+		QListWidget#presenterBibleList::item:hover { border-color: #65717d; background: #202527; }
+		QListWidget#presenterBibleList::item:selected { border: 2px solid #087ff5; background: #22282c; }
 		QProgressBar#presenterMeter { background: #252a33; border: 0; border-radius: 3px; max-height: 7px; }
 		QProgressBar#presenterMeter::chunk { background: #42d17c; border-radius: 3px; }
-		QSlider::groove:horizontal { height: 6px; background: #303643; border-radius: 3px; }
-		QSlider::handle:horizontal { background: #7b6cff; width: 15px; margin: -5px 0; border-radius: 7px; }
+		QSlider::groove:horizontal { height: 5px; background: #3a424a; border-radius: 2px; }
+		QSlider::handle:horizontal { background: #f5f7fa; width: 14px; margin: -5px 0; border-radius: 7px; }
 		QCheckBox#presenterStageToggle { spacing: 7px; color: #d7dbea; }
-		QToolButton#presenterTransport { background: #252a35; color: #f4f6fb; border: 1px solid #373e4c;
+		QToolButton#presenterTransport { background: #202527; color: #f4f6fb; border: 1px solid #343c43;
 			border-radius: 7px; min-width: 38px; min-height: 30px; font-size: 16px; font-weight: 700; }
-		QToolButton#presenterTransport:hover { background: #313747; border-color: #7b6cff; }
-		QToolButton#presenterTransport:checked { background: #6d5dfc; border-color: #8d82ff; color: white; }
+		QToolButton#presenterTransport:hover { background: #30373b; border-color: #087ff5; }
+		QToolButton#presenterTransport:checked { background: #087ff5; border-color: #2794ff; color: white; }
 		QToolButton#presenterTransport:disabled { color: #666d7b; background: #20242c; }
-		#transmissionPreviewFrame { background: #15181f; border: 1px solid #2a2e38; border-radius: 8px; }
-		QToolButton#transmissionMode { background: #252a35; color: #f4f6fb; border: 1px solid #373e4c;
+		#transmissionPreviewFrame { background: #15191a; border: 1px solid #2c3238; border-radius: 3px; }
+		QToolButton#transmissionMode { background: #202527; color: #f4f6fb; border: 1px solid #343c43;
 			border-radius: 7px; padding: 7px 10px; font-weight: 600; }
-		QToolButton#transmissionMode:hover { border-color: #7b6cff; }
-		QToolButton#transmissionMode:checked { background: #6d5dfc; border-color: #8d82ff; }
+		QToolButton#transmissionMode:hover { border-color: #087ff5; }
+		QToolButton#transmissionMode:checked { background: #087ff5; border-color: #2794ff; }
 		QToolButton#transmissionLive { background: #b62f3b; color: white; border: 0; border-radius: 7px;
 			padding: 7px 12px; font-weight: 700; }
 		QToolButton#transmissionLive:checked { background: #e04a58; }
+		QToolButton#captureAdd { background: #087ff5; color: white; border: 1px solid #2794ff;
+			border-radius: 7px; padding: 7px 13px; font-weight: 700; }
+		QToolButton#captureAdd:hover { background: #1990ff; }
 	)" );
 
 	auto *root = new QVBoxLayout(this);
@@ -784,13 +791,14 @@ void PresenterPanel::BuildInterface()
 	presentationFolderList = presentationsWidget;
 	presentationsWidget->setObjectName("presenterPresentationList");
 	presentationsWidget->setSelectionMode(QAbstractItemView::SingleSelection);
+	presentationsWidget->setAcceptDrops(false);
 	presentationsWidget->setDragEnabled(false);
-	presentationsWidget->setDragDropMode(QAbstractItemView::DropOnly);
+	presentationsWidget->setDragDropMode(QAbstractItemView::NoDragDrop);
 	presentationsWidget->setFixedHeight(190);
 	auto addPresentationFolder = [this, presentationsWidget](const QString &id, const QString &name) {
 		auto *item = new QListWidgetItem(name, presentationsWidget);
 		item->setData(Qt::UserRole, id);
-		item->setFlags((item->flags() & ~Qt::ItemIsDragEnabled & ~Qt::ItemIsEditable) | Qt::ItemIsDropEnabled);
+		item->setFlags(item->flags() & ~Qt::ItemIsDragEnabled & ~Qt::ItemIsEditable & ~Qt::ItemIsDropEnabled);
 	};
 	addPresentationFolder(QString::fromLatin1(kBibleFolderId), tr("BIBLIA"));
 	addPresentationFolder(QString::fromLatin1(kPresentationsFolderId), tr("PRESENTACIÓN"));
@@ -883,11 +891,12 @@ void PresenterPanel::BuildInterface()
 	searchEdit->setObjectName("presenterSearch");
 	searchEdit->setPlaceholderText(tr("Buscar en esta carpeta…"));
 	searchEdit->setClearButtonEnabled(true);
-	mediaArea->addWidget(searchEdit);
 	multimediaContentTarget = new QWidget(library);
 	auto *multimediaTargetLayout = new QVBoxLayout(multimediaContentTarget);
 	multimediaTargetLayout->setContentsMargins(0, 0, 0, 0);
 	multimediaTargetLayout->addWidget(libraryContentHost);
+	searchEdit->setParent(multimediaContentTarget);
+	multimediaTargetLayout->addWidget(searchEdit);
 	libraryBody->addWidget(multimediaContentTarget, 1);
 	libraryLayout->addLayout(libraryBody, 1);
 
@@ -896,9 +905,7 @@ void PresenterPanel::BuildInterface()
 	connect(foldersWidget, &QListWidget::currentItemChanged, this, [this](QListWidgetItem *current) {
 		if (!current)
 			return;
-		if (presentationFolderList)
-			presentationFolderList->setCurrentRow(-1);
-		currentFolderId = current->data(Qt::UserRole).toString();
+		currentMultimediaFolderId = current->data(Qt::UserRole).toString();
 		ShowLibraryContent(false);
 		ApplyLibraryFilter();
 		if (!restoring)
@@ -907,8 +914,6 @@ void PresenterPanel::BuildInterface()
 	connect(presentationsWidget, &QListWidget::currentItemChanged, this, [this](QListWidgetItem *current) {
 		if (!current)
 			return;
-		if (folderList)
-			folderList->setCurrentRow(-1);
 		currentFolderId = current->data(Qt::UserRole).toString();
 		ShowLibraryContent(true);
 		ApplyLibraryFilter();
@@ -922,10 +927,6 @@ void PresenterPanel::BuildInterface()
 	foldersWidget->filesDropped = [this](const QStringList &paths, const QString &folderId) { ImportPaths(paths, folderId); };
 	foldersWidget->mediaMoved = [this](const QStringList &paths, const QString &folderId) { MoveMediaToFolder(paths, folderId); };
 	foldersWidget->orderChanged = [this]() { ReorderFoldersFromList(); };
-	presentationsWidget->filesDropped =
-		[this](const QStringList &paths, const QString &folderId) { ImportPaths(paths, folderId); };
-	presentationsWidget->mediaMoved =
-		[this](const QStringList &paths, const QString &folderId) { MoveMediaToFolder(paths, folderId); };
 	connect(searchEdit, &QLineEdit::textChanged, this, [this]() { ApplyLibraryFilter(); });
 	connect(bibleSearchEdit, &QLineEdit::textChanged, this, [this](const QString &query) {
 		QTimer::singleShot(140, this, [this, query]() {
@@ -967,8 +968,84 @@ void PresenterPanel::BuildInterface()
 		[this](QListWidgetItem *item) { ActivateRecentPresentation(recentPresentationsList->row(item)); });
 	toolsLayout->addWidget(toolsSidebar);
 	toolsContentTarget = new QWidget(toolsFrame);
-	toolsContentTarget->setLayout(new QVBoxLayout());
-	toolsContentTarget->layout()->setContentsMargins(0, 0, 0, 0);
+	auto *toolsContentLayout = new QVBoxLayout(toolsContentTarget);
+	toolsContentLayout->setContentsMargins(0, 0, 0, 0);
+	bibleControls->setParent(toolsContentTarget);
+	toolsContentLayout->addWidget(bibleControls);
+	bibleResultsList->setParent(toolsContentTarget);
+	toolsContentLayout->addWidget(bibleResultsList, 1);
+	presentationMediaList = new QListWidget(toolsContentTarget);
+	presentationMediaList->setObjectName("presenterMediaList");
+	presentationMediaList->setViewMode(QListView::IconMode);
+	presentationMediaList->setResizeMode(QListView::Adjust);
+	presentationMediaList->setMovement(QListView::Static);
+	presentationMediaList->setWrapping(true);
+	presentationMediaList->setIconSize(QSize(kThumbnailWidth, kThumbnailHeight));
+	presentationMediaList->setGridSize(QSize(kThumbnailWidth + 24, kThumbnailHeight + 58));
+	presentationMediaList->setSpacing(8);
+	presentationMediaList->setSelectionMode(QAbstractItemView::SingleSelection);
+	presentationMediaList->hide();
+	connect(presentationMediaList, &QListWidget::itemClicked, this, [this](QListWidgetItem *item) {
+		for (const auto &entry : entries) {
+			if (entry->item == item) {
+				ActivateMedia(entry.get());
+				break;
+			}
+		}
+	});
+	connect(presentationMediaList->verticalScrollBar(), &QScrollBar::valueChanged, this,
+		[this]() { QTimer::singleShot(0, this, &PresenterPanel::LoadVisibleThumbnails); });
+	toolsContentLayout->addWidget(presentationMediaList, 1);
+	toolsEmptyState = new QLabel(tr("Selecciona una herramienta"), toolsContentTarget);
+	toolsEmptyState->setObjectName("presenterEmpty");
+	toolsEmptyState->setAlignment(Qt::AlignCenter);
+	toolsContentLayout->addWidget(toolsEmptyState, 1);
+	captureList = new QListWidget(toolsContentTarget);
+	captureList->setObjectName("presenterMediaList");
+	captureList->setViewMode(QListView::IconMode);
+	captureList->setResizeMode(QListView::Adjust);
+	captureList->setMovement(QListView::Static);
+	captureList->setWrapping(true);
+	captureList->setIconSize(QSize(kThumbnailWidth, kThumbnailHeight));
+	captureList->setGridSize(QSize(kThumbnailWidth + 24, kThumbnailHeight + 58));
+	captureList->setSpacing(8);
+	captureList->setSelectionMode(QAbstractItemView::SingleSelection);
+	captureList->hide();
+	connect(captureList, &QListWidget::itemClicked, this, [this](QListWidgetItem *item) {
+		if (!item)
+			return;
+		if (item->data(Qt::UserRole + 1).toBool()) {
+			if (cameraSource)
+				ActivateCaptureSource(cameraSource, item->text(), item);
+			return;
+		}
+		const QString id = item->data(Qt::UserRole).toString();
+		for (const auto &entry : captureEntries) {
+			if (entry->id == id && EnsureCaptureSource(entry.get())) {
+				ActivateCaptureSource(entry->source, entry->name, item);
+				LoadCaptureThumbnail(entry.get());
+				break;
+			}
+		}
+	});
+	toolsContentLayout->addWidget(captureList, 1);
+	captureControls = new QWidget(toolsContentTarget);
+	auto *captureButtons = new QHBoxLayout(captureControls);
+	captureButtons->setContentsMargins(0, 6, 0, 0);
+	captureButtons->addStretch();
+	auto *captureAdd = new QToolButton(captureControls);
+	captureAdd->setObjectName("captureAdd");
+	captureAdd->setText(tr("+ Agregar captura"));
+	auto *captureMenu = new QMenu(captureAdd);
+	auto *addCameraCapture = captureMenu->addAction(tr("Dispositivo de captura de video…"));
+	auto *addWindowCapture = captureMenu->addAction(tr("Captura de ventana…"));
+	captureAdd->setMenu(captureMenu);
+	captureAdd->setPopupMode(QToolButton::InstantPopup);
+	connect(addCameraCapture, &QAction::triggered, this, [this]() { AddCaptureSource(true); });
+	connect(addWindowCapture, &QAction::triggered, this, [this]() { AddCaptureSource(false); });
+	captureButtons->addWidget(captureAdd);
+	toolsContentLayout->addWidget(captureControls);
+	captureControls->hide();
 	toolsLayout->addWidget(toolsContentTarget, 1);
 
 	auto *audioFrame = new QFrame(dockWorkspace);
@@ -1063,16 +1140,7 @@ void PresenterPanel::BuildInterface()
 
 void PresenterPanel::ShowLibraryContent(bool tools)
 {
-	if (!libraryContentHost)
-		return;
-	if (mediaCount)
-		mediaCount->setVisible(!tools);
-	QWidget *target = tools ? toolsContentTarget.data() : multimediaContentTarget.data();
-	if (!target || libraryContentHost->parentWidget() == target)
-		return;
-	libraryContentHost->setParent(target);
-	target->layout()->addWidget(libraryContentHost);
-	libraryContentHost->show();
+	Q_UNUSED(tools);
 }
 
 void PresenterPanel::AddAudioPlayerFiles(const QStringList &paths)
@@ -1202,6 +1270,167 @@ void PresenterPanel::ActivateRecentPresentation(int row)
 		presentationFolderList->setCurrentRow(1);
 	ApplyLibraryFilter();
 	SaveSettings();
+}
+
+bool PresenterPanel::EnsureCaptureSource(CaptureEntry *entry)
+{
+	if (!entry)
+		return false;
+	if (entry->source)
+		return true;
+	const char *sourceType = obs_get_latest_input_type_id(entry->sourceType.toUtf8().constData());
+	if (!sourceType)
+		return false;
+	OBSDataAutoRelease settings = obs_data_create();
+	obs_data_set_string(settings, entry->propertyName.toUtf8().constData(), entry->propertyValue.toUtf8().constData());
+	if (entry->sourceType == QStringLiteral("dshow_input")) {
+		obs_data_set_int(settings, "res_type", 0);
+		obs_data_set_bool(settings, "active", true);
+		obs_data_set_bool(settings, "opbs_disable_device_audio", true);
+	} else if (entry->sourceType == QStringLiteral("window_capture")) {
+		obs_data_set_bool(settings, "cursor", true);
+		obs_data_set_bool(settings, "client_area", true);
+	}
+	const QString sourceName = QStringLiteral("OPBS Capture %1").arg(entry->id);
+	entry->source = obs_source_create_private(sourceType, sourceName.toUtf8().constData(), settings);
+	if (entry->source) {
+		obs_source_set_audio_mixers(entry->source, 0u);
+		obs_source_set_monitoring_type(entry->source, OBS_MONITORING_TYPE_NONE);
+	}
+	return entry->source != nullptr;
+}
+
+void PresenterPanel::LoadCaptureThumbnail(CaptureEntry *entry)
+{
+	if (!entry || !entry->item || entry->thumbnailView || !EnsureCaptureSource(entry))
+		return;
+	entry->thumbnailView = App()->thumbnails()->createView(captureList, entry->source);
+	connect(entry->thumbnailView, &ThumbnailView::updated, captureList, [entry](const QPixmap &pixmap) {
+		if (entry->item && !pixmap.isNull())
+			entry->item->setIcon(QIcon(pixmap.scaled(kThumbnailWidth, kThumbnailHeight, Qt::KeepAspectRatio,
+							 Qt::SmoothTransformation)));
+	});
+	entry->thumbnailView->requestUpdate();
+}
+
+void PresenterPanel::RefreshCaptureList()
+{
+	if (!captureList)
+		return;
+	if (configuredCameraThumbnailView)
+		delete configuredCameraThumbnailView.data();
+	configuredCameraThumbnailView = nullptr;
+	for (auto &entry : captureEntries) {
+		if (entry->thumbnailView)
+			delete entry->thumbnailView.data();
+		entry->thumbnailView = nullptr;
+		entry->item = nullptr;
+	}
+	captureList->clear();
+	if (!selectedCameraId.isEmpty()) {
+		const QString name = selectedCameraName.isEmpty() ? tr("Cámara configurada en transmisión")
+								 : tr("Cámara: %1").arg(selectedCameraName);
+		auto *item = new QListWidgetItem(QIcon(PlaceholderForType("dshow_input")), name, captureList);
+		item->setData(Qt::UserRole + 1, true);
+		item->setTextAlignment(Qt::AlignHCenter | Qt::AlignBottom);
+		item->setToolTip(tr("Cámara configurada en Transmisión"));
+		if (cameraSource) {
+			configuredCameraThumbnailView = App()->thumbnails()->createView(captureList, cameraSource);
+			connect(configuredCameraThumbnailView, &ThumbnailView::updated, captureList,
+				[item](const QPixmap &pixmap) {
+					if (item && !pixmap.isNull())
+						item->setIcon(QIcon(pixmap.scaled(kThumbnailWidth, kThumbnailHeight,
+									 Qt::KeepAspectRatio, Qt::SmoothTransformation)));
+				});
+			configuredCameraThumbnailView->requestUpdate();
+		}
+	}
+	for (auto &entry : captureEntries) {
+		entry->item = new QListWidgetItem(QIcon(PlaceholderForType(entry->sourceType.toUtf8().constData())),
+						      entry->name, captureList);
+		entry->item->setData(Qt::UserRole, entry->id);
+		entry->item->setTextAlignment(Qt::AlignHCenter | Qt::AlignBottom);
+		entry->item->setToolTip(entry->name);
+		LoadCaptureThumbnail(entry.get());
+	}
+}
+
+void PresenterPanel::AddCaptureSource(bool camera)
+{
+	const QString sourceType = camera ? QStringLiteral("dshow_input") : QStringLiteral("window_capture");
+	const QString propertyName = camera ? QStringLiteral("video_device_id") : QStringLiteral("window");
+	OBSProperties properties = obs_get_source_properties(sourceType.toUtf8().constData());
+	obs_property_t *property = properties ? obs_properties_get(properties, propertyName.toUtf8().constData()) : nullptr;
+	QStringList names;
+	QStringList values;
+	if (property) {
+		const size_t count = obs_property_list_item_count(property);
+		for (size_t index = 0; index < count; ++index) {
+			const QString value = QString::fromUtf8(obs_property_list_item_string(property, index));
+			if (value.isEmpty())
+				continue;
+			names.push_back(QString::fromUtf8(obs_property_list_item_name(property, index)));
+			values.push_back(value);
+		}
+	}
+	if (names.isEmpty()) {
+		QMessageBox::information(main, tr("Agregar captura"),
+					 camera ? tr("No se encontraron cámaras disponibles.")
+						: tr("No se encontraron ventanas disponibles para capturar."));
+		return;
+	}
+	bool accepted = false;
+	const QString selectedName = QInputDialog::getItem(main, camera ? tr("Agregar cámara") : tr("Captura de ventana"),
+							   camera ? tr("Dispositivo") : tr("Ventana"), names, 0, false,
+							   &accepted);
+	if (!accepted || selectedName.isEmpty())
+		return;
+	const int selectedIndex = names.indexOf(selectedName);
+	if (selectedIndex < 0)
+		return;
+	auto entry = std::make_unique<CaptureEntry>();
+	entry->id = QUuid::createUuid().toString(QUuid::WithoutBraces);
+	entry->name = selectedName;
+	entry->sourceType = sourceType;
+	entry->propertyName = propertyName;
+	entry->propertyValue = values[selectedIndex];
+	if (!EnsureCaptureSource(entry.get())) {
+		QMessageBox::critical(main, tr("Agregar captura"), tr("No fue posible crear la fuente seleccionada."));
+		return;
+	}
+	captureEntries.emplace_back(std::move(entry));
+	RefreshCaptureList();
+	if (toolsEmptyState)
+		toolsEmptyState->hide();
+	SaveSettings();
+}
+
+void PresenterPanel::ActivateCaptureSource(obs_source_t *source, const QString &name, QListWidgetItem *item)
+{
+	if (!source || !stageScene)
+		return;
+	ClearBiblePresentation();
+	activeBibleText.clear();
+	activeBibleReference.clear();
+	ClearActiveMedia();
+	activeSource = source;
+	activeItem = obs_scene_add(stageScene, activeSource);
+	if (!activeItem) {
+		activeSource = nullptr;
+		return;
+	}
+	obs_sceneitem_set_bounds_alignment(activeItem, OBS_ALIGN_CENTER);
+	obs_sceneitem_set_alignment(activeItem, OBS_ALIGN_CENTER);
+	const struct vec2 size = {(float)obs_source_get_width(obs_scene_get_source(stageScene)),
+				  (float)obs_source_get_height(obs_scene_get_source(stageScene))};
+	const struct vec2 position = {size.x / 2.0f, size.y / 2.0f};
+	obs_sceneitem_set_bounds_type(activeItem, OBS_BOUNDS_SCALE_INNER);
+	obs_sceneitem_set_bounds(activeItem, &size);
+	obs_sceneitem_set_pos(activeItem, &position);
+	if (captureList && item)
+		captureList->setCurrentItem(item);
+	currentMedia->setText(name);
+	RefreshTimeline();
 }
 
 void PresenterPanel::BuildTopMenu()
@@ -1438,6 +1667,16 @@ void PresenterPanel::Shutdown()
 	DetachTransmissionPresenterAudio();
 	ClearActiveMedia();
 	ClearBiblePresentation();
+	if (configuredCameraThumbnailView)
+		delete configuredCameraThumbnailView.data();
+	configuredCameraThumbnailView = nullptr;
+	for (auto &entry : captureEntries) {
+		if (entry->thumbnailView)
+			delete entry->thumbnailView.data();
+		entry->thumbnailView = nullptr;
+		entry->source = nullptr;
+	}
+	captureEntries.clear();
 	if (transmissionTransition) {
 		obs_transition_force_stop(transmissionTransition);
 		obs_transition_clear(transmissionTransition);
@@ -1580,8 +1819,14 @@ void PresenterPanel::ReplacePresentationSlides(const QString &temporaryDirectory
 
 void PresenterPanel::ImportPaths(const QStringList &paths, const QString &folderId)
 {
+	QString destination = folderId.isEmpty() ? SelectedFolderId() : folderId;
+	if (destination == QString::fromLatin1(kBibleFolderId) ||
+	    destination == QString::fromLatin1(kPresentationsFolderId) ||
+	    destination == QString::fromLatin1(kCaptureFolderId) ||
+	    destination == QString::fromLatin1(kNdiFolderId))
+		destination = currentMultimediaFolderId.isEmpty() ? QStringLiteral("general") : currentMultimediaFolderId;
 	for (const QString &path : paths)
-		AddMediaFile(path, folderId, false);
+		AddMediaFile(path, destination, false);
 	ApplyLibraryFilter();
 	SaveSettings();
 }
@@ -1610,7 +1855,12 @@ void PresenterPanel::AddMediaFile(const QString &path, const QString &folderId, 
 	const QString cardName = entry->folderId == QString::fromLatin1(kPresentationsFolderId)
 					 ? info.completeBaseName()
 					 : info.fileName();
-	entry->item = new QListWidgetItem(cardName, mediaList);
+	QListWidget *targetList = entry->folderId == QString::fromLatin1(kPresentationsFolderId)
+				  ? presentationMediaList.data()
+				  : mediaList.data();
+	if (!targetList)
+		return;
+	entry->item = new QListWidgetItem(cardName, targetList);
 	entry->item->setData(Qt::UserRole, entry->path);
 	entry->item->setToolTip(entry->path);
 	entry->item->setTextAlignment(Qt::AlignHCenter | Qt::AlignBottom);
@@ -1654,14 +1904,15 @@ void PresenterPanel::LoadThumbnail(MediaEntry *entry)
 
 void PresenterPanel::LoadVisibleThumbnails()
 {
-	if (!mediaList || !mediaList->isVisible())
-		return;
-	const QRect visibleArea = mediaList->viewport()->rect().adjusted(0, -kThumbnailHeight, 0, kThumbnailHeight);
 	int preloadCount = 0;
 	for (const auto &entry : entries) {
 		if (!entry->item || entry->item->isHidden() || entry->thumbnailLoaded || !entry->isImage)
 			continue;
-		const QRect itemRect = mediaList->visualItemRect(entry->item);
+		QListWidget *owner = entry->item->listWidget();
+		if (!owner || !owner->isVisible())
+			continue;
+		const QRect visibleArea = owner->viewport()->rect().adjusted(0, -kThumbnailHeight, 0, kThumbnailHeight);
+		const QRect itemRect = owner->visualItemRect(entry->item);
 		if (visibleArea.intersects(itemRect) || preloadCount < 24) {
 			LoadThumbnail(entry.get());
 			++preloadCount;
@@ -1929,15 +2180,17 @@ void PresenterPanel::ActivateMedia(MediaEntry *entry)
 			RebuildAudioMonitor();
 	});
 	if (!entry->isImage && !entry->thumbnailView) {
-		entry->thumbnailView = App()->thumbnails()->createView(mediaList, entry->source);
-		connect(entry->thumbnailView, &ThumbnailView::updated, mediaList,
+		QListWidget *owner = entry->item ? entry->item->listWidget() : mediaList.data();
+		entry->thumbnailView = App()->thumbnails()->createView(owner, entry->source);
+		connect(entry->thumbnailView, &ThumbnailView::updated, owner,
 			[this, entry](const QPixmap &pixmap) {
 				SetCardThumbnail(entry, pixmap);
 				entry->thumbnailLoaded = true;
 			});
 		entry->thumbnailView->requestUpdate();
 	}
-	mediaList->setCurrentItem(entry->item);
+	if (entry->item && entry->item->listWidget())
+		entry->item->listWidget()->setCurrentItem(entry->item);
 	currentMedia->setText(QFileInfo(entry->path).fileName());
 	RefreshTimeline();
 }
@@ -3076,9 +3329,7 @@ QString PresenterPanel::SelectedFolderId() const
 {
 	if (folderList && folderList->currentItem())
 		return folderList->currentItem()->data(Qt::UserRole).toString();
-	if (presentationFolderList && presentationFolderList->currentItem())
-		return presentationFolderList->currentItem()->data(Qt::UserRole).toString();
-	return currentFolderId.isEmpty() ? QStringLiteral("general") : currentFolderId;
+	return currentMultimediaFolderId.isEmpty() ? QStringLiteral("general") : currentMultimediaFolderId;
 }
 
 void PresenterPanel::ApplyLibraryFilter()
@@ -3086,34 +3337,41 @@ void PresenterPanel::ApplyLibraryFilter()
 	if (!mediaList)
 		return;
 	const QString folderId = SelectedFolderId();
-	const bool bibleMode = folderId == QString::fromLatin1(kBibleFolderId);
-	const bool placeholderTool = folderId == QString::fromLatin1(kCaptureFolderId) ||
-				     folderId == QString::fromLatin1(kNdiFolderId);
+	const bool bibleMode = currentFolderId == QString::fromLatin1(kBibleFolderId);
+	const bool presentationMode = currentFolderId == QString::fromLatin1(kPresentationsFolderId);
+	const bool captureMode = currentFolderId == QString::fromLatin1(kCaptureFolderId);
+	const bool ndiMode = currentFolderId == QString::fromLatin1(kNdiFolderId);
 	if (bibleControls)
 		bibleControls->setVisible(bibleMode);
 	if (bibleResultsList)
 		bibleResultsList->setVisible(bibleMode);
-	if (searchEdit)
-		searchEdit->setVisible(!bibleMode);
-	if (bibleMode) {
-		mediaList->hide();
+	if (presentationMediaList)
+		presentationMediaList->setVisible(false);
+	if (captureList)
+		captureList->setVisible(false);
+	if (captureControls)
+		captureControls->setVisible(captureMode);
+	if (toolsEmptyState)
+		toolsEmptyState->hide();
+	if (bibleMode)
 		ApplyBibleFilter();
-		return;
+	if (captureMode)
+		RefreshCaptureList();
+	if (ndiMode && toolsEmptyState) {
+		toolsEmptyState->setText(tr("La herramienta NDI se habilitará en una próxima versión"));
+		toolsEmptyState->show();
 	}
-	if (placeholderTool) {
-		mediaList->hide();
-		emptyState->setText(folderId == QString::fromLatin1(kCaptureFolderId)
-					    ? tr("La herramienta Captura se habilitará en una próxima versión")
-					    : tr("La herramienta NDI se habilitará en una próxima versión"));
-		emptyState->show();
-		mediaCount->setText(tr("Próximamente"));
-		return;
-	}
-	if (bibleResultsList)
-		bibleResultsList->hide();
 	const QString query = searchEdit ? searchEdit->text().trimmed() : QString();
 	int visible = 0;
+	int presentationVisible = 0;
 	for (const auto &entry : entries) {
+		if (entry->folderId == QString::fromLatin1(kPresentationsFolderId)) {
+			if (entry->item)
+				entry->item->setHidden(!presentationMode);
+			if (presentationMode)
+				++presentationVisible;
+			continue;
+		}
 		const bool matchesFolder = entry->folderId == folderId;
 		const bool matchesSearch = query.isEmpty() ||
 			QFileInfo(entry->path).fileName().contains(query, Qt::CaseInsensitive);
@@ -3126,30 +3384,38 @@ void PresenterPanel::ApplyLibraryFilter()
 	mediaCount->setText(tr("%1 archivos").arg(visible));
 	mediaList->setVisible(visible > 0);
 	emptyState->setVisible(visible == 0);
-	emptyState->setText(query.isEmpty() ? (folderId == QString::fromLatin1(kPresentationsFolderId)
-						 ? tr("Importa o elige una presentación reciente")
-						 : tr("Arrastra aquí imágenes, videos o audio para comenzar"))
+	emptyState->setText(query.isEmpty() ? tr("Arrastra aquí imágenes, videos o audio para comenzar")
 					 : tr("No hay resultados en esta carpeta"));
+	if (presentationMode && presentationVisible == 0 && toolsEmptyState) {
+		toolsEmptyState->setText(tr("Importa o elige una presentación reciente"));
+		toolsEmptyState->show();
+	}
+	if (presentationMediaList)
+		presentationMediaList->setVisible(presentationMode && presentationVisible > 0);
+	if (captureList)
+		captureList->setVisible(captureMode && captureList->count() > 0);
+	if (captureMode && captureList && captureList->count() == 0 && toolsEmptyState) {
+		toolsEmptyState->setText(tr("Agrega una cámara o captura de ventana"));
+		toolsEmptyState->show();
+	}
 	QTimer::singleShot(0, this, &PresenterPanel::LoadVisibleThumbnails);
 }
 
 void PresenterPanel::ApplyBibleFilter()
 {
-	if (!bibleResultsList || SelectedFolderId() != QString::fromLatin1(kBibleFolderId))
+	if (!bibleResultsList || currentFolderId != QString::fromLatin1(kBibleFolderId))
 		return;
 	bibleResultsList->clear();
 	const QString query = NormalizeBibleText(bibleSearchEdit ? bibleSearchEdit->text() : QString());
 	if (currentBiblePath.isEmpty() || bibleVerses.empty()) {
-		mediaCount->setText(tr("0 versículos"));
-		emptyState->setText(tr("No hay biblias cargadas"));
-		emptyState->show();
+		toolsEmptyState->setText(tr("No hay biblias cargadas"));
+		toolsEmptyState->show();
 		bibleResultsList->hide();
 		return;
 	}
 	if (query.isEmpty()) {
-		mediaCount->setText(tr("%1 versículos").arg(bibleVerses.size()));
-		emptyState->setText(tr("Escribe una palabra, frase o referencia para buscar en la Biblia"));
-		emptyState->show();
+		toolsEmptyState->setText(tr("Escribe una palabra, frase o referencia para buscar en la Biblia"));
+		toolsEmptyState->show();
 		bibleResultsList->hide();
 		return;
 	}
@@ -3169,12 +3435,8 @@ void PresenterPanel::ApplyBibleFilter()
 		item->setData(Qt::UserRole + 1, verse.text);
 		item->setSizeHint(QSize(300, 155));
 	}
-	if (matches > kBibleResultLimit)
-		mediaCount->setText(tr("%1 de %2 coincidencias").arg(kBibleResultLimit).arg(matches));
-	else
-		mediaCount->setText(tr("%1 coincidencias").arg(matches));
-	emptyState->setText(tr("No se encontraron versículos"));
-	emptyState->setVisible(matches == 0);
+	toolsEmptyState->setText(tr("No se encontraron versículos"));
+	toolsEmptyState->setVisible(matches == 0);
 	bibleResultsList->setVisible(matches > 0);
 }
 
@@ -3494,6 +3756,21 @@ void PresenterPanel::LoadSettings()
 	recentPresentationIds = settings.value("presentations/recentIds").toStringList();
 	recentPresentationNames = settings.value("presentations/recentNames").toStringList();
 	currentPresentationId = settings.value("presentations/currentId").toString();
+	captureEntries.clear();
+	const int captureCount = settings.beginReadArray("captures");
+	for (int index = 0; index < captureCount; ++index) {
+		settings.setArrayIndex(index);
+		auto entry = std::make_unique<CaptureEntry>();
+		entry->id = settings.value("id").toString();
+		entry->name = settings.value("name").toString();
+		entry->sourceType = settings.value("sourceType").toString();
+		entry->propertyName = settings.value("propertyName").toString();
+		entry->propertyValue = settings.value("propertyValue").toString();
+		if (!entry->id.isEmpty() && !entry->name.isEmpty() && !entry->sourceType.isEmpty() &&
+		    !entry->propertyName.isEmpty() && !entry->propertyValue.isEmpty())
+			captureEntries.emplace_back(std::move(entry));
+	}
+	settings.endArray();
 	while (recentPresentationIds.size() > 4)
 		recentPresentationIds.removeLast();
 	while (recentPresentationNames.size() > 4)
@@ -3542,9 +3819,18 @@ void PresenterPanel::LoadSettings()
 		item->setData(Qt::UserRole, "general");
 		item->setFlags(item->flags() | Qt::ItemIsEditable | Qt::ItemIsDragEnabled | Qt::ItemIsDropEnabled);
 	}
-	currentFolderId = settings.value("library/currentFolder", folders.front().id).toString();
+	const QString legacyFolder = settings.value("library/currentFolder", folders.front().id).toString();
+	currentMultimediaFolderId = settings.value("library/currentMultimediaFolder").toString();
+	if (currentMultimediaFolderId.isEmpty() &&
+	    legacyFolder != QString::fromLatin1(kBibleFolderId) &&
+	    legacyFolder != QString::fromLatin1(kPresentationsFolderId) &&
+	    legacyFolder != QString::fromLatin1(kCaptureFolderId) && legacyFolder != QString::fromLatin1(kNdiFolderId))
+		currentMultimediaFolderId = legacyFolder;
+	if (currentMultimediaFolderId.isEmpty())
+		currentMultimediaFolderId = folders.front().id;
+	currentFolderId = settings.value("tools/currentTool", QString::fromLatin1(kBibleFolderId)).toString();
 	for (int row = 0; row < folderList->count(); ++row) {
-		if (folderList->item(row)->data(Qt::UserRole).toString() == currentFolderId) {
+		if (folderList->item(row)->data(Qt::UserRole).toString() == currentMultimediaFolderId) {
 			folderList->setCurrentRow(row);
 			break;
 		}
@@ -3558,10 +3844,12 @@ void PresenterPanel::LoadSettings()
 		}
 	}
 	if (!folderList->currentItem()) {
-		if (!presentationFolderList || !presentationFolderList->currentItem()) {
-			folderList->setCurrentRow(0);
-			currentFolderId = folderList->currentItem()->data(Qt::UserRole).toString();
-		}
+		folderList->setCurrentRow(0);
+		currentMultimediaFolderId = folderList->currentItem()->data(Qt::UserRole).toString();
+	}
+	if (presentationFolderList && !presentationFolderList->currentItem()) {
+		presentationFolderList->setCurrentRow(0);
+		currentFolderId = presentationFolderList->currentItem()->data(Qt::UserRole).toString();
 	}
 
 	QStringList missingMediaNames;
@@ -3573,7 +3861,17 @@ void PresenterPanel::LoadSettings()
 			missingMediaNames.append(file.fileName().isEmpty() ? path : file.fileName());
 			return;
 		}
-		AddMediaFile(path, folderId, false);
+		QString safeFolder = folderId;
+		if (safeFolder == QString::fromLatin1(kPresentationsFolderId)) {
+			const QString presentationsRoot = QDir(PresentationsDirectoryPath()).absolutePath() + QDir::separator();
+			if (!file.absoluteFilePath().startsWith(presentationsRoot, Qt::CaseInsensitive))
+				safeFolder = QStringLiteral("general");
+		} else if (safeFolder == QString::fromLatin1(kBibleFolderId) ||
+			   safeFolder == QString::fromLatin1(kCaptureFolderId) ||
+			   safeFolder == QString::fromLatin1(kNdiFolderId)) {
+			safeFolder = QStringLiteral("general");
+		}
+		AddMediaFile(path, safeFolder, false);
 	};
 	const int mediaEntryCount = settings.beginReadArray("media");
 	for (int index = 0; index < mediaEntryCount; ++index) {
@@ -3632,6 +3930,19 @@ void PresenterPanel::SaveSettings()
 	settings.endArray();
 	settings.remove("library/files");
 	settings.setValue("library/currentFolder", SelectedFolderId());
+	settings.setValue("library/currentMultimediaFolder", SelectedFolderId());
+	settings.setValue("tools/currentTool", currentFolderId);
+	settings.remove("captures");
+	settings.beginWriteArray("captures", static_cast<int>(captureEntries.size()));
+	for (int index = 0; index < static_cast<int>(captureEntries.size()); ++index) {
+		settings.setArrayIndex(index);
+		settings.setValue("id", captureEntries[index]->id);
+		settings.setValue("name", captureEntries[index]->name);
+		settings.setValue("sourceType", captureEntries[index]->sourceType);
+		settings.setValue("propertyName", captureEntries[index]->propertyName);
+		settings.setValue("propertyValue", captureEntries[index]->propertyValue);
+	}
+	settings.endArray();
 	settings.setValue("stage/monitorName", selectedMonitorName);
 	settings.setValue("stage/enabled", stageEnabled);
 	settings.setValue("playback/loopCurrent", loopCurrent);
@@ -3889,6 +4200,7 @@ void PresenterPanel::RefreshCameraSource()
 	}
 	cameraSource = nullptr;
 	if (selectedCameraId.isEmpty()) {
+		RefreshCaptureList();
 		ApplyTransmissionView(transmissionView, false);
 		return;
 	}
@@ -3913,6 +4225,7 @@ void PresenterPanel::RefreshCameraSource()
 	transmissionCameraOnlyItem = obs_scene_add(transmissionCameraScene, cameraSource);
 	if (transmissionPresenterItem)
 		obs_sceneitem_set_order(transmissionPresenterItem, OBS_ORDER_MOVE_TOP);
+	RefreshCaptureList();
 	ApplyTransmissionView(transmissionView, false);
 }
 

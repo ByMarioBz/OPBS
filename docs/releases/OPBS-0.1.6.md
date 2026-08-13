@@ -14,6 +14,12 @@ de OBS Studio.
 - Historial de hasta cuatro presentaciones importadas recientemente.
 - Reproductor de audio independiente con lista persistente, reproducción/pausa, detener y línea de tiempo manipulable.
 - El control de volumen fue retirado de la vista del presentador sin alterar sus medidores ni controles multimedia.
+- Nueva identidad visual en negro, grafito, blanco y azul para distinguir claramente OPBS.
+- Multimedia y Herramientas funcionan simultáneamente con cuadrículas independientes; los medios arrastrados ya no
+  pueden aparecer dentro de Presentación, Captura o NDI.
+- Buscador multimedia independiente y buscador de Herramientas visible únicamente al seleccionar Biblia.
+- Captura muestra la cámara configurada en Transmisión y permite agregar cámaras o ventanas del equipo desde su botón
+  inferior derecho.
 
 ## Actualizaciones y datos
 

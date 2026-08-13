@@ -12,8 +12,13 @@ integrar funciones de forma gradual.
   ejecuciones y la distribución inicial sigue la proporción aproximada 31/69 del diseño de producto.
 - Biblioteca persistente dividida en `Multimedia` y `Presentación`; esta última incluye las bibliotecas independientes
   `Biblia` y `Presentaciones`.
-- `Presentación` pasa al panel `Herramientas`, junto con las entradas reservadas `Captura` y `NDI`. El panel mantiene un
-  historial local de las cuatro presentaciones importadas más recientes y permite volver a activarlas.
+- `Presentación` pasa al panel `Herramientas`, junto con `Captura` y la entrada reservada `NDI`. Captura muestra la
+  cámara configurada en transmisión y permite agregar dispositivos de video o ventanas del equipo. El panel mantiene
+  un historial local de las cuatro presentaciones importadas más recientes y permite volver a activarlas.
+- Multimedia y Herramientas mantienen cuadrículas y selecciones independientes. Multimedia conserva su propio buscador;
+  en Herramientas el buscador aparece exclusivamente dentro de Biblia.
+- Identidad visual oscura propia de OPBS, basada en negro, grafito, blanco y azul brillante. Esta paleta será también la
+  base visual del futuro Broadcast Presenter.
 - Carpetas multimedia con búsqueda local, arrastrar y soltar, reordenamiento y carga diferida.
 - Buscador bíblico por texto o referencia, selector de traducciones locales y cuadrícula limitada de resultados para
   mantener el rendimiento con biblias completas.
