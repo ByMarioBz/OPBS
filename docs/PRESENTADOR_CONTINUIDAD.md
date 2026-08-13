@@ -15,7 +15,7 @@ El repositorio Git contiene el código y su historial. Estas carpetas locales so
 | `build_x64` | resultados intermedios | No | No; se regenera |
 | `dist/OPBS` | aplicación portátil compilada | No | Solo para ejecutar sin compilar |
 | `portable` | copia limpia para compartir, con `OPBS.exe` | No | Para pruebas en otra PC |
-| `release/<versión>` | instalador, ZIP portable y SHA-256 | No | Solo para publicar el Release |
+| `release/<versión>` | instalador y SHA-256 | No | Solo para publicar el Release |
 | medios del usuario | imágenes, videos y canciones | No | Solo si se quieren conservar |
 
 La biblioteca guarda rutas absolutas. Copiar la configuración portátil a otro equipo no copia los medios y las rutas

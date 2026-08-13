@@ -2,53 +2,40 @@
 param(
     [int] $CurrentProcessId = 0,
     [switch] $CheckOnly,
-    [switch] $Silent
+    [switch] $Silent,
+    [switch] $LaunchApp,
+    [switch] $SafeMode,
+    [string] $CurrentVersionOverride,
+    [string] $LocalReleaseDirectory,
+    [string] $InstallRootOverride
 )
 
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-function Show-Information {
-    param([string] $Text)
-    if ($Silent) {
-        return
-    }
-    if ($CheckOnly) {
-        Write-Output $Text
-        return
-    }
-    [void][Windows.Forms.MessageBox]::Show(
-        $Text,
-        'Actualizaciones de OPBS',
-        [Windows.Forms.MessageBoxButtons]::OK,
-        [Windows.Forms.MessageBoxIcon]::Information
-    )
+function Start-OPBS {
+    if (-not $LaunchApp) { return }
+    $Executable = Join-Path $PSScriptRoot 'OPBS.exe'
+    $Arguments = @('--disable-updater')
+    if ($SafeMode) { $Arguments += '--safe-mode' }
+    Start-Process -FilePath $Executable -ArgumentList $Arguments -WorkingDirectory $PSScriptRoot
 }
 
-function Show-ErrorMessage {
-    param([string] $Text)
-    if ($Silent) {
-        return
-    }
-    if ($CheckOnly) {
-        Write-Output "ERROR: $Text"
-        return
-    }
-    [void][Windows.Forms.MessageBox]::Show(
-        $Text,
-        'Actualizaciones de OPBS',
-        [Windows.Forms.MessageBoxButtons]::OK,
-        [Windows.Forms.MessageBoxIcon]::Error
-    )
+function Show-Information([string] $Text) {
+    if ($Silent -or $LaunchApp) { return }
+    if ($CheckOnly) { Write-Output $Text; return }
+    [void][Windows.Forms.MessageBox]::Show($Text, 'Actualizaciones de OPBS', 'OK', 'Information')
 }
 
-function ConvertTo-OPBSVersion {
-    param([Parameter(Mandatory)][string] $Value)
+function Show-ErrorMessage([string] $Text) {
+    if ($Silent -or $LaunchApp) { return }
+    if ($CheckOnly) { Write-Output "ERROR: $Text"; return }
+    [void][Windows.Forms.MessageBox]::Show($Text, 'Actualizaciones de OPBS', 'OK', 'Error')
+}
 
-    $Normalized = $Value.Trim()
-    $Normalized = $Normalized -replace '^opbs-v', ''
-    $Normalized = $Normalized -replace '^v', ''
+function ConvertTo-OPBSVersion([Parameter(Mandatory)][string] $Value) {
+    $Normalized = $Value.Trim() -replace '^opbs-v', '' -replace '^v', ''
     if ($Normalized -notmatch '^\d+\.\d+\.\d+$') {
         throw "La versión '$Value' no usa el formato mayor.menor.parche."
     }
@@ -56,66 +43,57 @@ function ConvertTo-OPBSVersion {
 }
 
 function Show-UpdatePrompt {
-    param(
-        [Parameter(Mandatory)][version] $AvailableVersion,
-        [string] $ReleaseNotes
-    )
-
+    param([version] $AvailableVersion, [string] $ReleaseNotes)
     $Form = New-Object Windows.Forms.Form
-    $Form.Text = "Actualización disponible - OPBS $AvailableVersion"
-    $Form.StartPosition = [Windows.Forms.FormStartPosition]::CenterScreen
-    $Form.Size = New-Object Drawing.Size(760, 650)
-    $Form.MinimumSize = New-Object Drawing.Size(620, 480)
+    $Form.Text = "Nueva versión disponible - OPBS $AvailableVersion"
+    $Form.StartPosition = 'CenterScreen'
+    $Form.Size = New-Object Drawing.Size(780, 660)
+    $Form.MinimumSize = New-Object Drawing.Size(640, 500)
     $Form.ShowIcon = $false
+    $Form.BackColor = [Drawing.Color]::FromArgb(24, 27, 34)
+    $Form.ForeColor = [Drawing.Color]::White
 
     $Header = New-Object Windows.Forms.Label
-    $Header.Dock = [Windows.Forms.DockStyle]::Top
-    $Header.Height = 76
-    $Header.Padding = New-Object Windows.Forms.Padding(16, 14, 16, 8)
-    $Header.Font = New-Object Drawing.Font($Header.Font.FontFamily, 11, [Drawing.FontStyle]::Bold)
-    $Header.Text = "Está disponible OPBS $AvailableVersion.`r`nRevisa las novedades antes de instalar."
+    $Header.Dock = 'Top'; $Header.Height = 88
+    $Header.Padding = New-Object Windows.Forms.Padding(18, 16, 18, 8)
+    $Header.Font = New-Object Drawing.Font('Segoe UI', 12, [Drawing.FontStyle]::Bold)
+    $Header.Text = "OPBS $AvailableVersion está disponible.`r`nLa actualización conservará tu biblioteca y configuración."
     $Form.Controls.Add($Header)
 
     $Notes = New-Object Windows.Forms.RichTextBox
-    $Notes.Dock = [Windows.Forms.DockStyle]::Fill
-    $Notes.ReadOnly = $true
-    $Notes.DetectUrls = $true
-    $Notes.BackColor = [Drawing.SystemColors]::Window
-    $Notes.BorderStyle = [Windows.Forms.BorderStyle]::FixedSingle
-    $Notes.Font = New-Object Drawing.Font('Segoe UI', 9.5)
+    $Notes.Dock = 'Fill'; $Notes.ReadOnly = $true; $Notes.DetectUrls = $true
+    $Notes.BackColor = [Drawing.Color]::FromArgb(17, 19, 24)
+    $Notes.ForeColor = [Drawing.Color]::White
+    $Notes.BorderStyle = 'FixedSingle'; $Notes.Font = New-Object Drawing.Font('Segoe UI', 9.5)
     $Notes.Text = if ([string]::IsNullOrWhiteSpace($ReleaseNotes)) {
-        "Consulta las notas completas en el Release de GitHub."
-    } else {
-        $ReleaseNotes.Trim()
-    }
-    $Form.Controls.Add($Notes)
-    $Notes.BringToFront()
+        'Consulta las notas completas en el Release de GitHub.'
+    } else { $ReleaseNotes.Trim() }
+    $Form.Controls.Add($Notes); $Notes.BringToFront()
 
     $Buttons = New-Object Windows.Forms.FlowLayoutPanel
-    $Buttons.Dock = [Windows.Forms.DockStyle]::Bottom
-    $Buttons.Height = 62
-    $Buttons.Padding = New-Object Windows.Forms.Padding(8, 12, 12, 8)
-    $Buttons.FlowDirection = [Windows.Forms.FlowDirection]::RightToLeft
-
+    $Buttons.Dock = 'Bottom'; $Buttons.Height = 66
+    $Buttons.Padding = New-Object Windows.Forms.Padding(8, 13, 14, 8)
+    $Buttons.FlowDirection = 'RightToLeft'
     $Install = New-Object Windows.Forms.Button
-    $Install.Text = 'Descargar e instalar'
-    $Install.AutoSize = $true
-    $Install.DialogResult = [Windows.Forms.DialogResult]::Yes
-    $Buttons.Controls.Add($Install)
-
-    $Cancel = New-Object Windows.Forms.Button
-    $Cancel.Text = 'Ahora no'
-    $Cancel.AutoSize = $true
-    $Cancel.DialogResult = [Windows.Forms.DialogResult]::No
-    $Buttons.Controls.Add($Cancel)
-
-    $Form.AcceptButton = $Install
-    $Form.CancelButton = $Cancel
-    $Form.Controls.Add($Buttons)
-    $Buttons.BringToFront()
+    $Install.Text = 'Actualizar ahora'; $Install.AutoSize = $true; $Install.DialogResult = 'Yes'
+    $Postpone = New-Object Windows.Forms.Button
+    $Postpone.Text = 'Posponer'; $Postpone.AutoSize = $true; $Postpone.DialogResult = 'No'
+    [void]$Buttons.Controls.Add($Install); [void]$Buttons.Controls.Add($Postpone)
+    $Form.AcceptButton = $Install; $Form.CancelButton = $Postpone
+    $Form.Controls.Add($Buttons); $Buttons.BringToFront()
     $Form.Add_Shown({ $Form.Activate() })
+    return $Form.ShowDialog() -eq 'Yes'
+}
 
-    return $Form.ShowDialog() -eq [Windows.Forms.DialogResult]::Yes
+function Stop-OPBSGracefully([int] $ProcessId) {
+    if ($ProcessId -le 0) { return }
+    $Process = Get-Process -Id $ProcessId -ErrorAction SilentlyContinue
+    if (-not $Process) { return }
+    [void]$Process.CloseMainWindow()
+    try { Wait-Process -Id $ProcessId -Timeout 20 -ErrorAction Stop } catch {
+        Stop-Process -Id $ProcessId -Force -ErrorAction SilentlyContinue
+        Wait-Process -Id $ProcessId -Timeout 5 -ErrorAction SilentlyContinue
+    }
 }
 
 try {
@@ -123,45 +101,66 @@ try {
     if (-not (Test-Path -LiteralPath $ConfigurationPath)) {
         throw 'No se encontró opbs-release.json junto al actualizador.'
     }
-
     $Configuration = Get-Content -Raw -LiteralPath $ConfigurationPath | ConvertFrom-Json
-    $Repository = [string]$Configuration.githubRepository
-    if ($Repository -notmatch '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$') {
-        throw 'El repositorio de actualizaciones de OPBS todavía no está configurado.'
-    }
+    $CurrentVersion = ConvertTo-OPBSVersion $(if ($CurrentVersionOverride) {
+        $CurrentVersionOverride
+    } else { [string]$Configuration.version })
 
-    $CurrentVersion = ConvertTo-OPBSVersion ([string]$Configuration.version)
     $Headers = @{
         Accept = 'application/vnd.github+json'
         'User-Agent' = "OPBS-Updater/$CurrentVersion"
         'X-GitHub-Api-Version' = '2026-03-10'
     }
-    $Release = Invoke-RestMethod -Uri "https://api.github.com/repos/$Repository/releases/latest" -Headers $Headers
-    $AvailableVersion = ConvertTo-OPBSVersion ([string]$Release.tag_name)
+
+    if ($LocalReleaseDirectory) {
+        $AvailableVersionText = [string]$Configuration.version
+        $AvailableVersion = ConvertTo-OPBSVersion $AvailableVersionText
+        $InstallerAsset = [PSCustomObject]@{
+            name = [string]$Configuration.installerAsset
+            browser_download_url = (Join-Path $LocalReleaseDirectory ([string]$Configuration.installerAsset))
+        }
+        $ChecksumAsset = [PSCustomObject]@{
+            name = [string]$Configuration.checksumAsset
+            browser_download_url = (Join-Path $LocalReleaseDirectory ([string]$Configuration.checksumAsset))
+        }
+        $ReleaseNotesPath = Join-Path $LocalReleaseDirectory 'release-notes.md'
+        $ReleaseNotes = if (Test-Path -LiteralPath $ReleaseNotesPath) {
+            Get-Content -Raw -LiteralPath $ReleaseNotesPath
+        } else { "Prueba local de actualización a OPBS $AvailableVersion." }
+        $ReleaseUrl = $LocalReleaseDirectory
+    } else {
+        $Repository = [string]$Configuration.githubRepository
+        if ($Repository -notmatch '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$') {
+            throw 'El repositorio de actualizaciones de OPBS todavía no está configurado.'
+        }
+        $Release = Invoke-RestMethod -Uri "https://api.github.com/repos/$Repository/releases/latest" -Headers $Headers
+        $AvailableVersion = ConvertTo-OPBSVersion ([string]$Release.tag_name)
+        $InstallerAsset = $Release.assets | Where-Object name -eq $Configuration.installerAsset | Select-Object -First 1
+        $ChecksumAsset = $Release.assets | Where-Object name -eq $Configuration.checksumAsset | Select-Object -First 1
+        $ReleaseNotes = [string]$Release.body
+        $ReleaseUrl = [string]$Release.html_url
+    }
 
     if ($AvailableVersion -le $CurrentVersion) {
         Show-Information "OPBS $CurrentVersion ya es la versión más reciente."
+        Start-OPBS
         exit 0
     }
-
-    $InstallerAsset = $Release.assets | Where-Object name -eq $Configuration.installerAsset | Select-Object -First 1
-    $ChecksumAsset = $Release.assets | Where-Object name -eq $Configuration.checksumAsset | Select-Object -First 1
     if (-not $InstallerAsset -or -not $ChecksumAsset) {
-        throw "La versión $AvailableVersion no contiene el instalador y su archivo SHA-256."
+        throw "La versión $AvailableVersion no contiene el instalador y su SHA-256."
     }
-
     if ($CheckOnly) {
         [PSCustomObject]@{
             currentVersion = $CurrentVersion.ToString(3)
             availableVersion = $AvailableVersion.ToString(3)
             installerUrl = $InstallerAsset.browser_download_url
-            releaseUrl = $Release.html_url
-            releaseNotes = [string]$Release.body
+            releaseUrl = $ReleaseUrl
+            releaseNotes = $ReleaseNotes
         } | ConvertTo-Json
         exit 0
     }
-
-    if (-not (Show-UpdatePrompt -AvailableVersion $AvailableVersion -ReleaseNotes ([string]$Release.body))) {
+    if (-not (Show-UpdatePrompt -AvailableVersion $AvailableVersion -ReleaseNotes $ReleaseNotes)) {
+        Start-OPBS
         exit 0
     }
 
@@ -169,25 +168,31 @@ try {
     New-Item -ItemType Directory -Path $DownloadDirectory -Force | Out-Null
     $InstallerPath = Join-Path $DownloadDirectory ([string]$Configuration.installerAsset)
     $ChecksumPath = Join-Path $DownloadDirectory ([string]$Configuration.checksumAsset)
+    if ($LocalReleaseDirectory) {
+        Copy-Item -LiteralPath $InstallerAsset.browser_download_url -Destination $InstallerPath -Force
+        Copy-Item -LiteralPath $ChecksumAsset.browser_download_url -Destination $ChecksumPath -Force
+    } else {
+        Invoke-WebRequest -Uri $InstallerAsset.browser_download_url -Headers $Headers -OutFile $InstallerPath
+        Invoke-WebRequest -Uri $ChecksumAsset.browser_download_url -Headers $Headers -OutFile $ChecksumPath
+    }
 
-    Invoke-WebRequest -Uri $InstallerAsset.browser_download_url -Headers $Headers -OutFile $InstallerPath
-    Invoke-WebRequest -Uri $ChecksumAsset.browser_download_url -Headers $Headers -OutFile $ChecksumPath
-
-    $ChecksumText = Get-Content -Raw -LiteralPath $ChecksumPath
-    $ExpectedHash = [regex]::Match($ChecksumText, '(?i)\b[0-9a-f]{64}\b').Value.ToUpperInvariant()
-    $ActualHash = (Get-FileHash -LiteralPath $InstallerPath -Algorithm SHA256).Hash.ToUpperInvariant()
+    $ExpectedHash = [regex]::Match((Get-Content -Raw -LiteralPath $ChecksumPath), '(?i)\b[0-9a-f]{64}\b').Value
+    $ActualHash = (Get-FileHash -LiteralPath $InstallerPath -Algorithm SHA256).Hash
     if (-not $ExpectedHash -or $ActualHash -ne $ExpectedHash) {
         Remove-Item -LiteralPath $InstallerPath -Force -ErrorAction SilentlyContinue
         throw 'El instalador descargado no coincide con el SHA-256 publicado. La actualización fue cancelada.'
     }
 
-    if ($CurrentProcessId -gt 0) {
-        Stop-Process -Id $CurrentProcessId -Force -ErrorAction SilentlyContinue
-        Wait-Process -Id $CurrentProcessId -Timeout 15 -ErrorAction SilentlyContinue
+    & (Join-Path $PSScriptRoot 'OPBS-MigrateData.ps1')
+    Stop-OPBSGracefully $CurrentProcessId
+    $InstallerArguments = @('/S')
+    if ($InstallRootOverride) { $InstallerArguments += "/D=$InstallRootOverride" }
+    $InstallerProcess = Start-Process -FilePath $InstallerPath -ArgumentList $InstallerArguments -Wait -PassThru
+    if ($InstallerProcess.ExitCode -ne 0) {
+        throw "El instalador terminó con el código $($InstallerProcess.ExitCode)."
     }
-
-    Start-Process -FilePath $InstallerPath
 } catch {
     Show-ErrorMessage $_.Exception.Message
+    if ($LaunchApp) { Start-OPBS; exit 0 }
     exit 1
 }

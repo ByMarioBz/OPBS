@@ -34,8 +34,22 @@ UninstPage uninstConfirm
 UninstPage instfiles
 
 Section "OPBS" SEC_OPBS
+  InitPluginsDir
+  SetOutPath "$PLUGINSDIR"
+  File /oname=OPBS-MigrateData.ps1 "${PAYLOAD_DIR}\bin\64bit\OPBS-MigrateData.ps1"
+  nsExec::ExecToLog '"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File "$PLUGINSDIR\OPBS-MigrateData.ps1" -InstallRoot "$INSTDIR"'
+  Pop $0
+  StrCmp $0 "0" preinstall_migration_ok
+    MessageBox MB_ICONSTOP "No fue posible conservar la configuracion anterior de OPBS. La instalacion se cancelara para evitar perdida de datos."
+    Abort
+preinstall_migration_ok:
+
   SetOutPath "$INSTDIR"
   File /r "${PAYLOAD_DIR}\*.*"
+  Delete "$INSTDIR\portable_mode.txt"
+  Delete "$INSTDIR\INICIAR_OPBS.bat"
+  Delete "$INSTDIR\LEEME.txt"
+
   WriteUninstaller "$INSTDIR\Uninstall.exe"
 
   WriteRegStr HKCU "Software\OPBS" "InstallLocation" "$INSTDIR"
@@ -48,9 +62,12 @@ Section "OPBS" SEC_OPBS
   WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\OPBS" "NoRepair" 1
 
   CreateDirectory "$SMPROGRAMS\OPBS"
-  CreateShortcut "$SMPROGRAMS\OPBS\OPBS.lnk" "$INSTDIR\bin\64bit\OPBS.exe" "--portable --disable-updater"
+  CreateShortcut "$SMPROGRAMS\OPBS\OPBS.lnk" "$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" '-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "$INSTDIR\bin\64bit\OPBS-Launcher.ps1"' "$INSTDIR\bin\64bit\OPBS.exe" 0 SW_SHOWNORMAL
   CreateShortcut "$SMPROGRAMS\OPBS\Desinstalar OPBS.lnk" "$INSTDIR\Uninstall.exe"
-  CreateShortcut "$DESKTOP\OPBS.lnk" "$INSTDIR\bin\64bit\OPBS.exe" "--portable --disable-updater"
+  CreateShortcut "$DESKTOP\OPBS.lnk" "$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" '-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "$INSTDIR\bin\64bit\OPBS-Launcher.ps1"' "$INSTDIR\bin\64bit\OPBS.exe" 0 SW_SHOWNORMAL
+
+  ; Tanto una instalación nueva como una actualización vuelven a abrir OPBS.
+  Exec '"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "$INSTDIR\bin\64bit\OPBS-Launcher.ps1"'
 SectionEnd
 
 Section "Uninstall"
@@ -64,6 +81,7 @@ Section "Uninstall"
     "¿También quieres eliminar la biblioteca, biblias, presentaciones y preferencias guardadas por OPBS?" \
     IDNO keep_config
   RMDir /r "$INSTDIR\config"
+  RMDir /r "$APPDATA\opbs"
 
 keep_config:
   RMDir /r "$INSTDIR\bin"

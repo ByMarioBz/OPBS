@@ -69,8 +69,10 @@ Este comando actualiza la versión, configura CMake, compila OPBS y genera:
 ```text
 release/0.1.0/OPBS-Setup-x64.exe
 release/0.1.0/OPBS-Setup-x64.exe.sha256
-release/0.1.0/OPBS-Portable-x64.zip
 ```
+
+Desde 0.1.6 los Releases públicos contienen únicamente el instalador y su SHA-256. El modo portable puede seguir
+generándose localmente para diagnóstico, pero no forma parte de los artefactos publicados.
 
 La carpeta `release` no se versiona.
 
@@ -86,8 +88,9 @@ La carpeta `release` no se versiona.
 - Probar importación de PDF o presentaciones.
 - Probar proyección y monitor recordado.
 - Probar instalación, accesos directos y desinstalación.
-- Confirmar que el portable y el instalador no contienen Biblias, configuración, rutas privadas ni símbolos.
+- Confirmar que el instalador no contiene Biblias, configuración, rutas privadas ni símbolos.
 - Probar la comparación de versiones del actualizador.
+- Instalar la versión anterior, crear datos de prueba, actualizar y confirmar que los datos sobreviven y OPBS se abre.
 
 Registrar los resultados en `PRESENTADOR_HISTORIAL.md`.
 

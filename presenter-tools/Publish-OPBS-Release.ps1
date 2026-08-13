@@ -34,8 +34,7 @@ if (-not $TagCommit -or $TagCommit -ne $Head) {
 $ReleaseDirectory = Join-Path $ProjectRoot "release/$Version"
 $Assets = @(
     (Join-Path $ReleaseDirectory ([string]$Configuration.installerAsset)),
-    (Join-Path $ReleaseDirectory ([string]$Configuration.checksumAsset)),
-    (Join-Path $ReleaseDirectory ([string]$Configuration.portableAsset))
+    (Join-Path $ReleaseDirectory ([string]$Configuration.checksumAsset))
 )
 foreach ($Asset in $Assets) {
     if (-not (Test-Path -LiteralPath $Asset)) {
@@ -49,7 +48,6 @@ if (-not (Test-Path -LiteralPath $ReleaseNotesPath)) {
 }
 $ReleaseNotes = [IO.File]::ReadAllText($ReleaseNotesPath, [Text.Encoding]::UTF8)
 $InstallerHash = (Get-FileHash -LiteralPath $Assets[0] -Algorithm SHA256).Hash.ToLowerInvariant()
-$PortableHash = (Get-FileHash -LiteralPath $Assets[2] -Algorithm SHA256).Hash.ToLowerInvariant()
 $PublishedNotesPath = Join-Path $ReleaseDirectory 'release-notes.md'
 $PublishedNotes = @"
 $($ReleaseNotes.Trim())
@@ -57,7 +55,6 @@ $($ReleaseNotes.Trim())
 ## Checksums SHA-256
 
     $([IO.Path]::GetFileName($Assets[0])): $InstallerHash
-    $([IO.Path]::GetFileName($Assets[2])): $PortableHash
 "@
 $Utf8WithoutBom = New-Object System.Text.UTF8Encoding($false)
 [IO.File]::WriteAllText($PublishedNotesPath, "$PublishedNotes`n", $Utf8WithoutBom)

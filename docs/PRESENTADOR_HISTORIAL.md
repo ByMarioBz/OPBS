@@ -1,6 +1,6 @@
 # Historial y estado de ingeniería
 
-Última actualización: 8 de agosto de 2026.
+Última actualización: 12 de agosto de 2026.
 
 ## Base
 
@@ -185,6 +185,24 @@ build_x64/rundir/RelWithDebInfo/obs-plugins/64bit/obs-ffmpeg.dll
   botón a pausa, avanzó la línea de tiempo y `Detener` la devolvió al inicio. La referencia de prueba se retiró después.
 - Se cerró y volvió a abrir OPBS; la cuadrícula 31/69, los cinco paneles acoplados y la selección Multimedia/General se
   restauraron correctamente. Queda pendiente probar el gesto de arrastrar desde el Explorador con una biblioteca real.
+
+## 2026-08-12 - Actualización 0.1.5 a 0.1.6
+
+- Los accesos directos del instalador apuntan a `OPBS-Launcher.ps1`, que comprueba actualizaciones antes de iniciar la
+  aplicación y ofrece `Actualizar ahora` o `Posponer`. La comprobación automática tardía dentro de la ventana principal
+  fue retirada para evitar dos avisos distintos.
+- `OPBS-MigrateData.ps1` mueve de forma conservadora la configuración heredada desde la instalación hacia
+  `%APPDATA%\opbs`; no reemplaza archivos que ya existan en el perfil del usuario.
+- El instalador 0.1.6 vuelve a abrir OPBS automáticamente mediante el lanzador y los Releases públicos ya no generan ni
+  publican el ZIP portable. El paquete local de desarrollo se conserva para las pruebas internas exigidas por el flujo.
+- Se construyó `release\0.1.6\OPBS-Setup-x64.exe`. La carpeta de Release contiene únicamente el instalador y su archivo
+  SHA-256; la auditoría del payload no encontró configuración personal, símbolos ni marcadores de modo portable.
+- Prueba aislada real: se instaló el ejecutable público 0.1.5 en una ruta temporal, se añadieron una configuración, una
+  Biblia y una diapositiva heredadas, y se ejecutó la actualización con el instalador 0.1.6 recién construido. El binario
+  cambió de `OPBS 0.1.5` a `OPBS 0.1.6`, la aplicación volvió a abrirse automáticamente y los tres archivos migrados
+  conservaron exactamente su SHA-256. La instalación temporal y sus accesos directos se retiraron al terminar.
+- Esta fue una prueba local del instalador completo, no una descarga desde GitHub: la publicación de `opbs-v0.1.6`
+  sigue requiriendo autorización explícita separada.
 
 ## Prueba pendiente inmediata
 

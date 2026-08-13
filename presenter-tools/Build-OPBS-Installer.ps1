@@ -21,9 +21,15 @@ if (-not $MakeNsis) {
     throw 'Falta NSIS. Ejecuta presenter-tools\Ensure-OPBS-InstallerTools.cmd.'
 }
 
-& (Join-Path $PSScriptRoot 'Create-Portable.ps1') -Configuration $Configuration
+& (Join-Path $PSScriptRoot 'Create-Portable.ps1') -Configuration $Configuration -OutputDirectory '.installer-payload'
 
-$PayloadDirectory = Join-Path $ProjectRoot 'portable'
+$PayloadDirectory = Join-Path $ProjectRoot '.installer-payload'
+foreach ($PortableOnlyFile in @('portable_mode.txt', 'INICIAR_OPBS.bat', 'LEEME.txt')) {
+    $PortableOnlyPath = Join-Path $PayloadDirectory $PortableOnlyFile
+    if (Test-Path -LiteralPath $PortableOnlyPath) {
+        Remove-Item -LiteralPath $PortableOnlyPath -Force
+    }
+}
 $PrivateConfiguration = Join-Path $PayloadDirectory 'config'
 if (Test-Path -LiteralPath $PrivateConfiguration) {
     $PrivateFiles = @(Get-ChildItem -LiteralPath $PrivateConfiguration -Recurse -File)
@@ -49,10 +55,9 @@ if ($StaleScriptingFiles.Count -gt 0) {
 $ReleaseDirectory = Join-Path $ProjectRoot "release/$Version"
 New-Item -ItemType Directory -Path $ReleaseDirectory -Force | Out-Null
 $InstallerPath = Join-Path $ReleaseDirectory ([string]$ConfigurationData.installerAsset)
-$PortablePath = Join-Path $ReleaseDirectory ([string]$ConfigurationData.portableAsset)
 $ChecksumPath = Join-Path $ReleaseDirectory ([string]$ConfigurationData.checksumAsset)
 
-foreach ($Output in @($InstallerPath, $PortablePath, $ChecksumPath)) {
+foreach ($Output in @($InstallerPath, $ChecksumPath)) {
     if (Test-Path -LiteralPath $Output) {
         Remove-Item -LiteralPath $Output -Force
     }
@@ -67,10 +72,8 @@ if ($LASTEXITCODE -ne 0) {
     throw "NSIS no pudo crear el instalador (código $LASTEXITCODE)."
 }
 
-Compress-Archive -Path (Join-Path $PayloadDirectory '*') -DestinationPath $PortablePath -CompressionLevel Optimal
 $InstallerHash = (Get-FileHash -LiteralPath $InstallerPath -Algorithm SHA256).Hash.ToLowerInvariant()
 Set-Content -LiteralPath $ChecksumPath -Value "$InstallerHash  $($ConfigurationData.installerAsset)" -Encoding ASCII
 
 Write-Host "Instalador: $InstallerPath"
-Write-Host "Portable: $PortablePath"
 Write-Host "SHA-256: $ChecksumPath"

@@ -1345,7 +1345,6 @@ void PresenterPanel::Initialize()
 	}
 	main->setCentralWidget(this);
 	main->setWindowTitle(tr("OPBS %1 — Presentador integrado").arg(QString::fromLatin1(OPBS_VERSION)));
-	QTimer::singleShot(8000, this, [this]() { LaunchOpbsUpdater(true); });
 	main->statusBar()->hide();
 	// Esta variante no utiliza el asistente de transmisión/grabación de OBS.
 	config_set_bool(App()->GetUserConfig(), "General", "FirstRun", true);

@@ -36,11 +36,13 @@ integrar funciones de forma gradual.
 - Menú `Editar` con ajuste opcional de fotos y videos al área completa 16:9; la preferencia se conserva.
 - Ventanas `Pantallas`, `Sonido` y `Biblia`; se conservan monitor, dispositivo, audio y layout bíblico seleccionados.
 - Posición y tamaño de la ventana principal persistentes.
-- Ejecución portátil en `dist/OPBS` y paquete compartible en `portable`, sin alterar una instalación
-  normal de OBS.
+- Ejecución portátil local en `dist/OPBS` para desarrollo, sin alterar una instalación normal de OBS. Los Releases
+  públicos se distribuyen únicamente mediante el instalador propio.
 - Actualizador oficial de OBS inactivo; OPBS consulta exclusivamente los Releases del repositorio GitHub configurado y
   verifica el SHA-256 antes de abrir su instalador.
 - Instalador propio de Windows con acceso directo de escritorio, accesos del menú Inicio y desinstalador.
+- Lanzador previo al inicio que comprueba versiones, permite posponer, conserva los datos fuera de los binarios y vuelve
+  a abrir OPBS automáticamente después de actualizar.
 
 ## Ramas y base
 

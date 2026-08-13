@@ -170,11 +170,19 @@ Al ampliar la biblioteca, conservar virtualización/carga diferida. No crear una
 
 1. Las novedades del código base OBS se revisan desde `obs-public`; nunca se instalan directamente. Consultar
    `OBS_ACTUALIZACIONES.md`.
-2. Las versiones terminadas de OPBS se distribuyen como GitHub Releases propios. El comprobador descarga el instalador
-   y su SHA-256, valida la integridad y solo entonces abre el instalador.
+2. Las versiones terminadas de OPBS se distribuyen como GitHub Releases propios. Los accesos directos ejecutan primero
+   `OPBS-Launcher.ps1`; este invoca el comprobador antes de abrir la aplicación. Si hay una versión nueva, el usuario
+   puede actualizar o posponer. El comprobador descarga el instalador y su SHA-256, valida la integridad y solo entonces
+   ejecuta el instalador. Al terminar, el instalador vuelve a iniciar OPBS mediante el mismo lanzador.
 
 La versión y el repositorio de OPBS viven en `presenter-tools/opbs-release.json`. El instalador usa NSIS, instala por
 usuario en `%LOCALAPPDATA%\Programs\OPBS`, crea accesos directos y registra `Uninstall.exe`.
+Los datos mutables viven fuera de esa carpeta, en `%APPDATA%\opbs`. Antes de reemplazar una instalación anterior, NSIS
+ejecuta `OPBS-MigrateData.ps1` para copiar de forma conservadora cualquier configuración heredada ubicada en
+`config\opbs` o `config\obs-studio`; nunca sobrescribe un archivo que ya exista en `%APPDATA%\opbs`. Por ello el
+instalador puede sustituir todos los binarios sin reiniciar la biblioteca ni los ajustes del usuario.
+Los artefactos públicos contienen únicamente el instalador x64 y su SHA-256. El paquete portable sigue disponible como
+herramienta local de desarrollo, pero no forma parte de GitHub Releases.
 Las etiquetas `opbs-vX.Y.Z` están excluidas del cálculo interno de `OBS_VERSION`; el motor solo reconoce etiquetas
 numéricas del proyecto upstream para evitar que ambas numeraciones interfieran.
 Las compilaciones públicas de Windows mapean las rutas de fuentes y PDB a nombres neutros para no exponer el
