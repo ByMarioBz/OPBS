@@ -7,8 +7,13 @@ integrar funciones de forma gradual.
 
 ## Estado actual
 
+- Espacio de trabajo modular con cinco paneles acoplables, flotantes y redimensionables: `Presentador / escenario`,
+  `Transmisión / en vivo`, `Multimedia`, `Herramientas` y `Reproductor de audio`. El acomodo se conserva entre
+  ejecuciones y la distribución inicial sigue la proporción aproximada 31/69 del diseño de producto.
 - Biblioteca persistente dividida en `Multimedia` y `Presentación`; esta última incluye las bibliotecas independientes
   `Biblia` y `Presentaciones`.
+- `Presentación` pasa al panel `Herramientas`, junto con las entradas reservadas `Captura` y `NDI`. El panel mantiene un
+  historial local de las cuatro presentaciones importadas más recientes y permite volver a activarlas.
 - Carpetas multimedia con búsqueda local, arrastrar y soltar, reordenamiento y carga diferida.
 - Buscador bíblico por texto o referencia, selector de traducciones locales y cuadrícula limitada de resultados para
   mantener el rendimiento con biblias completas.
@@ -26,6 +31,8 @@ integrar funciones de forma gradual.
 - Controles anterior, reproducir/pausar, detener, siguiente y repetición continua del archivo actual, más teclas
   multimedia mientras la aplicación está activa.
 - Línea de tiempo, medidores estéreo y volumen del contenido.
+- Reproductor de audio local independiente con lista persistente por arrastrar y soltar, línea de tiempo manipulable y
+  controles reproducir/pausar y detener. No sustituye el contenido que se está proyectando.
 - Menú `Editar` con ajuste opcional de fotos y videos al área completa 16:9; la preferencia se conserva.
 - Ventanas `Pantallas`, `Sonido` y `Biblia`; se conservan monitor, dispositivo, audio y layout bíblico seleccionados.
 - Posición y tamaño de la ventana principal persistentes.

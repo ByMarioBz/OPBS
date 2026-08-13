@@ -52,6 +52,7 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QListWidget>
+#include <QMainWindow>
 #include <QMenuBar>
 #include <QMenu>
 #include <QMessageBox>
@@ -92,11 +93,13 @@
 #endif
 
 namespace {
-constexpr int kThumbnailWidth = 256;
-constexpr int kThumbnailHeight = 144;
+constexpr int kThumbnailWidth = 176;
+constexpr int kThumbnailHeight = 99;
 constexpr int kBibleResultLimit = 250;
 constexpr auto kBibleFolderId = "presentation-bible";
 constexpr auto kPresentationsFolderId = "presentation-slides";
+constexpr auto kCaptureFolderId = "tools-capture";
+constexpr auto kNdiFolderId = "tools-ndi";
 constexpr auto kTransmissionAudioBridgeId = "opbs_transmission_audio_bridge";
 const QStringList imageExtensions = {"bmp", "gif", "jpeg", "jpg", "png", "tga", "webp"};
 const QStringList audioExtensions = {"mp3", "aac", "ogg", "wav", "flac", "m4a", "wma"};
@@ -197,6 +200,52 @@ protected:
 		QListWidget::dropEvent(event);
 		if (orderChanged)
 			orderChanged();
+	}
+};
+
+class AudioPlaylistList final : public QListWidget {
+public:
+	std::function<void(const QStringList &)> filesDropped;
+
+	explicit AudioPlaylistList(QWidget *parent) : QListWidget(parent)
+	{
+		setAcceptDrops(true);
+		setDropIndicatorShown(true);
+		setDragDropMode(QAbstractItemView::DropOnly);
+	}
+
+protected:
+	void dragEnterEvent(QDragEnterEvent *event) override
+	{
+		if (event->mimeData()->hasUrls()) {
+			event->acceptProposedAction();
+			return;
+		}
+		QListWidget::dragEnterEvent(event);
+	}
+
+	void dragMoveEvent(QDragMoveEvent *event) override
+	{
+		if (event->mimeData()->hasUrls()) {
+			event->acceptProposedAction();
+			return;
+		}
+		QListWidget::dragMoveEvent(event);
+	}
+
+	void dropEvent(QDropEvent *event) override
+	{
+		if (!event->mimeData()->hasUrls()) {
+			QListWidget::dropEvent(event);
+			return;
+		}
+		QStringList paths;
+		for (const QUrl &url : event->mimeData()->urls())
+			if (url.isLocalFile())
+				paths.push_back(url.toLocalFile());
+		if (!paths.isEmpty() && filesDropped)
+			filesDropped(paths);
+		event->acceptProposedAction();
 	}
 };
 
@@ -409,6 +458,7 @@ PresenterPanel::PresenterPanel(OBSBasic *main_) : QWidget(main_), main(main_)
 {
 	setObjectName("presenterPanel");
 	setAcceptDrops(true);
+	restoring = true;
 	BuildInterface();
 }
 
@@ -478,6 +528,7 @@ void PresenterPanel::BuildInterface()
 	root->setSpacing(0);
 	auto *header = new QFrame(this);
 	header->setObjectName("presenterHeader");
+	header->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
 	auto *headerLayout = new QHBoxLayout(header);
 	headerLayout->setContentsMargins(22, 14, 22, 14);
 	auto *headings = new QVBoxLayout();
@@ -505,11 +556,17 @@ void PresenterPanel::BuildInterface()
 	headerLayout->addWidget(importButton);
 	root->addWidget(header);
 
-	auto *splitter = new QSplitter(Qt::Horizontal, this);
-	mainSplitter = splitter;
-	splitter->setChildrenCollapsible(false);
-	splitter->setHandleWidth(8);
-	auto *previewFrame = new QFrame(splitter);
+	dockWorkspace = new QMainWindow(this);
+	dockWorkspace->setWindowFlags(Qt::Widget);
+	dockWorkspace->setObjectName("presenterDockWorkspace");
+	dockWorkspace->setDockNestingEnabled(true);
+	dockWorkspace->setAnimated(false);
+	dockWorkspace->setMinimumHeight(420);
+	auto *dockAnchor = new QWidget(dockWorkspace);
+	dockAnchor->setFixedSize(1, 1);
+	dockWorkspace->setCentralWidget(dockAnchor);
+	root->addWidget(dockWorkspace, 1);
+	auto *previewFrame = new QFrame(dockWorkspace);
 	previewFrame->setObjectName("presenterPreviewFrame");
 	previewFrame->setMinimumWidth(420);
 	auto *previewLayout = new QVBoxLayout(previewFrame);
@@ -631,10 +688,9 @@ void PresenterPanel::BuildInterface()
 	mediaVolumeSlider->setRange(0, 100);
 	mediaVolumeSlider->setValue(100);
 	mediaVolumeSlider->setToolTip(tr("Volumen del contenido"));
+	mediaVolumeSlider->hide();
 	audioRow->addWidget(audioLabel);
 	audioRow->addLayout(meters, 1);
-	audioRow->addWidget(new QLabel(tr("Volumen"), previewFrame));
-	audioRow->addWidget(mediaVolumeSlider, 1);
 	previewLayout->addLayout(audioRow);
 	connect(mediaVolumeSlider, &QSlider::valueChanged, this, [this](int value) {
 		mediaVolume = value;
@@ -643,7 +699,7 @@ void PresenterPanel::BuildInterface()
 			SaveSettings();
 	});
 
-	auto *transmissionFrame = new QFrame(previewFrame);
+	auto *transmissionFrame = new QFrame(dockWorkspace);
 	transmissionFrame->setObjectName("transmissionPreviewFrame");
 	auto *transmissionLayout = new QVBoxLayout(transmissionFrame);
 	transmissionLayout->setContentsMargins(10, 10, 10, 10);
@@ -676,7 +732,6 @@ void PresenterPanel::BuildInterface()
 	combinedViewButton = makeTransmissionButton(tr("Ambos"),
 						      tr("Mostrar la cámara con el presentador en recuadro"));
 	transmissionLayout->addLayout(transmissionButtons);
-	previewLayout->addWidget(transmissionFrame, 1);
 	connect(streamButton, &QToolButton::clicked, this, &PresenterPanel::ToggleStreaming);
 	connect(recordButton, &QToolButton::clicked, this, &PresenterPanel::ToggleRecording);
 	connect(camerasViewButton, &QToolButton::clicked, this,
@@ -686,12 +741,12 @@ void PresenterPanel::BuildInterface()
 	connect(combinedViewButton, &QToolButton::clicked, this,
 		[this]() { ApplyTransmissionView(TransmissionView::CamerasAndPresenter); });
 
-	auto *library = new QFrame(splitter);
+	auto *library = new QFrame(dockWorkspace);
 	library->setObjectName("presenterLibrary");
 	auto *libraryLayout = new QVBoxLayout(library);
 	libraryLayout->setContentsMargins(16, 16, 16, 16);
 	auto *libraryHead = new QHBoxLayout();
-	auto *libraryTitle = new QLabel(tr("Biblioteca"), library);
+	auto *libraryTitle = new QLabel(tr("MULTIMEDIA"), library);
 	libraryTitle->setObjectName("presenterTitle");
 	mediaCount = new QLabel(tr("0 archivos"), library);
 	mediaCount->setObjectName("presenterMediaCount");
@@ -706,13 +761,13 @@ void PresenterPanel::BuildInterface()
 	folderPanel->setFixedWidth(165);
 	auto *folderLayout = new QVBoxLayout(folderPanel);
 	folderLayout->setContentsMargins(8, 8, 8, 8);
-	folderLayout->addWidget(new QLabel(tr("Multimedia"), folderPanel));
+	folderLayout->addWidget(new QLabel(tr("CARPETAS"), folderPanel));
 	auto *foldersWidget = new PresenterFolderList(folderPanel);
 	folderList = foldersWidget;
 	foldersWidget->setObjectName("presenterFolderList");
 	foldersWidget->setSelectionMode(QAbstractItemView::SingleSelection);
-	foldersWidget->setMinimumHeight(220);
-	folderLayout->addWidget(foldersWidget, 65);
+	foldersWidget->setMinimumHeight(160);
+	folderLayout->addWidget(foldersWidget, 1);
 	auto *folderButtons = new QHBoxLayout();
 	auto *addFolder = new QToolButton(folderPanel);
 	addFolder->setText("+");
@@ -724,25 +779,27 @@ void PresenterPanel::BuildInterface()
 	folderButtons->addWidget(renameFolder);
 	folderButtons->addStretch();
 	folderLayout->addLayout(folderButtons);
-	folderLayout->addWidget(new QLabel(tr("Presentación"), folderPanel));
-	auto *presentationsWidget = new PresenterFolderList(folderPanel);
+	folderLayout->addStretch();
+	auto *presentationsWidget = new PresenterFolderList(dockWorkspace);
 	presentationFolderList = presentationsWidget;
 	presentationsWidget->setObjectName("presenterPresentationList");
 	presentationsWidget->setSelectionMode(QAbstractItemView::SingleSelection);
 	presentationsWidget->setDragEnabled(false);
 	presentationsWidget->setDragDropMode(QAbstractItemView::DropOnly);
-	presentationsWidget->setFixedHeight(92);
+	presentationsWidget->setFixedHeight(190);
 	auto addPresentationFolder = [this, presentationsWidget](const QString &id, const QString &name) {
-		auto *item = new QListWidgetItem(style()->standardIcon(QStyle::SP_DirIcon), name, presentationsWidget);
+		auto *item = new QListWidgetItem(name, presentationsWidget);
 		item->setData(Qt::UserRole, id);
 		item->setFlags((item->flags() & ~Qt::ItemIsDragEnabled & ~Qt::ItemIsEditable) | Qt::ItemIsDropEnabled);
 	};
-	addPresentationFolder(QString::fromLatin1(kBibleFolderId), tr("Biblia"));
-	addPresentationFolder(QString::fromLatin1(kPresentationsFolderId), tr("Presentaciones"));
-	folderLayout->addWidget(presentationsWidget);
-	folderLayout->addStretch(35);
+	addPresentationFolder(QString::fromLatin1(kBibleFolderId), tr("BIBLIA"));
+	addPresentationFolder(QString::fromLatin1(kPresentationsFolderId), tr("PRESENTACIÓN"));
+	addPresentationFolder(QString::fromLatin1(kCaptureFolderId), tr("CAPTURA"));
+	addPresentationFolder(QString::fromLatin1(kNdiFolderId), tr("NDI"));
 	libraryBody->addWidget(folderPanel);
-	auto *mediaArea = new QVBoxLayout();
+	libraryContentHost = new QWidget(library);
+	auto *mediaArea = new QVBoxLayout(libraryContentHost);
+	mediaArea->setContentsMargins(0, 0, 0, 0);
 	auto *bibleToolbar = new QFrame(library);
 	bibleControls = bibleToolbar;
 	bibleToolbar->setObjectName("presenterBibleControls");
@@ -827,7 +884,11 @@ void PresenterPanel::BuildInterface()
 	searchEdit->setPlaceholderText(tr("Buscar en esta carpeta…"));
 	searchEdit->setClearButtonEnabled(true);
 	mediaArea->addWidget(searchEdit);
-	libraryBody->addLayout(mediaArea, 1);
+	multimediaContentTarget = new QWidget(library);
+	auto *multimediaTargetLayout = new QVBoxLayout(multimediaContentTarget);
+	multimediaTargetLayout->setContentsMargins(0, 0, 0, 0);
+	multimediaTargetLayout->addWidget(libraryContentHost);
+	libraryBody->addWidget(multimediaContentTarget, 1);
 	libraryLayout->addLayout(libraryBody, 1);
 
 	connect(addFolder, &QToolButton::clicked, this, &PresenterPanel::CreateFolder);
@@ -838,6 +899,7 @@ void PresenterPanel::BuildInterface()
 		if (presentationFolderList)
 			presentationFolderList->setCurrentRow(-1);
 		currentFolderId = current->data(Qt::UserRole).toString();
+		ShowLibraryContent(false);
 		ApplyLibraryFilter();
 		if (!restoring)
 			SaveSettings();
@@ -848,6 +910,7 @@ void PresenterPanel::BuildInterface()
 		if (folderList)
 			folderList->setCurrentRow(-1);
 		currentFolderId = current->data(Qt::UserRole).toString();
+		ShowLibraryContent(true);
 		ApplyLibraryFilter();
 		if (!restoring)
 			SaveSettings();
@@ -877,18 +940,114 @@ void PresenterPanel::BuildInterface()
 			SaveSettings();
 	});
 
-	splitter->addWidget(previewFrame);
-	splitter->addWidget(library);
-	// La composición inicial reserva aproximadamente un tercio para las
-	// previsualizaciones y deja el resto del espacio a la biblioteca.
-	splitter->setStretchFactor(0, 31);
-	splitter->setStretchFactor(1, 69);
-	splitter->setSizes({310, 690});
-	connect(splitter, &QSplitter::splitterMoved, this, [this]() {
-		if (!restoring)
-			SaveSettings();
+	auto *toolsFrame = new QFrame(dockWorkspace);
+	toolsFrame->setObjectName("presenterLibrary");
+	auto *toolsLayout = new QHBoxLayout(toolsFrame);
+	toolsLayout->setContentsMargins(8, 8, 8, 8);
+	auto *toolsSidebar = new QFrame(toolsFrame);
+	toolsSidebar->setObjectName("presenterFolderPanel");
+	toolsSidebar->setMinimumWidth(165);
+	toolsSidebar->setMaximumWidth(230);
+	auto *toolsSidebarLayout = new QVBoxLayout(toolsSidebar);
+	toolsSidebarLayout->setContentsMargins(8, 8, 8, 8);
+	auto *toolsTitle = new QLabel(tr("HERRAMIENTAS"), toolsSidebar);
+	toolsTitle->setObjectName("presenterCurrent");
+	toolsSidebarLayout->addWidget(toolsTitle);
+	toolsSidebarLayout->addWidget(presentationsWidget);
+	toolsSidebarLayout->addSpacing(12);
+	auto *recentTitle = new QLabel(tr("PRESENTACIONES RECIENTES"), toolsSidebar);
+	recentTitle->setObjectName("presenterMediaCount");
+	toolsSidebarLayout->addWidget(recentTitle);
+	recentPresentationsList = new QListWidget(toolsSidebar);
+	recentPresentationsList->setObjectName("presenterPresentationList");
+	recentPresentationsList->setMaximumHeight(170);
+	recentPresentationsList->setToolTip(tr("Se conservan las cuatro presentaciones importadas más recientes"));
+	toolsSidebarLayout->addWidget(recentPresentationsList, 1);
+	connect(recentPresentationsList, &QListWidget::itemClicked, this,
+		[this](QListWidgetItem *item) { ActivateRecentPresentation(recentPresentationsList->row(item)); });
+	toolsLayout->addWidget(toolsSidebar);
+	toolsContentTarget = new QWidget(toolsFrame);
+	toolsContentTarget->setLayout(new QVBoxLayout());
+	toolsContentTarget->layout()->setContentsMargins(0, 0, 0, 0);
+	toolsLayout->addWidget(toolsContentTarget, 1);
+
+	auto *audioFrame = new QFrame(dockWorkspace);
+	audioFrame->setObjectName("presenterLibrary");
+	auto *audioPlayerLayout = new QVBoxLayout(audioFrame);
+	audioPlayerLayout->setContentsMargins(10, 10, 10, 10);
+	auto *audioTitle = new QLabel(tr("REPRODUCTOR DE AUDIO"), audioFrame);
+	audioTitle->setObjectName("presenterCurrent");
+	audioPlayerLayout->addWidget(audioTitle);
+	audioPlayerTimeline = new AbsoluteSlider(Qt::Horizontal, audioFrame);
+	audioPlayerTimeline->setRange(0, 1000);
+	audioPlayerTimeline->setEnabled(false);
+	audioPlayerLayout->addWidget(audioPlayerTimeline);
+	auto *audioControls = new QHBoxLayout();
+	audioControls->addStretch();
+	audioPlayerPlayPauseButton = new QToolButton(audioFrame);
+	audioPlayerPlayPauseButton->setObjectName("presenterTransport");
+	audioPlayerPlayPauseButton->setIcon(style()->standardIcon(QStyle::SP_MediaPlay));
+	audioPlayerPlayPauseButton->setToolTip(tr("Reproducir / pausar audio"));
+	auto *audioStopButton = new QToolButton(audioFrame);
+	audioStopButton->setObjectName("presenterTransport");
+	audioStopButton->setIcon(style()->standardIcon(QStyle::SP_MediaStop));
+	audioStopButton->setToolTip(tr("Detener audio"));
+	audioControls->addWidget(audioPlayerPlayPauseButton);
+	audioControls->addWidget(audioStopButton);
+	audioControls->addStretch();
+	audioPlayerLayout->addLayout(audioControls);
+	audioPlaylistList = new AudioPlaylistList(audioFrame);
+	audioPlaylistList->setObjectName("presenterPresentationList");
+	audioPlaylistList->setAlternatingRowColors(true);
+	audioPlaylistList->setToolTip(tr("Arrastra aquí archivos de audio"));
+	audioPlayerLayout->addWidget(audioPlaylistList, 1);
+	static_cast<AudioPlaylistList *>(audioPlaylistList.data())->filesDropped =
+		[this](const QStringList &paths) { AddAudioPlayerFiles(paths); };
+	connect(audioPlaylistList, &QListWidget::itemClicked, this,
+		[this](QListWidgetItem *item) { PlayAudioPlayerRow(audioPlaylistList->row(item)); });
+	connect(audioPlayerPlayPauseButton, &QToolButton::clicked, this, &PresenterPanel::ToggleAudioPlayer);
+	connect(audioStopButton, &QToolButton::clicked, this, &PresenterPanel::StopAudioPlayer);
+	connect(audioPlayerTimeline, &QSlider::sliderPressed, this, [this]() { audioPlayerTimelineDragging = true; });
+	connect(audioPlayerTimeline, &QSlider::sliderReleased, this, [this]() {
+		audioPlayerTimelineDragging = false;
+		if (!audioPlayerSource)
+			return;
+		const int64_t duration = obs_source_media_get_duration(audioPlayerSource);
+		if (duration > 0)
+			obs_source_media_set_time_immediate(audioPlayerSource,
+						    duration * audioPlayerTimeline->value() / 1000);
 	});
-	root->addWidget(splitter, 1);
+
+	auto makeDock = [this](const QString &name, const QString &title, QWidget *widget) {
+		auto *dock = new QDockWidget(title, dockWorkspace);
+		dock->setObjectName(name);
+		dock->setFeatures(QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetFloatable);
+		dock->setAllowedAreas(Qt::AllDockWidgetAreas);
+		dock->setWidget(widget);
+		return dock;
+	};
+	auto *presenterDock = makeDock("opbsPresenterDock", tr("PRESENTADOR / ESCENARIO"), previewFrame);
+	auto *transmissionDock = makeDock("opbsTransmissionDock", tr("TRANSMISIÓN / EN VIVO"), transmissionFrame);
+	auto *multimediaDock = makeDock("opbsMultimediaDock", tr("MULTIMEDIA"), library);
+	auto *toolsDock = makeDock("opbsToolsDock", tr("HERRAMIENTAS"), toolsFrame);
+	auto *audioDock = makeDock("opbsAudioPlayerDock", tr("REPRODUCTOR DE AUDIO"), audioFrame);
+	dockWorkspace->addDockWidget(Qt::LeftDockWidgetArea, presenterDock);
+	dockWorkspace->addDockWidget(Qt::LeftDockWidgetArea, transmissionDock);
+	dockWorkspace->addDockWidget(Qt::LeftDockWidgetArea, multimediaDock);
+	dockWorkspace->addDockWidget(Qt::LeftDockWidgetArea, toolsDock);
+	dockWorkspace->addDockWidget(Qt::LeftDockWidgetArea, audioDock);
+	dockWorkspace->splitDockWidget(presenterDock, transmissionDock, Qt::Vertical);
+	dockWorkspace->splitDockWidget(presenterDock, multimediaDock, Qt::Horizontal);
+	dockWorkspace->splitDockWidget(transmissionDock, toolsDock, Qt::Horizontal);
+	dockWorkspace->splitDockWidget(toolsDock, audioDock, Qt::Horizontal);
+	dockWorkspace->resizeDocks({presenterDock, multimediaDock}, {600, 1300}, Qt::Horizontal);
+	dockWorkspace->resizeDocks({presenterDock, transmissionDock}, {420, 460}, Qt::Vertical);
+	dockWorkspace->resizeDocks({multimediaDock, toolsDock}, {420, 460}, Qt::Vertical);
+	dockWorkspace->resizeDocks({toolsDock, audioDock}, {1000, 300}, Qt::Horizontal);
+	for (QDockWidget *dock : {presenterDock, transmissionDock, multimediaDock, toolsDock, audioDock}) {
+		dock->setFloating(false);
+		dock->show();
+	}
 
 	timelineTimer = new QTimer(this);
 	timelineTimer->setInterval(250);
@@ -896,6 +1055,153 @@ void PresenterPanel::BuildInterface()
 	seekTimer = new QTimer(this);
 	seekTimer->setSingleShot(true);
 	connect(seekTimer, &QTimer::timeout, this, &PresenterPanel::SeekToPendingPosition);
+	audioPlayerTimer = new QTimer(this);
+	audioPlayerTimer->setInterval(250);
+	connect(audioPlayerTimer, &QTimer::timeout, this, &PresenterPanel::RefreshAudioPlayerTimeline);
+	audioPlayerTimer->start();
+}
+
+void PresenterPanel::ShowLibraryContent(bool tools)
+{
+	if (!libraryContentHost)
+		return;
+	if (mediaCount)
+		mediaCount->setVisible(!tools);
+	QWidget *target = tools ? toolsContentTarget.data() : multimediaContentTarget.data();
+	if (!target || libraryContentHost->parentWidget() == target)
+		return;
+	libraryContentHost->setParent(target);
+	target->layout()->addWidget(libraryContentHost);
+	libraryContentHost->show();
+}
+
+void PresenterPanel::AddAudioPlayerFiles(const QStringList &paths)
+{
+	for (const QString &path : paths) {
+		const QFileInfo info(path);
+		if (!info.isFile() || !audioExtensions.contains(info.suffix().toLower()))
+			continue;
+		const QString absolutePath = info.absoluteFilePath();
+		if (audioPlaylistPaths.contains(absolutePath, Qt::CaseInsensitive))
+			continue;
+		audioPlaylistPaths.push_back(absolutePath);
+		auto *item = new QListWidgetItem(style()->standardIcon(QStyle::SP_MediaVolume), info.fileName(),
+						 audioPlaylistList);
+		item->setToolTip(absolutePath);
+	}
+	if (!restoring)
+		SaveSettings();
+}
+
+void PresenterPanel::PlayAudioPlayerRow(int row)
+{
+	if (row < 0 || row >= audioPlaylistPaths.size())
+		return;
+	StopAudioPlayer();
+	OBSDataAutoRelease settings = obs_data_create();
+	obs_data_set_bool(settings, "is_local_file", true);
+	obs_data_set_string(settings, "local_file", audioPlaylistPaths[row].toUtf8().constData());
+	obs_data_set_bool(settings, "audio_only", true);
+	obs_data_set_bool(settings, "looping", false);
+	obs_data_set_bool(settings, "restart_on_activate", false);
+	audioPlayerSource = obs_source_create_private("ffmpeg_source", "OPBS Independent Audio Player", settings);
+	if (!audioPlayerSource)
+		return;
+	obs_source_set_audio_mixers(audioPlayerSource, 0u);
+	obs_source_set_monitoring_type(audioPlayerSource, OBS_MONITORING_TYPE_MONITOR_ONLY);
+	obs_source_inc_showing(audioPlayerSource);
+	obs_source_inc_active(audioPlayerSource);
+	obs_source_media_restart(audioPlayerSource);
+	audioPlaylistList->setCurrentRow(row);
+	audioPlayerTimeline->setEnabled(true);
+	audioPlayerPlayPauseButton->setIcon(style()->standardIcon(QStyle::SP_MediaPause));
+}
+
+void PresenterPanel::ToggleAudioPlayer()
+{
+	if (!audioPlayerSource) {
+		PlayAudioPlayerRow(audioPlaylistList ? std::max(audioPlaylistList->currentRow(), 0) : 0);
+		return;
+	}
+	const obs_media_state state = obs_source_media_get_state(audioPlayerSource);
+	if (state == OBS_MEDIA_STATE_PLAYING) {
+		obs_source_media_play_pause(audioPlayerSource, true);
+		audioPlayerPlayPauseButton->setIcon(style()->standardIcon(QStyle::SP_MediaPlay));
+	} else {
+		obs_source_media_play_pause(audioPlayerSource, false);
+		audioPlayerPlayPauseButton->setIcon(style()->standardIcon(QStyle::SP_MediaPause));
+	}
+}
+
+void PresenterPanel::StopAudioPlayer()
+{
+	if (audioPlayerSource) {
+		obs_source_media_stop(audioPlayerSource);
+		obs_source_dec_active(audioPlayerSource);
+		obs_source_dec_showing(audioPlayerSource);
+		audioPlayerSource = nullptr;
+	}
+	if (audioPlayerTimeline) {
+		audioPlayerTimeline->setValue(0);
+		audioPlayerTimeline->setEnabled(false);
+	}
+	if (audioPlayerPlayPauseButton)
+		audioPlayerPlayPauseButton->setIcon(style()->standardIcon(QStyle::SP_MediaPlay));
+}
+
+void PresenterPanel::RefreshAudioPlayerTimeline()
+{
+	if (!audioPlayerSource || audioPlayerTimelineDragging)
+		return;
+	const int64_t duration = obs_source_media_get_duration(audioPlayerSource);
+	const int64_t time = obs_source_media_get_time(audioPlayerSource);
+	if (duration > 0)
+		audioPlayerTimeline->setValue(int(std::clamp<int64_t>(time * 1000 / duration, 0, 1000)));
+	const obs_media_state state = obs_source_media_get_state(audioPlayerSource);
+	if (state == OBS_MEDIA_STATE_ENDED)
+		StopAudioPlayer();
+}
+
+void PresenterPanel::RefreshRecentPresentations()
+{
+	if (!recentPresentationsList)
+		return;
+	recentPresentationsList->clear();
+	for (int index = 0; index < recentPresentationIds.size(); ++index) {
+		const QString name = index < recentPresentationNames.size() ? recentPresentationNames[index]
+								     : tr("Presentación %1").arg(index + 1);
+		auto *item = new QListWidgetItem(style()->standardIcon(QStyle::SP_FileDialogDetailedView), name,
+						 recentPresentationsList);
+		item->setData(Qt::UserRole, recentPresentationIds[index]);
+	}
+}
+
+void PresenterPanel::ActivateRecentPresentation(int row)
+{
+	if (row < 0 || row >= recentPresentationIds.size())
+		return;
+	const QString id = recentPresentationIds[row];
+	const QString directoryPath = QDir(PresentationsDirectoryPath()).filePath(id);
+	if (!QDir(directoryPath).exists())
+		return;
+	ClearPresentationEntries();
+	currentPresentationId = id;
+	QFileInfoList slides = QDir(directoryPath).entryInfoList({"*.png"}, QDir::Files, QDir::NoSort);
+	std::sort(slides.begin(), slides.end(), [](const QFileInfo &left, const QFileInfo &right) {
+		bool leftIsNumber = false;
+		bool rightIsNumber = false;
+		const int leftNumber = left.completeBaseName().toInt(&leftIsNumber);
+		const int rightNumber = right.completeBaseName().toInt(&rightIsNumber);
+		if (leftIsNumber && rightIsNumber)
+			return leftNumber < rightNumber;
+		return left.fileName().localeAwareCompare(right.fileName()) < 0;
+	});
+	for (const QFileInfo &slide : slides)
+		AddMediaFile(slide.absoluteFilePath(), QString::fromLatin1(kPresentationsFolderId), false);
+	if (presentationFolderList)
+		presentationFolderList->setCurrentRow(1);
+	ApplyLibraryFilter();
+	SaveSettings();
 }
 
 void PresenterPanel::BuildTopMenu()
@@ -1045,8 +1351,14 @@ void PresenterPanel::Initialize()
 	config_set_bool(App()->GetUserConfig(), "General", "FirstRun", true);
 	config_save_safe(App()->GetUserConfig(), "tmp", nullptr);
 	QTimer::singleShot(0, this, [this]() {
-		for (QDockWidget *dock : main->findChildren<QDockWidget *>())
-			dock->hide();
+		if (dockWorkspace)
+			dockWorkspace->show();
+		for (QDockWidget *dock : main->findChildren<QDockWidget *>()) {
+			if (dock->objectName().startsWith(QStringLiteral("opbs")))
+				dock->show();
+			else
+				dock->hide();
+		}
 	});
 	connect(preview, &OBSQTDisplay::DisplayCreated, this, [this](OBSQTDisplay *display) {
 		obs_display_add_draw_callback(display->GetDisplay(), PresenterPanel::RenderPreview, this);
@@ -1102,6 +1414,9 @@ void PresenterPanel::Shutdown()
 	SaveSettings();
 	if (timelineTimer)
 		timelineTimer->stop();
+	if (audioPlayerTimer)
+		audioPlayerTimer->stop();
+	StopAudioPlayer();
 	if (stageProjector) {
 		main->DeleteProjector(stageProjector);
 		stageProjector = nullptr;
@@ -1196,7 +1511,7 @@ void PresenterPanel::ImportPresentation(bool pdf)
 				      result.error.isEmpty() ? tr("No se generaron diapositivas.") : result.error);
 		return;
 	}
-	ReplacePresentationSlides(temporaryPath, result.slidePaths.size());
+	ReplacePresentationSlides(temporaryPath, result.slidePaths.size(), QFileInfo(path).completeBaseName());
 }
 
 void PresenterPanel::ClearPresentationEntries()
@@ -1220,47 +1535,31 @@ void PresenterPanel::ClearPresentationEntries()
 	}
 }
 
-void PresenterPanel::ReplacePresentationSlides(const QString &temporaryDirectory, int slideCount)
+void PresenterPanel::ReplacePresentationSlides(const QString &temporaryDirectory, int slideCount,
+						const QString &displayName)
 {
 	const QString basePath = PresentationsDirectoryPath();
 	QDir base(basePath);
-	const QString currentName = QStringLiteral("current");
-	const QString backupName =
-		QStringLiteral("previous-") + QUuid::createUuid().toString(QUuid::WithoutBraces);
 	const QString temporaryName = QFileInfo(temporaryDirectory).fileName();
-	const bool hadCurrent = QDir(base.filePath(currentName)).exists();
-	const auto restoreCurrentEntries = [this, &base, &currentName]() {
-		const QString currentPath = base.filePath(currentName);
-		for (int index = 1;; ++index) {
-			const QString path = QDir(currentPath).filePath(QString::number(index) + ".png");
-			if (!QFileInfo::exists(path))
-				break;
-			AddMediaFile(path, QString::fromLatin1(kPresentationsFolderId), false);
-		}
-		ApplyLibraryFilter();
-		SaveSettings();
-	};
-
+	const QString presentationId =
+		QStringLiteral("presentation-") + QUuid::createUuid().toString(QUuid::WithoutBraces);
 	ClearPresentationEntries();
-	if (hadCurrent && !base.rename(currentName, backupName)) {
-		QDir(temporaryDirectory).removeRecursively();
-		restoreCurrentEntries();
+	if (!base.rename(temporaryName, presentationId)) {
 		QMessageBox::critical(main, tr("Importar presentación"),
-				      tr("No se pudo reemplazar la presentación anterior."));
+				      tr("No se pudo guardar la nueva presentación."));
 		return;
 	}
-	if (!base.rename(temporaryName, currentName)) {
-		if (hadCurrent)
-			base.rename(backupName, currentName);
-		restoreCurrentEntries();
-		QMessageBox::critical(main, tr("Importar presentación"),
-				      tr("No se pudo activar la nueva presentación."));
-		return;
+	currentPresentationId = presentationId;
+	recentPresentationIds.removeAll(presentationId);
+	recentPresentationIds.prepend(presentationId);
+	recentPresentationNames.prepend(displayName.isEmpty() ? tr("Presentación") : displayName);
+	while (recentPresentationIds.size() > 4) {
+		const QString removedId = recentPresentationIds.takeLast();
+		if (recentPresentationNames.size() > recentPresentationIds.size())
+			recentPresentationNames.removeLast();
+		QDir(base.filePath(removedId)).removeRecursively();
 	}
-	if (hadCurrent)
-		QDir(base.filePath(backupName)).removeRecursively();
-
-	const QString currentPath = base.filePath(currentName);
+	const QString currentPath = base.filePath(presentationId);
 	for (int index = 1; index <= slideCount; ++index)
 		AddMediaFile(QDir(currentPath).filePath(QString::number(index) + ".png"),
 			     QString::fromLatin1(kPresentationsFolderId), false);
@@ -1273,6 +1572,7 @@ void PresenterPanel::ReplacePresentationSlides(const QString &temporaryDirectory
 			}
 		}
 	}
+	RefreshRecentPresentations();
 	ApplyLibraryFilter();
 	SaveSettings();
 	QMessageBox::information(main, tr("Presentación importada"),
@@ -2788,6 +3088,8 @@ void PresenterPanel::ApplyLibraryFilter()
 		return;
 	const QString folderId = SelectedFolderId();
 	const bool bibleMode = folderId == QString::fromLatin1(kBibleFolderId);
+	const bool placeholderTool = folderId == QString::fromLatin1(kCaptureFolderId) ||
+				     folderId == QString::fromLatin1(kNdiFolderId);
 	if (bibleControls)
 		bibleControls->setVisible(bibleMode);
 	if (bibleResultsList)
@@ -2797,6 +3099,15 @@ void PresenterPanel::ApplyLibraryFilter()
 	if (bibleMode) {
 		mediaList->hide();
 		ApplyBibleFilter();
+		return;
+	}
+	if (placeholderTool) {
+		mediaList->hide();
+		emptyState->setText(folderId == QString::fromLatin1(kCaptureFolderId)
+					    ? tr("La herramienta Captura se habilitará en una próxima versión")
+					    : tr("La herramienta NDI se habilitará en una próxima versión"));
+		emptyState->show();
+		mediaCount->setText(tr("Próximamente"));
 		return;
 	}
 	if (bibleResultsList)
@@ -2816,7 +3127,9 @@ void PresenterPanel::ApplyLibraryFilter()
 	mediaCount->setText(tr("%1 archivos").arg(visible));
 	mediaList->setVisible(visible > 0);
 	emptyState->setVisible(visible == 0);
-	emptyState->setText(query.isEmpty() ? tr("Arrastra aquí imágenes, videos o audio para comenzar")
+	emptyState->setText(query.isEmpty() ? (folderId == QString::fromLatin1(kPresentationsFolderId)
+						 ? tr("Importa o elige una presentación reciente")
+						 : tr("Arrastra aquí imágenes, videos o audio para comenzar"))
 					 : tr("No hay resultados en esta carpeta"));
 	QTimer::singleShot(0, this, &PresenterPanel::LoadVisibleThumbnails);
 }
@@ -3175,6 +3488,18 @@ void PresenterPanel::LoadSettings()
 	bibleReferencePosition = settings.value("bible/referencePosition", "bottom-center").toString();
 	bibleBackgroundPath = settings.value("bible/backgroundPath").toString();
 	bibleBackgroundLoop = settings.value("bible/backgroundLoop", false).toBool();
+	audioPlaylistPaths.clear();
+	if (audioPlaylistList)
+		audioPlaylistList->clear();
+	AddAudioPlayerFiles(settings.value("audioPlayer/files").toStringList());
+	recentPresentationIds = settings.value("presentations/recentIds").toStringList();
+	recentPresentationNames = settings.value("presentations/recentNames").toStringList();
+	currentPresentationId = settings.value("presentations/currentId").toString();
+	while (recentPresentationIds.size() > 4)
+		recentPresentationIds.removeLast();
+	while (recentPresentationNames.size() > 4)
+		recentPresentationNames.removeLast();
+	RefreshRecentPresentations();
 	LoadBibleCatalog(settings.value("bible/selectedPath").toString());
 	mediaVolumeSlider->setValue(mediaVolume);
 	if (loopButton) {
@@ -3191,22 +3516,9 @@ void PresenterPanel::LoadSettings()
 	if (!geometry.isEmpty())
 		main->restoreGeometry(geometry);
 	const int layoutVersion = settings.value("window/layoutVersion", 0).toInt();
-	const QByteArray splitterState = settings.value("window/mainSplitter").toByteArray();
-	if (mainSplitter) {
-		if (layoutVersion >= 5 && !splitterState.isEmpty()) {
-			mainSplitter->restoreState(splitterState);
-		} else {
-			// QSplitter necesita conocer el ancho definitivo de la ventana para
-			// aplicar con precisión el reparto inicial 31/69.
-			QTimer::singleShot(0, this, [this]() {
-				if (!mainSplitter)
-					return;
-				const int width = mainSplitter->width();
-				const int previewWidth = qRound(width * 0.31);
-				mainSplitter->setSizes({previewWidth, std::max(width - previewWidth, 1)});
-			});
-		}
-	}
+	const QByteArray dockState = settings.value("window/dockWorkspace").toByteArray();
+	if (dockWorkspace && layoutVersion >= 14 && !dockState.isEmpty())
+		dockWorkspace->restoreState(dockState, 14);
 	if (!audioDeviceId.isEmpty())
 		obs_set_audio_monitoring_device(audioDeviceName.toUtf8().constData(), audioDeviceId.toUtf8().constData());
 
@@ -3338,6 +3650,10 @@ void PresenterPanel::SaveSettings()
 	settings.setValue("audio/effect", selectedEffect);
 	settings.setValue("audio/deviceName", audioDeviceName);
 	settings.setValue("audio/deviceId", audioDeviceId);
+	settings.setValue("audioPlayer/files", audioPlaylistPaths);
+	settings.setValue("presentations/recentIds", recentPresentationIds);
+	settings.setValue("presentations/recentNames", recentPresentationNames);
+	settings.setValue("presentations/currentId", currentPresentationId);
 	settings.setValue("transmission/cameraId", selectedCameraId);
 	settings.setValue("transmission/cameraName", selectedCameraName);
 	settings.setValue("transmission/cameraEnabled", cameraEnabled);
@@ -3372,9 +3688,9 @@ void PresenterPanel::SaveSettings()
 	settings.setValue("transmission/destination2/key", streamDestinations[1].key);
 	settings.setValue("transmission/destination2/enabled", streamDestinations[1].enabled);
 	settings.setValue("window/geometry", main->saveGeometry());
-	settings.setValue("window/layoutVersion", 5);
-	if (mainSplitter)
-		settings.setValue("window/mainSplitter", mainSplitter->saveState());
+	settings.setValue("window/layoutVersion", 14);
+	if (dockWorkspace)
+		settings.setValue("window/dockWorkspace", dockWorkspace->saveState(14));
 	settings.sync();
 }
 

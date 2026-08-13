@@ -106,13 +106,27 @@ se vuelve a guardar la lista limpia. OPBS informa una sola vez los nombres elimi
 rutas ausentes dejan de formar parte de `presenter.ini`. El reparador de archivos de la colección heredada de OBS está
 desactivado en este frontend: esa colección permanece oculta y no es la fuente de verdad de la biblioteca.
 
-La geometría del divisor principal conserva la distribución aproximada 31/69 entre vistas previas y biblioteca. La
-configuración de transmisión recuerda el modo activo, la duración de Move, el fondo de `Ambos` y las ocho medidas de la
-composición.
+La interfaz principal usa un `QMainWindow` interno como espacio de trabajo de cinco `QDockWidget`. Presentador y
+transmisión forman la columna izquierda; Multimedia ocupa la parte superior derecha; Herramientas y el reproductor de
+audio forman la fila inferior derecha. Todos pueden redimensionarse, moverse o flotar. `saveState` conserva el árbol de
+paneles en `window/dockWorkspace`; la versión del estado evita restaurar geometrías incompatibles de diseños anteriores.
+La distribución inicial mantiene aproximadamente 31/69 entre las vistas previas y el espacio de biblioteca/herramientas.
+La configuración de transmisión recuerda el modo activo, la duración de Move, el fondo de `Ambos` y las ocho medidas de
+la composición.
+
+`libraryContentHost` contiene la cuadrícula ya existente y se mueve entre los destinos de Multimedia y Herramientas al
+cambiar de sección. De esta forma Biblia y Presentaciones conservan su lógica sin duplicar modelos ni fuentes. Las
+importaciones de presentaciones se guardan en directorios con identificador propio; se recuerdan como máximo cuatro y
+al exceder el límite se retira solamente el directorio generado más antiguo.
 
 No versionar esa configuración: contiene rutas locales y preferencias del usuario.
 
 ## Audio
+
+El reproductor de audio independiente crea una fuente privada `ffmpeg_source` solo cuando se activa una pista. Mantiene
+su propia lista de rutas, reloj, búsqueda temporal y transporte, y monitoriza la salida configurada sin cambiar la fuente
+activa de la escena privada del presentador. La lista se persiste en `audioPlayer/files`; los archivos siguen siendo
+externos y nunca se copian al proyecto.
 
 La fuente multimedia se configura para monitorización. Al activar cada archivo se reconstruye el monitor de audio y se
 restablece la monitorización después de que FFmpeg emita `media_started`. Esto reproduce automáticamente la operación

@@ -171,6 +171,21 @@ build_x64/rundir/RelWithDebInfo/obs-plugins/64bit/obs-ffmpeg.dll
 - La selección guardada `Auriculares (BT3280)` devolvió desde Windows el error `88890004`, correspondiente a un
   dispositivo invalidado/no disponible durante esa sesión. No confundirlo con un fallo del mezclador.
 
+## 2026-08-12 - Rediseño modular en desarrollo
+
+- Se sustituyó el divisor fijo por cinco paneles acoplables y flotantes con distribución inicial 31/69.
+- Multimedia conserva carpetas, búsqueda y arrastrar/soltar con tarjetas compactas de 176 × 99 píxeles.
+- Herramientas reúne Biblia, Presentación, Captura y NDI, y recuerda hasta cuatro importaciones de presentaciones.
+- Se añadió un reproductor de audio independiente con lista persistente por arrastre, línea de tiempo y controles de
+  reproducción/pausa y parada.
+- La vista del presentador ya no muestra el deslizador de volumen; conserva transporte, tiempo y medidores.
+- `Build-Presenter.cmd`/compilación incremental y `Package-Presenter.cmd` terminaron correctamente. La inspección visual
+  confirmó la cuadrícula completa, las cinco barras de panel y el ciclo Herramientas acoplado -> flotante -> acoplado.
+- Se cargó temporalmente `C:\Windows\Media\Alarm01.wav`: al seleccionar la pista comenzó la reproducción, cambió el
+  botón a pausa, avanzó la línea de tiempo y `Detener` la devolvió al inicio. La referencia de prueba se retiró después.
+- Se cerró y volvió a abrir OPBS; la cuadrícula 31/69, los cinco paneles acoplados y la selección Multimedia/General se
+  restauraron correctamente. Queda pendiente probar el gesto de arrastrar desde el Explorador con una biblioteca real.
+
 ## Prueba pendiente inmediata
 
 La línea de tiempo de música quedó verificada. Sigue pendiente comprobar el audio físico con una salida conectada:
