@@ -1,7 +1,7 @@
 # Presentador multimedia
 
 OPBS es una aplicación de escritorio para organizar y proyectar imágenes, videos y audio, construida sobre OBS Studio
-32.2.0. La `P` identifica el Presentador integrado. La versión actual de desarrollo es `0.1.5`.
+32.2.0. La `P` identifica el Presentador integrado. La versión actual de desarrollo es `0.1.6`.
 El frontend clásico de OBS está temporalmente oculto, pero su implementación permanece disponible para recuperar e
 integrar funciones de forma gradual.
 
@@ -19,6 +19,8 @@ integrar funciones de forma gradual.
   en Herramientas el buscador aparece exclusivamente dentro de Biblia.
 - Identidad visual oscura propia de OPBS, basada en negro, grafito, blanco y azul brillante. Esta paleta será también la
   base visual del futuro Broadcast Presenter.
+- Cabecera compacta con el menú principal en la fila superior y una franja negra dedicada al interruptor de Escenario,
+  sin repetir dentro del área de trabajo el nombre, la versión ni las acciones de importación.
 - Carpetas multimedia con búsqueda local, arrastrar y soltar, reordenamiento y carga diferida.
 - Buscador bíblico por texto o referencia, selector de traducciones locales y cuadrícula limitada de resultados para
   mantener el rendimiento con biblias completas.

@@ -20,6 +20,8 @@ de OBS Studio.
 - Buscador multimedia independiente y buscador de Herramientas visible únicamente al seleccionar Biblia.
 - Captura muestra la cámara configurada en Transmisión y permite agregar cámaras o ventanas del equipo desde su botón
   inferior derecho.
+- La cabecera principal adopta el diseño compacto: menú superior, franja negra y control de Escenario a la derecha.
+  La importación multimedia continúa disponible desde `Archivo > Importar > Multimedia`.
 
 ## Actualizaciones y datos
 

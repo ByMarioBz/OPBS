@@ -220,6 +220,15 @@ build_x64/rundir/RelWithDebInfo/obs-plugins/64bit/obs-ffmpeg.dll
 - `Package-Presenter.cmd`, el arranque final en modo seguro y la regeneración de `OPBS-Setup-x64.exe` 0.1.6 terminaron
   correctamente después de la revisión visual.
 
+## 2026-08-14 - Cabecera compacta
+
+- Se retiraron de la cabecera interna el nombre, la versión, el subtítulo y el botón grande de importación para evitar
+  duplicar información de la ventana y acercar el área superior al diseño visual de producto.
+- La cabecera ahora es una franja negra de 44 píxeles con `ESCENARIO` y un interruptor compacto `ON/OFF` a la derecha.
+  La importación multimedia permanece disponible en `Archivo > Importar > Multimedia`.
+- `Build-Presenter.cmd` y `Package-Presenter.cmd` terminaron correctamente; la aplicación empaquetada inició en modo
+  seguro y su registro alcanzó `Startup complete` con la nueva interfaz cargada.
+
 ## Prueba pendiente inmediata
 
 La línea de tiempo de música quedó verificada. Sigue pendiente comprobar el audio físico con una salida conectada:

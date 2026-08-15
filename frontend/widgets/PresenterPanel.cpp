@@ -471,7 +471,7 @@ void PresenterPanel::BuildInterface()
 {
 	setStyleSheet(R"(
 		#presenterPanel { background: #000000; color: #f5f7fa; }
-		#presenterHeader { background: #111318; border-bottom: 1px solid #292e35; }
+		#presenterHeader { background: #000000; border: 0; }
 		#presenterTitle { font-size: 21px; font-weight: 700; }
 		#presenterSubtitle, #presenterMediaCount, #presenterScreenStatus, #presenterTime { color: #9aa4af; }
 		#presenterLive { color: #f5f7fa; font-size: 11px; font-weight: 700; }
@@ -482,8 +482,6 @@ void PresenterPanel::BuildInterface()
 		QDockWidget { color: #f5f7fa; font-weight: 700; }
 		QDockWidget::title { background: #15191a; border: 1px solid #2c3238; padding: 7px 9px; text-align: left; }
 		QMainWindow::separator { background: #000000; width: 10px; height: 10px; }
-		QToolButton#presenterImport { background: #087ff5; color: white; border: 1px solid #2794ff; border-radius: 8px; padding: 9px 15px; font-weight: 700; }
-		QToolButton#presenterImport:hover { background: #1990ff; }
 		QListWidget#presenterMediaList { background: transparent; border: 0; outline: 0; }
 		QListWidget#presenterMediaList::item { background: #171b1d; color: #eef1f4; border: 1px solid #30373e; border-radius: 7px; padding: 7px; }
 		QListWidget#presenterMediaList::item:hover { border-color: #65717d; background: #202527; }
@@ -511,7 +509,14 @@ void PresenterPanel::BuildInterface()
 		QProgressBar#presenterMeter::chunk { background: #42d17c; border-radius: 3px; }
 		QSlider::groove:horizontal { height: 5px; background: #3a424a; border-radius: 2px; }
 		QSlider::handle:horizontal { background: #f5f7fa; width: 14px; margin: -5px 0; border-radius: 7px; }
-		QCheckBox#presenterStageToggle { spacing: 7px; color: #d7dbea; }
+		QLabel#presenterScreenStatus { color: #f5f7fa; font-size: 11px; font-weight: 600; }
+		QCheckBox#presenterStageToggle { spacing: 6px; color: white; background: #087ff5;
+			border: 1px solid #2794ff; border-radius: 9px; padding: 5px 9px; font-weight: 700; }
+		QCheckBox#presenterStageToggle:hover { background: #1990ff; }
+		QCheckBox#presenterStageToggle:unchecked { background: #202527; border-color: #343c43; color: #b7c0ca; }
+		QCheckBox#presenterStageToggle::indicator { width: 15px; height: 10px; border: 2px solid white;
+			border-radius: 2px; background: transparent; }
+		QCheckBox#presenterStageToggle::indicator:unchecked { border-color: #b7c0ca; }
 		QToolButton#presenterTransport { background: #202527; color: #f4f6fb; border: 1px solid #343c43;
 			border-radius: 7px; min-width: 38px; min-height: 30px; font-size: 16px; font-weight: 700; }
 		QToolButton#presenterTransport:hover { background: #30373b; border-color: #087ff5; }
@@ -536,31 +541,18 @@ void PresenterPanel::BuildInterface()
 	auto *header = new QFrame(this);
 	header->setObjectName("presenterHeader");
 	header->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+	header->setFixedHeight(44);
 	auto *headerLayout = new QHBoxLayout(header);
-	headerLayout->setContentsMargins(22, 14, 22, 14);
-	auto *headings = new QVBoxLayout();
-	auto *title = new QLabel(tr("OPBS"), header);
-	title->setObjectName("presenterTitle");
-	auto *subtitle =
-		new QLabel(tr("Presentador multimedia integrado · Versión %1").arg(QString::fromLatin1(OPBS_VERSION)), header);
-	subtitle->setObjectName("presenterSubtitle");
-	headings->addWidget(title);
-	headings->addWidget(subtitle);
-	headerLayout->addLayout(headings);
+	headerLayout->setContentsMargins(0, 5, 22, 5);
 	headerLayout->addStretch();
-	stageStatus = new QLabel(tr("Escenario: sin pantalla"), header);
+	stageStatus = new QLabel(tr("ESCENARIO"), header);
 	stageStatus->setObjectName("presenterScreenStatus");
 	headerLayout->addWidget(stageStatus);
-	stageToggle = new QCheckBox(tr("Salida"), header);
+	stageToggle = new QCheckBox(tr("OFF"), header);
 	stageToggle->setObjectName("presenterStageToggle");
 	stageToggle->setToolTip(tr("Activar o desactivar la salida del escenario"));
 	connect(stageToggle, &QCheckBox::toggled, this, [this](bool enabled) { SetStageEnabled(enabled); });
 	headerLayout->addWidget(stageToggle);
-	auto *importButton = new QToolButton(header);
-	importButton->setObjectName("presenterImport");
-	importButton->setText(tr("+ Importar contenido"));
-	connect(importButton, &QToolButton::clicked, this, &PresenterPanel::ImportMedia);
-	headerLayout->addWidget(importButton);
 	root->addWidget(header);
 
 	dockWorkspace = new QMainWindow(this);
@@ -1438,6 +1430,8 @@ void PresenterPanel::BuildTopMenu()
 	auto *fileMenu = main->menuBar()->addMenu(tr("Archivo"));
 	fileMenuAction = fileMenu->menuAction();
 	auto *importMenu = fileMenu->addMenu(tr("Importar"));
+	QAction *importMultimedia = importMenu->addAction(tr("Multimedia"));
+	importMenu->addSeparator();
 	QAction *importPowerPoint = importMenu->addAction(tr("PowerPoint"));
 	QAction *importPdf = importMenu->addAction(tr("PDF"));
 	auto *editMenu = main->menuBar()->addMenu(tr("Editar"));
@@ -1468,6 +1462,7 @@ void PresenterPanel::BuildTopMenu()
 	connect(bibleAction, &QAction::triggered, this, &PresenterPanel::ShowBibleDialog);
 	connect(transmissionAction, &QAction::triggered, this, &PresenterPanel::ShowTransmissionDialog);
 	connect(opbsUpdateAction, &QAction::triggered, this, &PresenterPanel::LaunchOpbsUpdater);
+	connect(importMultimedia, &QAction::triggered, this, &PresenterPanel::ImportMedia);
 	connect(importPowerPoint, &QAction::triggered, this, [this]() { ImportPresentation(false); });
 	connect(importPdf, &QAction::triggered, this, [this]() { ImportPresentation(true); });
 	for (QAction *action : main->menuBar()->actions())
@@ -3319,10 +3314,13 @@ void PresenterPanel::SetStageEnabled(bool enabled, bool save)
 
 void PresenterPanel::UpdateStageStatus()
 {
-	QString text = tr("Escenario: sin pantalla");
-	if (selectedMonitor >= 0)
-		text = stageEnabled ? tr("Escenario: %1 · activo").arg(selectedMonitorName) : tr("Escenario: %1 · apagado").arg(selectedMonitorName);
-	stageStatus->setText(text);
+	if (!stageStatus || !stageToggle)
+		return;
+	stageStatus->setText(tr("ESCENARIO"));
+	stageToggle->setText(stageEnabled ? tr("ON") : tr("OFF"));
+	const QString monitor = selectedMonitor >= 0 ? selectedMonitorName : tr("sin pantalla seleccionada");
+	stageToggle->setToolTip(stageEnabled ? tr("Salida activa en %1").arg(monitor)
+					     : tr("Salida desactivada · %1").arg(monitor));
 }
 
 QString PresenterPanel::SelectedFolderId() const
