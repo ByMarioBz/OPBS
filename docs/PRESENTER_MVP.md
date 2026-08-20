@@ -19,6 +19,8 @@ integrar funciones de forma gradual.
   en Herramientas el buscador aparece exclusivamente dentro de Biblia.
 - Identidad visual oscura propia de OPBS, basada en negro, grafito, blanco y azul brillante. Esta paleta será también la
   base visual del futuro Broadcast Presenter.
+- Sistema visual centralizado para menús, diálogos, paneles, tarjetas y controles, con estados consistentes de foco,
+  selección, deshabilitado y salida en vivo; sus reglas están en `OPBS_DESIGN_SYSTEM.md`.
 - Cabecera compacta con el menú principal en la fila superior y una franja negra dedicada al interruptor de Escenario,
   sin repetir dentro del área de trabajo el nombre, la versión ni las acciones de importación.
 - Carpetas multimedia con búsqueda local, arrastrar y soltar, reordenamiento y carga diferida.

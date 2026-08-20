@@ -15,6 +15,8 @@ de OBS Studio.
 - Reproductor de audio independiente con lista persistente, reproducción/pausa, detener y línea de tiempo manipulable.
 - El control de volumen fue retirado de la vista del presentador sin alterar sus medidores ni controles multimedia.
 - Nueva identidad visual en negro, grafito, blanco y azul para distinguir claramente OPBS.
+- Jerarquía más limpia en el espacio de trabajo: títulos sin duplicados, búsqueda multimedia superior con contador e
+  iconos de reproducción de alto contraste.
 - Multimedia y Herramientas funcionan simultáneamente con cuadrículas independientes; los medios arrastrados ya no
   pueden aparecer dentro de Presentación, Captura o NDI.
 - Buscador multimedia independiente y buscador de Herramientas visible únicamente al seleccionar Biblia.
@@ -22,6 +24,8 @@ de OBS Studio.
   inferior derecho.
 - La cabecera principal adopta el diseño compacto: menú superior, franja negra y control de Escenario a la derecha.
   La importación multimedia continúa disponible desde `Archivo > Importar > Multimedia`.
+- Primer sistema visual propio de OPBS: estilos unificados para menús, diálogos, listas, tarjetas y controles, foco de
+  teclado visible y una paleta semántica preparada para heredarse en Broadcast Presenter.
 
 ## Actualizaciones y datos
 

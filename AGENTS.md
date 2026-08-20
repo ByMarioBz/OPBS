@@ -9,6 +9,7 @@ Antes de modificar el proyecto, leer completos:
 2. `docs/PRESENTADOR_CONTINUIDAD.md`
 3. `docs/PRESENTADOR_ARQUITECTURA.md`
 4. `docs/PRESENTADOR_HISTORIAL.md`
+5. `docs/OPBS_DESIGN_SYSTEM.md`
 
 Antes de revisar o incorporar una versión nueva de OBS, leer además `docs/OBS_ACTUALIZACIONES.md` y ejecutar
 `presenter-tools/Review-OBS-Update.cmd`.

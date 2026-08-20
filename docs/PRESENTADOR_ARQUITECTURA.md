@@ -34,6 +34,8 @@ de insertar la nueva; no deben existir dos contenidos superpuestos.
 
 ### Interfaz
 
+- `frontend/widgets/OpbsDesignSystem.cpp` y `.hpp`: colores semánticos, tipografía, geometría, estados de interacción y
+  estilos compartidos de la ventana, menús, diálogos y espacio de trabajo.
 - `frontend/widgets/PresenterPanel.cpp` y `.hpp`: biblioteca, carpetas, búsqueda, persistencia, preview, transporte,
   tiempo, medidores, volumen, diálogos de pantallas/sonido/Biblia, importación de presentaciones y coordinación de
   fuentes.

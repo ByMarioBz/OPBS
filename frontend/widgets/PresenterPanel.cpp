@@ -12,6 +12,7 @@
 #include "OBSBasic.hpp"
 #include "OBSProjector.hpp"
 #include "OBSQTDisplay.hpp"
+#include "OpbsDesignSystem.hpp"
 #include "PresentationImporter.hpp"
 
 #include <OBSApp.hpp>
@@ -48,6 +49,7 @@
 #include <QGroupBox>
 #include <QHBoxLayout>
 #include <QImageReader>
+#include <QIcon>
 #include <QInputDialog>
 #include <QLabel>
 #include <QLineEdit>
@@ -104,6 +106,16 @@ constexpr auto kTransmissionAudioBridgeId = "opbs_transmission_audio_bridge";
 const QStringList imageExtensions = {"bmp", "gif", "jpeg", "jpg", "png", "tga", "webp"};
 const QStringList audioExtensions = {"mp3", "aac", "ogg", "wav", "flac", "m4a", "wma"};
 const QStringList videoExtensions = {"mp4", "m4v", "mov", "mkv", "avi", "webm", "wmv", "mpeg", "mpg"};
+
+QIcon OpbsStandardIcon(const QWidget *widget, QStyle::StandardPixmap icon,
+		       const QColor &color = QColor("#F4F7FA"), const QSize &size = QSize(20, 20))
+{
+	QPixmap pixmap = widget->style()->standardIcon(icon).pixmap(size);
+	QPainter painter(&pixmap);
+	painter.setCompositionMode(QPainter::CompositionMode_SourceIn);
+	painter.fillRect(pixmap.rect(), color);
+	return QIcon(pixmap);
+}
 
 long long ColorToObsInt(const QColor &color)
 {
@@ -469,71 +481,7 @@ PresenterPanel::~PresenterPanel()
 
 void PresenterPanel::BuildInterface()
 {
-	setStyleSheet(R"(
-		#presenterPanel { background: #000000; color: #f5f7fa; }
-		#presenterHeader { background: #000000; border: 0; }
-		#presenterTitle { font-size: 21px; font-weight: 700; }
-		#presenterSubtitle, #presenterMediaCount, #presenterScreenStatus, #presenterTime { color: #9aa4af; }
-		#presenterLive { color: #f5f7fa; font-size: 11px; font-weight: 700; }
-		#presenterPreviewFrame, #presenterLibrary { background: #15191a; border: 1px solid #2c3238; border-radius: 3px; }
-		#presenterCurrent { color: #eef1f4; font-weight: 600; }
-		#presenterEmpty { color: #8793a1; font-size: 15px; }
-		#presenterDockWorkspace { background: #000000; }
-		QDockWidget { color: #f5f7fa; font-weight: 700; }
-		QDockWidget::title { background: #15191a; border: 1px solid #2c3238; padding: 7px 9px; text-align: left; }
-		QMainWindow::separator { background: #000000; width: 10px; height: 10px; }
-		QListWidget#presenterMediaList { background: transparent; border: 0; outline: 0; }
-		QListWidget#presenterMediaList::item { background: #171b1d; color: #eef1f4; border: 1px solid #30373e; border-radius: 7px; padding: 7px; }
-		QListWidget#presenterMediaList::item:hover { border-color: #65717d; background: #202527; }
-		QListWidget#presenterMediaList::item:selected { border: 2px solid #087ff5; background: #22282c; }
-		#presenterFolderPanel { background: #121617; border: 1px solid #2c3238; border-radius: 7px; }
-		QListWidget#presenterFolderList, QListWidget#presenterPresentationList {
-			background: transparent; border: 0; outline: 0; }
-		QListWidget#presenterFolderList::item, QListWidget#presenterPresentationList::item {
-			padding: 8px; margin: 2px; border-radius: 6px; }
-		QListWidget#presenterFolderList::item:selected, QListWidget#presenterPresentationList::item:selected {
-			background: #343a40; border: 1px solid #68737e; color: white; }
-		QLineEdit#presenterSearch { background: #111516; color: #eef1f4; border: 1px solid #30373e;
-			border-radius: 7px; padding: 8px 11px; }
-		QLineEdit#presenterSearch:focus { border-color: #087ff5; }
-		#presenterBibleControls { background: #121617; border: 1px solid #2c3238; border-radius: 7px; }
-		QComboBox#presenterBibleSelector { background: #171b1d; color: #eef1f4; border: 1px solid #30373e;
-			border-radius: 7px; padding: 8px 11px; min-width: 190px; }
-		QComboBox#presenterBibleSelector::drop-down { border: 0; width: 28px; }
-		QListWidget#presenterBibleList { background: transparent; border: 0; outline: 0; }
-		QListWidget#presenterBibleList::item { background: #171b1d; color: #eef1f4; border: 1px solid #30373e;
-			border-radius: 9px; padding: 12px; }
-		QListWidget#presenterBibleList::item:hover { border-color: #65717d; background: #202527; }
-		QListWidget#presenterBibleList::item:selected { border: 2px solid #087ff5; background: #22282c; }
-		QProgressBar#presenterMeter { background: #252a33; border: 0; border-radius: 3px; max-height: 7px; }
-		QProgressBar#presenterMeter::chunk { background: #42d17c; border-radius: 3px; }
-		QSlider::groove:horizontal { height: 5px; background: #3a424a; border-radius: 2px; }
-		QSlider::handle:horizontal { background: #f5f7fa; width: 14px; margin: -5px 0; border-radius: 7px; }
-		QLabel#presenterScreenStatus { color: #f5f7fa; font-size: 11px; font-weight: 600; }
-		QCheckBox#presenterStageToggle { spacing: 6px; color: white; background: #087ff5;
-			border: 1px solid #2794ff; border-radius: 9px; padding: 5px 9px; font-weight: 700; }
-		QCheckBox#presenterStageToggle:hover { background: #1990ff; }
-		QCheckBox#presenterStageToggle:unchecked { background: #202527; border-color: #343c43; color: #b7c0ca; }
-		QCheckBox#presenterStageToggle::indicator { width: 15px; height: 10px; border: 2px solid white;
-			border-radius: 2px; background: transparent; }
-		QCheckBox#presenterStageToggle::indicator:unchecked { border-color: #b7c0ca; }
-		QToolButton#presenterTransport { background: #202527; color: #f4f6fb; border: 1px solid #343c43;
-			border-radius: 7px; min-width: 38px; min-height: 30px; font-size: 16px; font-weight: 700; }
-		QToolButton#presenterTransport:hover { background: #30373b; border-color: #087ff5; }
-		QToolButton#presenterTransport:checked { background: #087ff5; border-color: #2794ff; color: white; }
-		QToolButton#presenterTransport:disabled { color: #666d7b; background: #20242c; }
-		#transmissionPreviewFrame { background: #15191a; border: 1px solid #2c3238; border-radius: 3px; }
-		QToolButton#transmissionMode { background: #202527; color: #f4f6fb; border: 1px solid #343c43;
-			border-radius: 7px; padding: 7px 10px; font-weight: 600; }
-		QToolButton#transmissionMode:hover { border-color: #087ff5; }
-		QToolButton#transmissionMode:checked { background: #087ff5; border-color: #2794ff; }
-		QToolButton#transmissionLive { background: #b62f3b; color: white; border: 0; border-radius: 7px;
-			padding: 7px 12px; font-weight: 700; }
-		QToolButton#transmissionLive:checked { background: #e04a58; }
-		QToolButton#captureAdd { background: #087ff5; color: white; border: 1px solid #2794ff;
-			border-radius: 7px; padding: 7px 13px; font-weight: 700; }
-		QToolButton#captureAdd:hover { background: #1990ff; }
-	)" );
+	setStyleSheet(OpbsDesignSystem::PresenterStyleSheet());
 
 	auto *root = new QVBoxLayout(this);
 	root->setContentsMargins(0, 0, 0, 0);
@@ -550,6 +498,8 @@ void PresenterPanel::BuildInterface()
 	headerLayout->addWidget(stageStatus);
 	stageToggle = new QCheckBox(tr("OFF"), header);
 	stageToggle->setObjectName("presenterStageToggle");
+	stageToggle->setAccessibleName(tr("Salida del escenario"));
+	stageToggle->setAccessibleDescription(tr("Activa o desactiva la proyección en la pantalla seleccionada"));
 	stageToggle->setToolTip(tr("Activar o desactivar la salida del escenario"));
 	connect(stageToggle, &QCheckBox::toggled, this, [this](bool enabled) { SetStageEnabled(enabled); });
 	headerLayout->addWidget(stageToggle);
@@ -571,7 +521,7 @@ void PresenterPanel::BuildInterface()
 	auto *previewLayout = new QVBoxLayout(previewFrame);
 	previewLayout->setSizeConstraint(QLayout::SetNoConstraint);
 	previewLayout->setContentsMargins(16, 16, 16, 16);
-	auto *live = new QLabel(tr("●  VISTA PREVIA EN VIVO"), previewFrame);
+	auto *live = new QLabel(tr("Vista previa del escenario"), previewFrame);
 	live->setObjectName("presenterLive");
 	previewLayout->addWidget(live);
 	preview = new OBSQTDisplay(previewFrame);
@@ -587,6 +537,7 @@ void PresenterPanel::BuildInterface()
 	timelineSlider = new AbsoluteSlider(Qt::Horizontal, previewFrame);
 	timelineSlider->setRange(0, 1000);
 	timelineSlider->setEnabled(false);
+	timelineSlider->setAccessibleName(tr("Línea de tiempo del presentador"));
 	timeLabel = new QLabel("0:00 / 0:00", previewFrame);
 	timeLabel->setObjectName("presenterTime");
 	timelineRow->addWidget(timelineSlider, 1);
@@ -630,7 +581,7 @@ void PresenterPanel::BuildInterface()
 	auto makeTransportButton = [previewFrame, transportRow](QStyle::StandardPixmap icon, const QString &tip) {
 		auto *button = new QToolButton(previewFrame);
 		button->setObjectName("presenterTransport");
-		button->setIcon(previewFrame->style()->standardIcon(icon));
+		button->setIcon(OpbsStandardIcon(previewFrame, icon));
 		button->setIconSize(QSize(20, 20));
 		button->setToolTip(tip);
 		button->setAccessibleName(tip);
@@ -702,7 +653,7 @@ void PresenterPanel::BuildInterface()
 	transmissionFrame->setObjectName("transmissionPreviewFrame");
 	auto *transmissionLayout = new QVBoxLayout(transmissionFrame);
 	transmissionLayout->setContentsMargins(10, 10, 10, 10);
-	auto *transmissionLabel = new QLabel(tr("●  VISTA PREVIA DE TRANSMISIÓN"), transmissionFrame);
+	auto *transmissionLabel = new QLabel(tr("Vista previa de transmisión"), transmissionFrame);
 	transmissionLabel->setObjectName("presenterLive");
 	transmissionLayout->addWidget(transmissionLabel);
 	transmissionPreview = new OBSQTDisplay(transmissionFrame);
@@ -717,6 +668,8 @@ void PresenterPanel::BuildInterface()
 		button->setObjectName("transmissionMode");
 		button->setText(text);
 		button->setToolTip(tip);
+		button->setAccessibleName(text);
+		button->setAccessibleDescription(tip);
 		button->setCheckable(checkable);
 		transmissionButtons->addWidget(button);
 		return button;
@@ -744,15 +697,6 @@ void PresenterPanel::BuildInterface()
 	library->setObjectName("presenterLibrary");
 	auto *libraryLayout = new QVBoxLayout(library);
 	libraryLayout->setContentsMargins(16, 16, 16, 16);
-	auto *libraryHead = new QHBoxLayout();
-	auto *libraryTitle = new QLabel(tr("MULTIMEDIA"), library);
-	libraryTitle->setObjectName("presenterTitle");
-	mediaCount = new QLabel(tr("0 archivos"), library);
-	mediaCount->setObjectName("presenterMediaCount");
-	libraryHead->addWidget(libraryTitle);
-	libraryHead->addStretch();
-	libraryHead->addWidget(mediaCount);
-	libraryLayout->addLayout(libraryHead);
 	auto *libraryBody = new QHBoxLayout();
 	libraryBody->setSpacing(12);
 	auto *folderPanel = new QFrame(library);
@@ -760,10 +704,13 @@ void PresenterPanel::BuildInterface()
 	folderPanel->setFixedWidth(165);
 	auto *folderLayout = new QVBoxLayout(folderPanel);
 	folderLayout->setContentsMargins(8, 8, 8, 8);
-	folderLayout->addWidget(new QLabel(tr("CARPETAS"), folderPanel));
+	auto *folderTitle = new QLabel(tr("Carpetas"), folderPanel);
+	folderTitle->setObjectName("presenterSectionLabel");
+	folderLayout->addWidget(folderTitle);
 	auto *foldersWidget = new PresenterFolderList(folderPanel);
 	folderList = foldersWidget;
 	foldersWidget->setObjectName("presenterFolderList");
+	foldersWidget->setAccessibleName(tr("Carpetas multimedia"));
 	foldersWidget->setSelectionMode(QAbstractItemView::SingleSelection);
 	foldersWidget->setMinimumHeight(160);
 	folderLayout->addWidget(foldersWidget, 1);
@@ -771,9 +718,11 @@ void PresenterPanel::BuildInterface()
 	auto *addFolder = new QToolButton(folderPanel);
 	addFolder->setText("+");
 	addFolder->setToolTip(tr("Crear carpeta"));
+	addFolder->setAccessibleName(tr("Crear carpeta multimedia"));
 	auto *renameFolder = new QToolButton(folderPanel);
-	renameFolder->setIcon(style()->standardIcon(QStyle::SP_FileDialogDetailedView));
+	renameFolder->setIcon(OpbsStandardIcon(renameFolder, QStyle::SP_FileDialogDetailedView));
 	renameFolder->setToolTip(tr("Renombrar carpeta"));
+	renameFolder->setAccessibleName(tr("Renombrar carpeta multimedia"));
 	folderButtons->addWidget(addFolder);
 	folderButtons->addWidget(renameFolder);
 	folderButtons->addStretch();
@@ -782,6 +731,7 @@ void PresenterPanel::BuildInterface()
 	auto *presentationsWidget = new PresenterFolderList(dockWorkspace);
 	presentationFolderList = presentationsWidget;
 	presentationsWidget->setObjectName("presenterPresentationList");
+	presentationsWidget->setAccessibleName(tr("Herramientas del presentador"));
 	presentationsWidget->setSelectionMode(QAbstractItemView::SingleSelection);
 	presentationsWidget->setAcceptDrops(false);
 	presentationsWidget->setDragEnabled(false);
@@ -792,9 +742,9 @@ void PresenterPanel::BuildInterface()
 		item->setData(Qt::UserRole, id);
 		item->setFlags(item->flags() & ~Qt::ItemIsDragEnabled & ~Qt::ItemIsEditable & ~Qt::ItemIsDropEnabled);
 	};
-	addPresentationFolder(QString::fromLatin1(kBibleFolderId), tr("BIBLIA"));
-	addPresentationFolder(QString::fromLatin1(kPresentationsFolderId), tr("PRESENTACIÓN"));
-	addPresentationFolder(QString::fromLatin1(kCaptureFolderId), tr("CAPTURA"));
+	addPresentationFolder(QString::fromLatin1(kBibleFolderId), tr("Biblia"));
+	addPresentationFolder(QString::fromLatin1(kPresentationsFolderId), tr("Presentación"));
+	addPresentationFolder(QString::fromLatin1(kCaptureFolderId), tr("Captura"));
 	addPresentationFolder(QString::fromLatin1(kNdiFolderId), tr("NDI"));
 	libraryBody->addWidget(folderPanel);
 	libraryContentHost = new QWidget(library);
@@ -809,6 +759,7 @@ void PresenterPanel::BuildInterface()
 	bibleSearchEdit->setObjectName("presenterSearch");
 	bibleSearchEdit->setPlaceholderText(tr("Buscar texto o referencia bíblica…"));
 	bibleSearchEdit->setClearButtonEnabled(true);
+	bibleSearchEdit->setAccessibleName(tr("Buscar en la Biblia"));
 	bibleSelector = new QComboBox(bibleToolbar);
 	bibleSelector->setObjectName("presenterBibleSelector");
 	bibleSelector->setToolTip(tr("Biblia seleccionada"));
@@ -824,6 +775,7 @@ void PresenterPanel::BuildInterface()
 	auto *list = new PresenterMediaList(library);
 	mediaList = list;
 	list->setObjectName("presenterMediaList");
+	list->setAccessibleName(tr("Contenido multimedia de la carpeta"));
 	list->setViewMode(QListView::IconMode);
 	list->setResizeMode(QListView::Adjust);
 	list->setMovement(QListView::Snap);
@@ -864,6 +816,7 @@ void PresenterPanel::BuildInterface()
 	mediaArea->addWidget(list, 1);
 	bibleResultsList = new QListWidget(library);
 	bibleResultsList->setObjectName("presenterBibleList");
+	bibleResultsList->setAccessibleName(tr("Resultados de la búsqueda bíblica"));
 	bibleResultsList->setViewMode(QListView::IconMode);
 	bibleResultsList->setResizeMode(QListView::Adjust);
 	bibleResultsList->setMovement(QListView::Static);
@@ -883,12 +836,20 @@ void PresenterPanel::BuildInterface()
 	searchEdit->setObjectName("presenterSearch");
 	searchEdit->setPlaceholderText(tr("Buscar en esta carpeta…"));
 	searchEdit->setClearButtonEnabled(true);
+	searchEdit->setAccessibleName(tr("Buscar contenido multimedia"));
 	multimediaContentTarget = new QWidget(library);
 	auto *multimediaTargetLayout = new QVBoxLayout(multimediaContentTarget);
 	multimediaTargetLayout->setContentsMargins(0, 0, 0, 0);
-	multimediaTargetLayout->addWidget(libraryContentHost);
+	auto *multimediaToolbar = new QHBoxLayout();
+	multimediaToolbar->setSpacing(10);
 	searchEdit->setParent(multimediaContentTarget);
-	multimediaTargetLayout->addWidget(searchEdit);
+	searchEdit->setMinimumWidth(260);
+	mediaCount = new QLabel(tr("0 archivos"), multimediaContentTarget);
+	mediaCount->setObjectName("presenterCountBadge");
+	multimediaToolbar->addWidget(searchEdit, 1);
+	multimediaToolbar->addWidget(mediaCount);
+	multimediaTargetLayout->addLayout(multimediaToolbar);
+	multimediaTargetLayout->addWidget(libraryContentHost, 1);
 	libraryBody->addWidget(multimediaContentTarget, 1);
 	libraryLayout->addLayout(libraryBody, 1);
 
@@ -943,13 +904,10 @@ void PresenterPanel::BuildInterface()
 	toolsSidebar->setMaximumWidth(230);
 	auto *toolsSidebarLayout = new QVBoxLayout(toolsSidebar);
 	toolsSidebarLayout->setContentsMargins(8, 8, 8, 8);
-	auto *toolsTitle = new QLabel(tr("HERRAMIENTAS"), toolsSidebar);
-	toolsTitle->setObjectName("presenterCurrent");
-	toolsSidebarLayout->addWidget(toolsTitle);
 	toolsSidebarLayout->addWidget(presentationsWidget);
 	toolsSidebarLayout->addSpacing(12);
-	auto *recentTitle = new QLabel(tr("PRESENTACIONES RECIENTES"), toolsSidebar);
-	recentTitle->setObjectName("presenterMediaCount");
+	auto *recentTitle = new QLabel(tr("Presentaciones recientes"), toolsSidebar);
+	recentTitle->setObjectName("presenterSectionLabel");
 	toolsSidebarLayout->addWidget(recentTitle);
 	recentPresentationsList = new QListWidget(toolsSidebar);
 	recentPresentationsList->setObjectName("presenterPresentationList");
@@ -968,6 +926,7 @@ void PresenterPanel::BuildInterface()
 	toolsContentLayout->addWidget(bibleResultsList, 1);
 	presentationMediaList = new QListWidget(toolsContentTarget);
 	presentationMediaList->setObjectName("presenterMediaList");
+	presentationMediaList->setAccessibleName(tr("Diapositivas de la presentación"));
 	presentationMediaList->setViewMode(QListView::IconMode);
 	presentationMediaList->setResizeMode(QListView::Adjust);
 	presentationMediaList->setMovement(QListView::Static);
@@ -994,6 +953,7 @@ void PresenterPanel::BuildInterface()
 	toolsContentLayout->addWidget(toolsEmptyState, 1);
 	captureList = new QListWidget(toolsContentTarget);
 	captureList->setObjectName("presenterMediaList");
+	captureList->setAccessibleName(tr("Fuentes de captura"));
 	captureList->setViewMode(QListView::IconMode);
 	captureList->setResizeMode(QListView::Adjust);
 	captureList->setMovement(QListView::Static);
@@ -1028,6 +988,7 @@ void PresenterPanel::BuildInterface()
 	auto *captureAdd = new QToolButton(captureControls);
 	captureAdd->setObjectName("captureAdd");
 	captureAdd->setText(tr("+ Agregar captura"));
+	captureAdd->setAccessibleName(tr("Agregar fuente de captura"));
 	auto *captureMenu = new QMenu(captureAdd);
 	auto *addCameraCapture = captureMenu->addAction(tr("Dispositivo de captura de video…"));
 	auto *addWindowCapture = captureMenu->addAction(tr("Captura de ventana…"));
@@ -1044,29 +1005,30 @@ void PresenterPanel::BuildInterface()
 	audioFrame->setObjectName("presenterLibrary");
 	auto *audioPlayerLayout = new QVBoxLayout(audioFrame);
 	audioPlayerLayout->setContentsMargins(10, 10, 10, 10);
-	auto *audioTitle = new QLabel(tr("REPRODUCTOR DE AUDIO"), audioFrame);
-	audioTitle->setObjectName("presenterCurrent");
-	audioPlayerLayout->addWidget(audioTitle);
 	audioPlayerTimeline = new AbsoluteSlider(Qt::Horizontal, audioFrame);
 	audioPlayerTimeline->setRange(0, 1000);
 	audioPlayerTimeline->setEnabled(false);
+	audioPlayerTimeline->setAccessibleName(tr("Línea de tiempo del reproductor de audio"));
 	audioPlayerLayout->addWidget(audioPlayerTimeline);
 	auto *audioControls = new QHBoxLayout();
 	audioControls->addStretch();
 	audioPlayerPlayPauseButton = new QToolButton(audioFrame);
 	audioPlayerPlayPauseButton->setObjectName("presenterTransport");
-	audioPlayerPlayPauseButton->setIcon(style()->standardIcon(QStyle::SP_MediaPlay));
+	audioPlayerPlayPauseButton->setIcon(OpbsStandardIcon(audioPlayerPlayPauseButton, QStyle::SP_MediaPlay));
 	audioPlayerPlayPauseButton->setToolTip(tr("Reproducir / pausar audio"));
+	audioPlayerPlayPauseButton->setAccessibleName(tr("Reproducir o pausar audio"));
 	auto *audioStopButton = new QToolButton(audioFrame);
 	audioStopButton->setObjectName("presenterTransport");
-	audioStopButton->setIcon(style()->standardIcon(QStyle::SP_MediaStop));
+	audioStopButton->setIcon(OpbsStandardIcon(audioStopButton, QStyle::SP_MediaStop));
 	audioStopButton->setToolTip(tr("Detener audio"));
+	audioStopButton->setAccessibleName(tr("Detener audio"));
 	audioControls->addWidget(audioPlayerPlayPauseButton);
 	audioControls->addWidget(audioStopButton);
 	audioControls->addStretch();
 	audioPlayerLayout->addLayout(audioControls);
 	audioPlaylistList = new AudioPlaylistList(audioFrame);
 	audioPlaylistList->setObjectName("presenterPresentationList");
+	audioPlaylistList->setAccessibleName(tr("Lista del reproductor de audio"));
 	audioPlaylistList->setAlternatingRowColors(true);
 	audioPlaylistList->setToolTip(tr("Arrastra aquí archivos de audio"));
 	audioPlayerLayout->addWidget(audioPlaylistList, 1);
@@ -1095,11 +1057,11 @@ void PresenterPanel::BuildInterface()
 		dock->setWidget(widget);
 		return dock;
 	};
-	auto *presenterDock = makeDock("opbsPresenterDock", tr("PRESENTADOR / ESCENARIO"), previewFrame);
-	auto *transmissionDock = makeDock("opbsTransmissionDock", tr("TRANSMISIÓN / EN VIVO"), transmissionFrame);
-	auto *multimediaDock = makeDock("opbsMultimediaDock", tr("MULTIMEDIA"), library);
-	auto *toolsDock = makeDock("opbsToolsDock", tr("HERRAMIENTAS"), toolsFrame);
-	auto *audioDock = makeDock("opbsAudioPlayerDock", tr("REPRODUCTOR DE AUDIO"), audioFrame);
+	auto *presenterDock = makeDock("opbsPresenterDock", tr("Presentador / Escenario"), previewFrame);
+	auto *transmissionDock = makeDock("opbsTransmissionDock", tr("Transmisión / En vivo"), transmissionFrame);
+	auto *multimediaDock = makeDock("opbsMultimediaDock", tr("Multimedia"), library);
+	auto *toolsDock = makeDock("opbsToolsDock", tr("Herramientas"), toolsFrame);
+	auto *audioDock = makeDock("opbsAudioPlayerDock", tr("Reproductor de audio"), audioFrame);
 	dockWorkspace->addDockWidget(Qt::LeftDockWidgetArea, presenterDock);
 	dockWorkspace->addDockWidget(Qt::LeftDockWidgetArea, transmissionDock);
 	dockWorkspace->addDockWidget(Qt::LeftDockWidgetArea, multimediaDock);
@@ -1145,7 +1107,9 @@ void PresenterPanel::AddAudioPlayerFiles(const QStringList &paths)
 		if (audioPlaylistPaths.contains(absolutePath, Qt::CaseInsensitive))
 			continue;
 		audioPlaylistPaths.push_back(absolutePath);
-		auto *item = new QListWidgetItem(style()->standardIcon(QStyle::SP_MediaVolume), info.fileName(),
+		auto *item = new QListWidgetItem(OpbsStandardIcon(audioPlaylistList, QStyle::SP_MediaVolume,
+							       QColor("#8CC8FF")),
+					 info.fileName(),
 						 audioPlaylistList);
 		item->setToolTip(absolutePath);
 	}
@@ -1174,7 +1138,7 @@ void PresenterPanel::PlayAudioPlayerRow(int row)
 	obs_source_media_restart(audioPlayerSource);
 	audioPlaylistList->setCurrentRow(row);
 	audioPlayerTimeline->setEnabled(true);
-	audioPlayerPlayPauseButton->setIcon(style()->standardIcon(QStyle::SP_MediaPause));
+	audioPlayerPlayPauseButton->setIcon(OpbsStandardIcon(audioPlayerPlayPauseButton, QStyle::SP_MediaPause));
 }
 
 void PresenterPanel::ToggleAudioPlayer()
@@ -1186,10 +1150,10 @@ void PresenterPanel::ToggleAudioPlayer()
 	const obs_media_state state = obs_source_media_get_state(audioPlayerSource);
 	if (state == OBS_MEDIA_STATE_PLAYING) {
 		obs_source_media_play_pause(audioPlayerSource, true);
-		audioPlayerPlayPauseButton->setIcon(style()->standardIcon(QStyle::SP_MediaPlay));
+		audioPlayerPlayPauseButton->setIcon(OpbsStandardIcon(audioPlayerPlayPauseButton, QStyle::SP_MediaPlay));
 	} else {
 		obs_source_media_play_pause(audioPlayerSource, false);
-		audioPlayerPlayPauseButton->setIcon(style()->standardIcon(QStyle::SP_MediaPause));
+		audioPlayerPlayPauseButton->setIcon(OpbsStandardIcon(audioPlayerPlayPauseButton, QStyle::SP_MediaPause));
 	}
 }
 
@@ -1206,7 +1170,7 @@ void PresenterPanel::StopAudioPlayer()
 		audioPlayerTimeline->setEnabled(false);
 	}
 	if (audioPlayerPlayPauseButton)
-		audioPlayerPlayPauseButton->setIcon(style()->standardIcon(QStyle::SP_MediaPlay));
+		audioPlayerPlayPauseButton->setIcon(OpbsStandardIcon(audioPlayerPlayPauseButton, QStyle::SP_MediaPlay));
 }
 
 void PresenterPanel::RefreshAudioPlayerTimeline()
@@ -1230,7 +1194,10 @@ void PresenterPanel::RefreshRecentPresentations()
 	for (int index = 0; index < recentPresentationIds.size(); ++index) {
 		const QString name = index < recentPresentationNames.size() ? recentPresentationNames[index]
 								     : tr("Presentación %1").arg(index + 1);
-		auto *item = new QListWidgetItem(style()->standardIcon(QStyle::SP_FileDialogDetailedView), name,
+		auto *item = new QListWidgetItem(OpbsStandardIcon(recentPresentationsList,
+								      QStyle::SP_FileDialogDetailedView,
+								      QColor("#8CC8FF")),
+					 name,
 						 recentPresentationsList);
 		item->setData(Qt::UserRole, recentPresentationIds[index]);
 	}
@@ -1562,6 +1529,7 @@ void PresenterPanel::Initialize()
 	UpdateTransmissionItemBounds();
 
 	BuildTopMenu();
+	OpbsDesignSystem::ApplyToMainWindow(main);
 	originalCentralWidget = main->takeCentralWidget();
 	if (originalCentralWidget) {
 		originalCentralWidget->hide();
@@ -2347,7 +2315,7 @@ void PresenterPanel::RefreshTimeline()
 		timelineSlider->setEnabled(false);
 		timeLabel->setText("0:00 / 0:00");
 		if (playPauseButton)
-			playPauseButton->setIcon(style()->standardIcon(QStyle::SP_MediaPlay));
+			playPauseButton->setIcon(OpbsStandardIcon(playPauseButton, QStyle::SP_MediaPlay));
 		return;
 	}
 	const int64_t observedDuration = obs_source_media_get_duration(activeSource);
@@ -2357,8 +2325,9 @@ void PresenterPanel::RefreshTimeline()
 	const int64_t time = obs_source_media_get_time(activeSource);
 	const obs_media_state state = obs_source_media_get_state(activeSource);
 	if (playPauseButton)
-		playPauseButton->setIcon(style()->standardIcon(state == OBS_MEDIA_STATE_PLAYING ? QStyle::SP_MediaPause
-										 : QStyle::SP_MediaPlay));
+		playPauseButton->setIcon(OpbsStandardIcon(
+			playPauseButton,
+			state == OBS_MEDIA_STATE_PLAYING ? QStyle::SP_MediaPause : QStyle::SP_MediaPlay));
 	timelineSlider->setEnabled(duration > 0);
 	const bool seekPending = pendingSeekValue >= 0 && QDateTime::currentMSecsSinceEpoch() < seekGuardUntil;
 	if (seekPending) {

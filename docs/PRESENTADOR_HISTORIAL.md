@@ -229,6 +229,25 @@ build_x64/rundir/RelWithDebInfo/obs-plugins/64bit/obs-ffmpeg.dll
 - `Build-Presenter.cmd` y `Package-Presenter.cmd` terminaron correctamente; la aplicación empaquetada inició en modo
   seguro y su registro alcanzó `Startup complete` con la nueva interfaz cargada.
 
+## 2026-08-19 - Sistema visual propio de OPBS
+
+- Se creó `OPBS_DESIGN_SYSTEM.md` como especificación original del producto para color semántico, tipografía, espacio,
+  geometría, estados interactivos, accesibilidad y movimiento. Las referencias externas quedan fuera del repositorio y
+  del instalador; OPBS conserva comportamiento de Windows e identidad propia.
+- `OpbsDesignSystem` centraliza la hoja de estilo compartida de la ventana, menús, diálogos, paneles, listas, tarjetas,
+  formularios, barras de desplazamiento y controles del presentador.
+- Se añadieron estados visibles de `hover`, pulsación, foco por teclado, selección, deshabilitado y salida en vivo, junto
+  con nombres accesibles para búsquedas, líneas de tiempo, transporte, carpetas, capturas y listas principales.
+- La segunda iteración cambia también la jerarquía: elimina encabezados internos duplicados, usa nombres de panel en
+  estilo oración, coloca la búsqueda de Multimedia arriba junto a un contador compacto y diferencia las vistas previas
+  mediante rótulos con acento azul. Los iconos estándar de transporte y listas se recolorean para mantener contraste
+  sobre el tema oscuro.
+- `Build-Presenter.cmd` y `Package-Presenter.cmd` terminaron correctamente. OPBS inició en modo seguro, permaneció
+  respondiendo y alcanzó `Startup complete` después de ambas iteraciones; el registro no contiene errores de análisis
+  de QSS. La herramienta de
+  control visual bloqueó `OPBS.exe` por política, por lo que la inspección visual automatizada queda sustituida por una
+  revisión manual de la ventana abierta.
+
 ## Prueba pendiente inmediata
 
 La línea de tiempo de música quedó verificada. Sigue pendiente comprobar el audio físico con una salida conectada:
