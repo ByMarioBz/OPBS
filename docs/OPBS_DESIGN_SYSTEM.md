@@ -70,7 +70,9 @@ resalta únicamente mientras el archivo está encima; un destino inválido conse
 ## Componentes
 
 - **Menú principal:** una sola fila compacta, sin repetir funciones en una cabecera secundaria.
-- **Paneles:** barra de título plana, superficie única y separador negro suficiente para redimensionar.
+- **Paneles:** una sola superficie continua; el título se integra sin caja ni borde propio y el separador exterior
+  conserva el espacio suficiente para redimensionar. Arrastrar o hacer doble clic en el título mantiene las funciones
+  de mover y desacoplar sin mostrar controles permanentes que compitan con el contenido.
 - **Tarjetas:** miniatura 16:9, nombre legible, borde de selección y tooltip para rutas largas.
 - **Buscadores:** campo local a su panel, botón de limpiar y foco azul; el placeholder explica el alcance.
 - **Botones:** verbo concreto o icono estándar con tooltip y nombre accesible.

@@ -87,18 +87,20 @@ QString PresenterStyleSheet()
 		#presenterSectionLabel { color: #A9B3BF; font-size: 12px; font-weight: 600; padding: 3px 4px; }
 		#presenterCountBadge { color: #B8C5D3; background: #171E27; border: 1px solid #2D3946;
 			border-radius: 12px; padding: 5px 11px; font-size: 11px; }
-		#presenterStatusChip { background: #171D25; border: 1px solid #2E3945; border-radius: 11px; }
+		#presenterStatusChip { background: transparent; border: 0; }
 		#presenterStatusDot { color: #58AFFF; font-size: 9px; }
 		#presenterStatusText { color: #DCE4ED; font-size: 11px; font-weight: 600; }
 		#presenterPreviewFrame, #presenterLibrary, #transmissionPreviewFrame {
-			background: #0E1218; border: 1px solid #252D37; border-radius: 8px; }
+			background: #0E1218; border: 0; }
 		#presenterCurrent { color: #EEF2F6; font-weight: 600; }
 		#presenterEmpty { color: #8D99A8; font-size: 14px; }
 		#presenterHint { color: #8995A3; font-size: 11px; padding: 7px 3px; }
 		#presenterDockWorkspace { background: #06080C; }
-		QDockWidget { color: #DCE3EB; font-weight: 600; font-size: 13px; }
-		QDockWidget::title { background: #12171E; border: 1px solid #252D37; border-bottom: 1px solid #313B47;
-			padding: 9px 12px; text-align: left; }
+		QDockWidget { color: #DCE3EB; background: #0E1218; border: 1px solid #28323D;
+			border-radius: 11px; font-weight: 600; font-size: 12px; }
+		QDockWidget::title { background: transparent; border: 0; padding: 10px 14px 7px 14px;
+			text-align: left; }
+		QDockWidget::float-button { image: none; border: 0; width: 0; height: 0; }
 		QMainWindow::separator { background: #06080C; width: 10px; height: 10px; }
 		QListWidget#presenterMediaList { background: transparent; border: 0; outline: 0; }
 		QListWidget#presenterMediaList::item { background: #151A21; color: #EEF2F6;
