@@ -19,6 +19,7 @@ de OBS Studio.
   iconos de reproducción de alto contraste.
 - Indicadores compactos, selecciones laterales más sobrias y mejor aprovechamiento del espacio en ventanas grandes.
 - Paneles de superficie continua, sin la doble barra superior heredada del aspecto de OBS.
+- Cabeceras propias e iconografía monocroma original para los cinco paneles del espacio de trabajo.
 - Multimedia y Herramientas funcionan simultáneamente con cuadrículas independientes; los medios arrastrados ya no
   pueden aparecer dentro de Presentación, Captura o NDI.
 - Buscador multimedia independiente y buscador de Herramientas visible únicamente al seleccionar Biblia.

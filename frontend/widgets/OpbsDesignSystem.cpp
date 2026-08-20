@@ -98,9 +98,10 @@ QString PresenterStyleSheet()
 		#presenterDockWorkspace { background: #06080C; }
 		QDockWidget { color: #DCE3EB; background: #0E1218; border: 1px solid #28323D;
 			border-radius: 11px; font-weight: 600; font-size: 12px; }
-		QDockWidget::title { background: transparent; border: 0; padding: 10px 14px 7px 14px;
-			text-align: left; }
-		QDockWidget::float-button { image: none; border: 0; width: 0; height: 0; }
+		#opbsDockTitleBar { background: #0E1218; border: 0; border-top-left-radius: 11px;
+			border-top-right-radius: 11px; }
+		#opbsDockTitleText { color: #DDE5ED; font-size: 12px; font-weight: 650; }
+		#opbsDockTitleIcon { background: transparent; border: 0; }
 		QMainWindow::separator { background: #06080C; width: 10px; height: 10px; }
 		QListWidget#presenterMediaList { background: transparent; border: 0; outline: 0; }
 		QListWidget#presenterMediaList::item { background: #151A21; color: #EEF2F6;

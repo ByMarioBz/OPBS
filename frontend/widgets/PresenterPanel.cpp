@@ -59,6 +59,7 @@
 #include <QMenu>
 #include <QMessageBox>
 #include <QMimeData>
+#include <QMouseEvent>
 #include <QPainter>
 #include <QProgressBar>
 #include <QProgressDialog>
@@ -106,6 +107,90 @@ constexpr auto kTransmissionAudioBridgeId = "opbs_transmission_audio_bridge";
 const QStringList imageExtensions = {"bmp", "gif", "jpeg", "jpg", "png", "tga", "webp"};
 const QStringList audioExtensions = {"mp3", "aac", "ogg", "wav", "flac", "m4a", "wma"};
 const QStringList videoExtensions = {"mp4", "m4v", "mov", "mkv", "avi", "webm", "wmv", "mpeg", "mpg"};
+
+enum class OpbsPanelKind { Stage, Media, Live, Tools, Audio };
+
+QPixmap OpbsPanelPixmap(OpbsPanelKind kind)
+{
+	QPixmap pixmap(32, 32);
+	pixmap.setDevicePixelRatio(2.0);
+	pixmap.fill(Qt::transparent);
+	QPainter painter(&pixmap);
+	painter.setRenderHint(QPainter::Antialiasing);
+	painter.scale(2.0, 2.0);
+	QPen pen(QColor("#8CC8FF"), 1.35, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin);
+	painter.setPen(pen);
+	painter.setBrush(Qt::NoBrush);
+
+	switch (kind) {
+	case OpbsPanelKind::Stage:
+		painter.drawRoundedRect(QRectF(1.5, 2.0, 13.0, 9.0), 1.7, 1.7);
+		painter.drawLine(QPointF(8.0, 11.0), QPointF(8.0, 13.5));
+		painter.drawLine(QPointF(5.8, 13.5), QPointF(10.2, 13.5));
+		break;
+	case OpbsPanelKind::Media:
+		for (int row = 0; row < 2; ++row)
+			for (int column = 0; column < 2; ++column)
+				painter.drawRoundedRect(QRectF(2.0 + column * 6.7, 2.0 + row * 6.7, 4.8, 4.8),
+							1.0, 1.0);
+		break;
+	case OpbsPanelKind::Live:
+		painter.drawEllipse(QPointF(8.0, 8.0), 1.4, 1.4);
+		painter.drawArc(QRectF(4.2, 4.2, 7.6, 7.6), 55 * 16, 250 * 16);
+		painter.drawArc(QRectF(1.5, 1.5, 13.0, 13.0), 55 * 16, 250 * 16);
+		break;
+	case OpbsPanelKind::Tools:
+		painter.drawLine(QPointF(2.0, 3.0), QPointF(14.0, 3.0));
+		painter.drawLine(QPointF(2.0, 8.0), QPointF(14.0, 8.0));
+		painter.drawLine(QPointF(2.0, 13.0), QPointF(14.0, 13.0));
+		painter.setBrush(QColor("#8CC8FF"));
+		painter.drawEllipse(QPointF(5.0, 3.0), 1.45, 1.45);
+		painter.drawEllipse(QPointF(11.0, 8.0), 1.45, 1.45);
+		painter.drawEllipse(QPointF(7.0, 13.0), 1.45, 1.45);
+		break;
+	case OpbsPanelKind::Audio:
+		painter.drawLine(QPointF(6.2, 3.0), QPointF(6.2, 11.7));
+		painter.drawLine(QPointF(6.2, 3.0), QPointF(12.8, 1.8));
+		painter.drawLine(QPointF(12.8, 1.8), QPointF(12.8, 10.0));
+		painter.setBrush(QColor("#8CC8FF"));
+		painter.drawEllipse(QPointF(4.2, 12.2), 2.0, 1.6);
+		painter.drawEllipse(QPointF(10.8, 10.5), 2.0, 1.6);
+		break;
+	}
+	return pixmap;
+}
+
+class OpbsDockTitleBar : public QFrame {
+public:
+	OpbsDockTitleBar(const QString &title, OpbsPanelKind kind, QDockWidget *dock) : QFrame(dock)
+	{
+		setObjectName("opbsDockTitleBar");
+		setFixedHeight(38);
+		setCursor(Qt::SizeAllCursor);
+		setToolTip(QObject::tr("Arrastra para mover; doble clic para desacoplar"));
+		setAccessibleName(QObject::tr("Panel %1").arg(title));
+		auto *layout = new QHBoxLayout(this);
+		layout->setContentsMargins(13, 0, 13, 0);
+		layout->setSpacing(8);
+		auto *icon = new QLabel(this);
+		icon->setObjectName("opbsDockTitleIcon");
+		icon->setPixmap(OpbsPanelPixmap(kind));
+		icon->setFixedSize(16, 16);
+		icon->setAttribute(Qt::WA_TransparentForMouseEvents);
+		auto *label = new QLabel(title, this);
+		label->setObjectName("opbsDockTitleText");
+		label->setAttribute(Qt::WA_TransparentForMouseEvents);
+		layout->addWidget(icon);
+		layout->addWidget(label);
+		layout->addStretch();
+	}
+
+protected:
+	void mousePressEvent(QMouseEvent *event) override { event->ignore(); }
+	void mouseMoveEvent(QMouseEvent *event) override { event->ignore(); }
+	void mouseReleaseEvent(QMouseEvent *event) override { event->ignore(); }
+	void mouseDoubleClickEvent(QMouseEvent *event) override { event->ignore(); }
+};
 
 QIcon OpbsStandardIcon(const QWidget *widget, QStyle::StandardPixmap icon,
 		       const QColor &color = QColor("#F4F7FA"), const QSize &size = QSize(20, 20))
@@ -1073,19 +1158,23 @@ void PresenterPanel::BuildInterface()
 						    duration * audioPlayerTimeline->value() / 1000);
 	});
 
-	auto makeDock = [this](const QString &name, const QString &title, QWidget *widget) {
+	auto makeDock = [this](const QString &name, const QString &title, OpbsPanelKind kind, QWidget *widget) {
 		auto *dock = new QDockWidget(title, dockWorkspace);
 		dock->setObjectName(name);
 		dock->setFeatures(QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetFloatable);
 		dock->setAllowedAreas(Qt::AllDockWidgetAreas);
+		dock->setTitleBarWidget(new OpbsDockTitleBar(title, kind, dock));
 		dock->setWidget(widget);
 		return dock;
 	};
-	auto *presenterDock = makeDock("opbsPresenterDock", tr("Presentador / Escenario"), previewFrame);
-	auto *transmissionDock = makeDock("opbsTransmissionDock", tr("Transmisión / En vivo"), transmissionFrame);
-	auto *multimediaDock = makeDock("opbsMultimediaDock", tr("Multimedia"), library);
-	auto *toolsDock = makeDock("opbsToolsDock", tr("Herramientas"), toolsFrame);
-	auto *audioDock = makeDock("opbsAudioPlayerDock", tr("Reproductor de audio"), audioFrame);
+	auto *presenterDock =
+		makeDock("opbsPresenterDock", tr("Presentador / Escenario"), OpbsPanelKind::Stage, previewFrame);
+	auto *transmissionDock =
+		makeDock("opbsTransmissionDock", tr("Transmisión / En vivo"), OpbsPanelKind::Live, transmissionFrame);
+	auto *multimediaDock = makeDock("opbsMultimediaDock", tr("Multimedia"), OpbsPanelKind::Media, library);
+	auto *toolsDock = makeDock("opbsToolsDock", tr("Herramientas"), OpbsPanelKind::Tools, toolsFrame);
+	auto *audioDock =
+		makeDock("opbsAudioPlayerDock", tr("Reproductor de audio"), OpbsPanelKind::Audio, audioFrame);
 	dockWorkspace->addDockWidget(Qt::LeftDockWidgetArea, presenterDock);
 	dockWorkspace->addDockWidget(Qt::LeftDockWidgetArea, transmissionDock);
 	dockWorkspace->addDockWidget(Qt::LeftDockWidgetArea, multimediaDock);

@@ -249,8 +249,12 @@ build_x64/rundir/RelWithDebInfo/obs-plugins/64bit/obs-ffmpeg.dll
 - La cuarta iteración retira la apariencia heredada de barras acoplables apiladas: cada panel se dibuja como una sola
   superficie redondeada, el título deja de tener caja y borde independientes y el control visual de desacoplar se
   oculta. El título conserva el arrastre y el doble clic para mover o convertir el panel en ventana.
+- La quinta iteración reemplaza por completo el encabezado nativo visible de `QDockWidget` por una cabecera propia de
+  OPBS. Cinco glifos vectoriales dibujados en tiempo de ejecución identifican Escenario, Multimedia, En vivo,
+  Herramientas y Audio sin incorporar activos externos. Los eventos no consumidos se propagan al dock para conservar
+  el comportamiento de movimiento y doble clic documentado por Qt.
 - `Build-Presenter.cmd` y `Package-Presenter.cmd` terminaron correctamente. OPBS inició en modo seguro, permaneció
-  respondiendo y alcanzó `Startup complete` después de las cuatro iteraciones; el registro no contiene errores de análisis
+  respondiendo y alcanzó `Startup complete` después de las cinco iteraciones; el registro no contiene errores de análisis
   de QSS. La herramienta de
   control visual bloqueó `OPBS.exe` por política, por lo que la inspección visual automatizada queda sustituida por una
   revisión manual de la ventana abierta.

@@ -73,6 +73,8 @@ resalta únicamente mientras el archivo está encima; un destino inválido conse
 - **Paneles:** una sola superficie continua; el título se integra sin caja ni borde propio y el separador exterior
   conserva el espacio suficiente para redimensionar. Arrastrar o hacer doble clic en el título mantiene las funciones
   de mover y desacoplar sin mostrar controles permanentes que compitan con el contenido.
+- **Iconografía de panel:** Escenario, Multimedia, En vivo, Herramientas y Audio usan glifos originales de OPBS,
+  monocromos, geométricos y de 16 px. Los símbolos describen la función y no son decoración de marca.
 - **Tarjetas:** miniatura 16:9, nombre legible, borde de selección y tooltip para rutas largas.
 - **Buscadores:** campo local a su panel, botón de limpiar y foco azul; el placeholder explica el alcance.
 - **Botones:** verbo concreto o icono estándar con tooltip y nombre accesible.
