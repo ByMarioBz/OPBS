@@ -116,6 +116,10 @@ La distribución inicial mantiene aproximadamente 31/69 entre las vistas previas
 La configuración de transmisión recuerda el modo activo, la duración de Move, el fondo de `Ambos` y las ocho medidas de
 la composición.
 
+El estado operativo de transmisión se actualiza una vez por segundo. LIVE y REC usan relojes de sesión independientes;
+YouTube/Facebook muestran salud porcentual derivada de `obs_output_get_congestion` y de la proporción real de fotogramas
+descartados. Un destino inactivo o no configurado se identifica como tal y nunca muestra una señal ficticia.
+
 Multimedia y Herramientas tienen vistas independientes: `mediaList` nunca abandona Multimedia y
 `presentationMediaList`, `bibleResultsList` y `captureList` pertenecen permanentemente a Herramientas. Los archivos
 soltados sobre una herramienta se redirigen a la carpeta multimedia activa y las rutas antiguas asignadas por error a

@@ -44,11 +44,13 @@ class PresenterPanel : public QWidget {
 
 	struct MediaEntry {
 		QString path;
+		QString displayName;
 		QString folderId;
 		OBSSource source;
 		QListWidgetItem *item = nullptr;
 		QPointer<ThumbnailView> thumbnailView;
 		bool isImage = false;
+		bool loop = false;
 		bool thumbnailLoaded = false;
 	};
 	struct FolderEntry {
@@ -117,6 +119,7 @@ class PresenterPanel : public QWidget {
 	QPointer<QListWidget> bibleResultsList;
 	QPointer<QListWidget> recentPresentationsList;
 	QPointer<QListWidget> captureList;
+	QPointer<QListWidget> ndiList;
 	QPointer<QListWidget> audioPlaylistList;
 	QPointer<QLineEdit> searchEdit;
 	QPointer<QLineEdit> bibleSearchEdit;
@@ -128,6 +131,10 @@ class PresenterPanel : public QWidget {
 	QPointer<QLabel> currentMedia;
 	QPointer<QLabel> stageStatus;
 	QPointer<QLabel> timeLabel;
+	QPointer<QLabel> liveStatusLabel;
+	QPointer<QLabel> recordingStatusLabel;
+	QPointer<QLabel> primarySignalLabel;
+	QPointer<QLabel> secondarySignalLabel;
 	QPointer<QProgressBar> meterLeft;
 	QPointer<QProgressBar> meterRight;
 	QPointer<QSlider> mediaVolumeSlider;
@@ -162,10 +169,12 @@ class PresenterPanel : public QWidget {
 	QPointer<QTimer> timelineTimer;
 	QPointer<QTimer> seekTimer;
 	QPointer<QTimer> audioPlayerTimer;
+	QPointer<QTimer> transmissionStatusTimer;
 	std::vector<std::unique_ptr<MediaEntry>> entries;
 	std::vector<FolderEntry> folders;
 	std::vector<BibleVerse> bibleVerses;
 	std::vector<std::unique_ptr<CaptureEntry>> captureEntries;
+	std::vector<std::unique_ptr<CaptureEntry>> ndiEntries;
 	QString currentFolderId = "general";
 	QString currentMultimediaFolderId = "general";
 	QString currentBiblePath;
@@ -187,6 +196,7 @@ class PresenterPanel : public QWidget {
 	QString combinedBackgroundColor = "#000000";
 	QString combinedBackgroundPath;
 	QStringList audioPlaylistPaths;
+	QStringList audioPlaylistNames;
 	QStringList recentPresentationIds;
 	QStringList recentPresentationNames;
 	QString currentPresentationId;
@@ -230,6 +240,8 @@ class PresenterPanel : public QWidget {
 	bool transmissionPresenterAudioAttached = false;
 	bool audioPlayerTimelineDragging = false;
 	qint64 seekGuardUntil = 0;
+	qint64 streamingStartedAt = 0;
+	qint64 recordingStartedAt = 0;
 	int64_t cachedDuration = 0;
 	int pendingSeekValue = -1;
 
@@ -248,12 +260,15 @@ class PresenterPanel : public QWidget {
 	void RefreshAudioPlayerTimeline();
 	void RefreshRecentPresentations();
 	void RefreshCaptureList();
+	void RefreshNdiList();
 	void AddCaptureSource(bool camera);
+	void AddNdiSource();
 	bool EnsureCaptureSource(CaptureEntry *entry);
 	void ActivateCaptureSource(obs_source_t *source, const QString &name, QListWidgetItem *item = nullptr);
 	void LoadCaptureThumbnail(CaptureEntry *entry);
 	void ActivateRecentPresentation(int row);
-	void AddMediaFile(const QString &path, const QString &folderId = QString(), bool save = true);
+	void AddMediaFile(const QString &path, const QString &folderId = QString(), bool save = true,
+			  const QString &displayName = QString(), bool loop = false);
 	bool EnsureSource(MediaEntry *entry);
 	void ReleaseSource(MediaEntry *entry);
 	void ActivateMedia(MediaEntry *entry);
@@ -286,6 +301,7 @@ class PresenterPanel : public QWidget {
 	OBSServiceAutoRelease CreateStreamService(const StreamDestination &destination, const char *name) const;
 	void ApplyPrimaryStreamService();
 	void UpdateTransmissionButtons();
+	void UpdateTransmissionStatus();
 	void LaunchOpbsUpdater(bool silent = false);
 	void ImportPresentation(bool pdf);
 	void ReplacePresentationSlides(const QString &temporaryDirectory, int slideCount, const QString &displayName);

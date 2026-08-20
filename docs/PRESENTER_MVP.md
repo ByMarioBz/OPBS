@@ -32,8 +32,10 @@ integrar funciones de forma gradual.
   fondos de video pueden repetirse; sin repetición conservan el último fotograma al terminar.
 - Menú `Archivo > Importar` con opciones `PowerPoint` y `PDF`. Cada página o diapositiva se convierte en una imagen
   numerada y reemplaza la presentación importada anteriormente.
-- Menú contextual `Eliminar` en las carpetas de `Multimedia`; quita la referencia de la biblioteca sin borrar el
-  archivo original del equipo.
+- Menús contextuales propios en Multimedia, Reproductor de audio, Captura y NDI. Permiten agregar únicamente fuentes
+  compatibles con cada área, cambiar su nombre interno y eliminarlas de OPBS sin borrar archivos del equipo.
+- Cada video o audio de Multimedia conserva su propio estado de repetición; el menú muestra una marca junto al archivo
+  activado y el ajuste no se propaga al resto de la biblioteca.
 - Tarjetas con nombre y miniatura; una selección sustituye inmediatamente al contenido anterior.
 - Vista previa local y escenario a pantalla completa sobre un monitor elegido.
 - Interruptor rápido para activar o apagar la salida de escenario.
@@ -44,6 +46,8 @@ integrar funciones de forma gradual.
   controles reproducir/pausar y detener. No sustituye el contenido que se está proyectando.
 - Menú `Editar` con ajuste opcional de fotos y videos al área completa 16:9; la preferencia se conserva.
 - Ventanas `Pantallas`, `Sonido` y `Biblia`; se conservan monitor, dispositivo, audio y layout bíblico seleccionados.
+- El panel En vivo muestra estado y duración de LIVE y REC, además de la salud de señal independiente para los dos
+  destinos configurados a partir de congestión y fotogramas descartados de la salida real.
 - Posición y tamaño de la ventana principal persistentes.
 - Ejecución portátil local en `dist/OPBS` para desarrollo, sin alterar una instalación normal de OBS. Los Releases
   públicos se distribuyen únicamente mediante el instalador propio.

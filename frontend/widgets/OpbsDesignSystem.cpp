@@ -115,10 +115,10 @@ QString PresenterStyleSheet()
 		#presenterHint { color: #92929D; font-size: 11px; padding: 7px 3px; }
 		#presenterDockWorkspace { background: #070709; }
 		QDockWidget { color: #DEDEE3; background: #121216; border: 1px solid #2A2A31;
-			border-radius: 16px; font-weight: 600; font-size: 12px; }
+			border-radius: 11px; font-weight: 600; font-size: 12px; }
 		#opbsDockTitleBar { background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
 			stop:0 #1B1B20, stop:1 #16161A); border: 0; border-bottom: 1px solid #24242A;
-			border-top-left-radius: 15px; border-top-right-radius: 15px; }
+			border-top-left-radius: 10px; border-top-right-radius: 10px; }
 		#opbsDockTitleText { color: #EBEBEF; font-size: 13px; font-weight: 650; }
 		#opbsDockTitleIcon { background: transparent; border: 0; }
 		QMainWindow::separator { background: #070709; width: 10px; height: 10px; }
@@ -140,10 +140,10 @@ QString PresenterStyleSheet()
 			background: #2A2A30; border-left: 3px solid #5AAEFF; color: white; }
 		QListWidget#presenterFolderList:focus, QListWidget#presenterPresentationList:focus {
 			border: 0; }
-		QLineEdit#presenterSearch { min-height: 36px; background: #1C1C21; color: #EEEEF2;
-			border: 1px solid #34343C; border-radius: 12px; padding: 2px 12px; }
+		QLineEdit#presenterSearch { min-height: 36px; max-height: 36px; background: #1C1C21; color: #EEEEF2;
+			border: 1px solid #34343C; border-radius: 11px; padding: 1px 10px; }
 		QLineEdit#presenterSearch:hover { border-color: #62626D; }
-		QLineEdit#presenterSearch:focus { border: 2px solid #5AAEFF; padding: 1px 11px; }
+		QLineEdit#presenterSearch:focus { border: 2px solid #5AAEFF; padding: 0 9px; }
 		#presenterBibleControls { background: #18181D; border: 1px solid #2C2C33; border-radius: 12px; }
 		QComboBox#presenterBibleSelector { min-height: 32px; background: #24242A; color: #EEEEF2;
 			border: 1px solid #3A3A43; border-radius: 10px; padding: 2px 11px; min-width: 190px; }
@@ -166,6 +166,10 @@ QString PresenterStyleSheet()
 		QCheckBox#presenterStageToggle::indicator:unchecked { border-color: #B8B8C0; }
 		#presenterTransportGroup, #transmissionModeGroup { background: #1C1C21; border: 1px solid #34343C;
 			border-radius: 13px; }
+		QToolButton#opbsIconButton { min-width: 36px; min-height: 34px; background: #24242A;
+			border: 1px solid #3A3A43; border-radius: 10px; padding: 2px; font-weight: 700; }
+		QToolButton#opbsIconButton:hover { background: #303038; border-color: #62626D; }
+		QToolButton#opbsIconButton:focus { border: 2px solid #5AAEFF; }
 		QToolButton#presenterTransport { background: transparent; color: #F5F5F7; border: 0;
 			border-radius: 9px; min-width: 40px; min-height: 32px; font-size: 16px; font-weight: 700; }
 		QToolButton#presenterTransport:hover { background: #303038; border: 0; }
@@ -177,11 +181,22 @@ QString PresenterStyleSheet()
 		QToolButton#transmissionMode:hover { background: #303038; border: 0; }
 		QToolButton#transmissionMode:focus { border: 2px solid #5AAEFF; }
 		QToolButton#transmissionMode:checked { background: #0969BD; border: 0; }
-		QToolButton#transmissionLive { min-height: 34px; background: #B93646; color: white; border: 1px solid #D95B68;
-			border-radius: 10px; padding: 3px 15px; font-weight: 700; }
-		QToolButton#transmissionLive:hover { background: #CC4252; }
+		#transmissionStatusStrip { background: #18181D; border: 1px solid #2C2C33; border-radius: 11px; }
+		QLabel#transmissionStatusChip { color: #A6A6B0; background: #222228; border: 1px solid #303038;
+			border-radius: 9px; padding: 5px 9px; font-size: 11px; font-weight: 600; }
+		QLabel#transmissionStatusChip[state="live"] { color: #FF7A86; background: #32191F; border-color: #71303A; }
+		QLabel#transmissionStatusChip[state="recording"] { color: #FF9BA4; background: #32191F; border-color: #71303A; }
+		QLabel#transmissionStatusChip[state="good"] { color: #73D9A9; background: #142A22; border-color: #285A45; }
+		QLabel#transmissionStatusChip[state="warning"] { color: #F3C969; background: #302714; border-color: #655426; }
+		QLabel#transmissionStatusChip[state="bad"] { color: #FF7A86; background: #32191F; border-color: #71303A; }
+		QToolButton#transmissionLive { min-height: 40px; color: white; border-radius: 11px;
+			padding: 3px 17px; font-weight: 700; }
+		QToolButton#transmissionLive[action="stream"] { background: #B93646; border: 1px solid #D95B68; }
+		QToolButton#transmissionLive[action="record"] { background: #29292F; border: 1px solid #555560; }
+		QToolButton#transmissionLive[action="stream"]:hover { background: #CC4252; }
+		QToolButton#transmissionLive[action="record"]:hover { background: #36363E; border-color: #777783; }
 		QToolButton#transmissionLive:focus { border: 2px solid white; }
-		QToolButton#transmissionLive:checked { background: #D94B5B; }
+		QToolButton#transmissionLive:checked { background: #D94B5B; border-color: #FF929D; }
 		QToolButton#captureAdd { min-height: 30px; background: #0969BD; color: white; border: 1px solid #5AAEFF;
 			border-radius: 8px; padding: 3px 13px; font-weight: 700; }
 		QToolButton#captureAdd:hover { background: #0B76D7; }

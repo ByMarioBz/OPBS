@@ -94,6 +94,10 @@ resalta únicamente mientras el archivo está encima; un destino inválido conse
   los modos de transmisión se perciben como unidades, mientras cada botón conserva su foco y nombre accesible.
 - **Acciones de transmisión:** Transmitir y Grabar mantienen color de advertencia y un icono descriptivo; Cámaras,
   Presentador y Ambos forman un selector segmentado con iconos propios y un único estado activo.
+- **Estado operativo:** LIVE, REC y los destinos remotos usan cápsulas compactas alineadas a la izquierda. El estado
+  combina texto, color, duración y porcentaje cuando existe telemetría real; nunca depende solo de un punto de color.
+- **Menús contextuales:** conservan el mismo material y espaciado del menú principal. Las acciones destructivas se
+  separan de Agregar y Cambiar nombre; los estados por elemento muestran una marca al lado derecho del texto.
 - **Estados vacíos:** explican qué falta y cuál es la acción siguiente; no se usan como mensajes de error.
 - **Indicadores de estado:** usan cápsulas compactas y nunca barras decorativas de ancho completo.
 - **Búsqueda en escritorio:** conserva un ancho de lectura razonable en ventanas grandes; el espacio restante pertenece
@@ -123,6 +127,9 @@ resalta únicamente mientras el archivo está encima; un destino inválido conse
 Las guías de diseño externas pueden consultarse localmente para auditar claridad, accesibilidad y consistencia. No se
 copian al repositorio, no forman parte del instalador y no definen la identidad visual. Ante un conflicto prevalecen
 este documento, las convenciones de Windows, las necesidades de producción audiovisual y la licencia de OPBS.
+
+Este sistema visual es la identidad compartida y evolutiva de OPBS y Broadcast Presenter. Cada producto podrá variar
+su marca, licencia y motor, pero ambos deben conservar esta jerarquía, geometría y semántica operativa.
 
 ## Implementación
 

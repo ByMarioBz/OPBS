@@ -792,6 +792,8 @@ void PresenterPanel::BuildInterface()
 	connect(nextButton, &QToolButton::clicked, this, &PresenterPanel::NextMedia);
 	connect(loopButton, &QToolButton::toggled, this, [this](bool enabled) {
 		loopCurrent = enabled;
+		if (activeEntry)
+			activeEntry->loop = enabled;
 		ApplyLoopSetting();
 		if (!restoring)
 			SaveSettings();
@@ -847,6 +849,23 @@ void PresenterPanel::BuildInterface()
 	transmissionPreview->setMinimumSize(288, 162);
 	transmissionPreview->SetDisplayBackgroundColor(QColor("#09090c"));
 	transmissionLayout->addWidget(transmissionPreview, 1);
+	auto *transmissionStatus = new QFrame(transmissionFrame);
+	transmissionStatus->setObjectName("transmissionStatusStrip");
+	auto *statusLayout = new QHBoxLayout(transmissionStatus);
+	statusLayout->setContentsMargins(10, 6, 10, 6);
+	statusLayout->setSpacing(8);
+	auto makeStatus = [transmissionStatus, statusLayout](const QString &name) {
+		auto *label = new QLabel(name, transmissionStatus);
+		label->setObjectName("transmissionStatusChip");
+		statusLayout->addWidget(label);
+		return label;
+	};
+	liveStatusLabel = makeStatus(tr("LIVE · Inactivo · 00:00:00"));
+	recordingStatusLabel = makeStatus(tr("REC · Inactivo · 00:00:00"));
+	primarySignalLabel = makeStatus(tr("YouTube · Sin señal"));
+	secondarySignalLabel = makeStatus(tr("Facebook · Desactivado"));
+	statusLayout->addStretch();
+	transmissionLayout->addWidget(transmissionStatus);
 	auto *transmissionButtons = new QHBoxLayout();
 	transmissionButtons->setSpacing(7);
 	auto makeTransmissionButton = [transmissionFrame](QHBoxLayout *target, const QString &text, const QString &tip,
@@ -864,11 +883,13 @@ void PresenterPanel::BuildInterface()
 	streamButton = makeTransmissionButton(transmissionButtons, tr("Transmitir"),
 					      tr("Iniciar o detener los destinos configurados"));
 	streamButton->setObjectName("transmissionLive");
+	streamButton->setProperty("action", "stream");
 	streamButton->setIcon(OpbsTransmissionActionIcon(OpbsTransmissionAction::Stream));
 	streamButton->setIconSize(QSize(18, 18));
 	streamButton->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
 	recordButton = makeTransmissionButton(transmissionButtons, tr("Grabar"), tr("Iniciar o detener la grabación"));
 	recordButton->setObjectName("transmissionLive");
+	recordButton->setProperty("action", "record");
 	recordButton->setIcon(OpbsTransmissionActionIcon(OpbsTransmissionAction::Record));
 	recordButton->setIconSize(QSize(18, 18));
 	recordButton->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
@@ -925,10 +946,12 @@ void PresenterPanel::BuildInterface()
 	folderLayout->addWidget(foldersWidget, 1);
 	auto *folderButtons = new QHBoxLayout();
 	auto *addFolder = new QToolButton(folderPanel);
+	addFolder->setObjectName("opbsIconButton");
 	addFolder->setText("+");
 	addFolder->setToolTip(tr("Crear carpeta"));
 	addFolder->setAccessibleName(tr("Crear carpeta multimedia"));
 	auto *renameFolder = new QToolButton(folderPanel);
+	renameFolder->setObjectName("opbsIconButton");
 	renameFolder->setText(QString::fromUtf8("✎"));
 	renameFolder->setToolTip(tr("Renombrar carpeta"));
 	renameFolder->setAccessibleName(tr("Renombrar carpeta multimedia"));
@@ -970,8 +993,9 @@ void PresenterPanel::BuildInterface()
 	bibleSearchEdit->setClearButtonEnabled(true);
 	bibleSearchEdit->addAction(OpbsSearchIcon(), QLineEdit::LeadingPosition);
 	bibleSearchEdit->setAccessibleName(tr("Buscar en la Biblia"));
-	bibleSearchEdit->setMinimumWidth(280);
-	bibleSearchEdit->setMaximumWidth(520);
+	bibleSearchEdit->setMinimumWidth(160);
+	bibleSearchEdit->setMaximumWidth(480);
+	bibleSearchEdit->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
 	bibleSelector = new QComboBox(bibleToolbar);
 	bibleSelector->setObjectName("presenterBibleSelector");
 	bibleSelector->setToolTip(tr("Biblia seleccionada"));
@@ -1013,16 +1037,51 @@ void PresenterPanel::BuildInterface()
 		if (!folderList || !folderList->currentItem())
 			return;
 		QListWidgetItem *item = list->itemAt(position);
-		if (!item)
-			return;
-		auto found = std::find_if(entries.begin(), entries.end(),
-					 [item](const auto &entry) { return entry->item == item; });
-		if (found == entries.end())
-			return;
 		QMenu menu(list);
-		QAction *removeAction = menu.addAction(style()->standardIcon(QStyle::SP_TrashIcon), tr("Eliminar"));
-		if (menu.exec(list->viewport()->mapToGlobal(position)) == removeAction)
+		QAction *addAction = menu.addAction(style()->standardIcon(QStyle::SP_DialogOpenButton),
+					     tr("Agregar multimedia…"));
+		QAction *renameAction = nullptr;
+		QAction *loopAction = nullptr;
+		QAction *removeAction = nullptr;
+		auto found = entries.end();
+		if (item) {
+			found = std::find_if(entries.begin(), entries.end(),
+					     [item](const auto &entry) { return entry->item == item; });
+			if (found != entries.end()) {
+				menu.addSeparator();
+				renameAction = menu.addAction(tr("Cambiar nombre…"));
+				loopAction = menu.addAction((*found)->loop ? tr("Repetir este archivo en bucle    ✓")
+									       : tr("Repetir este archivo en bucle"));
+				loopAction->setEnabled(!(*found)->isImage);
+				removeAction = menu.addAction(style()->standardIcon(QStyle::SP_TrashIcon), tr("Eliminar"));
+			}
+		}
+		QAction *chosen = menu.exec(list->viewport()->mapToGlobal(position));
+		if (chosen == addAction) {
+			ImportMedia();
+		} else if (found != entries.end() && chosen == renameAction) {
+			bool accepted = false;
+			const QString name = QInputDialog::getText(main, tr("Cambiar nombre"), tr("Nombre dentro de OPBS"),
+							      QLineEdit::Normal, (*found)->displayName, &accepted).trimmed();
+			if (accepted && !name.isEmpty()) {
+				(*found)->displayName = name;
+				(*found)->item->setText(name);
+				if (activeEntry == found->get())
+					currentMedia->setText(name);
+				SaveSettings();
+			}
+		} else if (found != entries.end() && chosen == loopAction) {
+			(*found)->loop = !(*found)->loop;
+			if (activeEntry == found->get()) {
+				loopCurrent = (*found)->loop;
+				QSignalBlocker blocker(loopButton);
+				loopButton->setChecked(loopCurrent);
+				ApplyLoopSetting();
+			}
+			SaveSettings();
+		} else if (found != entries.end() && chosen == removeAction) {
 			RemoveMediaEntry(found->get());
+		}
 	});
 	connect(list->verticalScrollBar(), &QScrollBar::valueChanged, this,
 		[this]() { QTimer::singleShot(0, this, &PresenterPanel::LoadVisibleThumbnails); });
@@ -1057,8 +1116,9 @@ void PresenterPanel::BuildInterface()
 	auto *multimediaToolbar = new QHBoxLayout();
 	multimediaToolbar->setSpacing(10);
 	searchEdit->setParent(multimediaContentTarget);
-	searchEdit->setMinimumWidth(260);
-	searchEdit->setMaximumWidth(520);
+	searchEdit->setMinimumWidth(160);
+	searchEdit->setMaximumWidth(420);
+	searchEdit->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
 	mediaCount = new QLabel(tr("0 archivos"), multimediaContentTarget);
 	mediaCount->setObjectName("presenterCountBadge");
 	multimediaToolbar->addWidget(searchEdit);
@@ -1179,6 +1239,7 @@ void PresenterPanel::BuildInterface()
 	captureList->setGridSize(QSize(kThumbnailWidth + 24, kThumbnailHeight + 58));
 	captureList->setSpacing(8);
 	captureList->setSelectionMode(QAbstractItemView::SingleSelection);
+	captureList->setContextMenuPolicy(Qt::CustomContextMenu);
 	captureList->hide();
 	connect(captureList, &QListWidget::itemClicked, this, [this](QListWidgetItem *item) {
 		if (!item)
@@ -1197,7 +1258,130 @@ void PresenterPanel::BuildInterface()
 			}
 		}
 	});
+	connect(captureList, &QWidget::customContextMenuRequested, this, [this](const QPoint &position) {
+		QListWidgetItem *item = captureList->itemAt(position);
+		QMenu menu(captureList);
+		QMenu *addMenu = menu.addMenu(tr("Agregar"));
+		QAction *addCamera = addMenu->addAction(tr("Dispositivo de captura de video…"));
+		QAction *addWindow = addMenu->addAction(tr("Captura de ventana…"));
+		QAction *renameAction = nullptr;
+		QAction *removeAction = nullptr;
+		if (item) {
+			menu.addSeparator();
+			renameAction = menu.addAction(tr("Cambiar nombre…"));
+			removeAction = menu.addAction(style()->standardIcon(QStyle::SP_TrashIcon), tr("Eliminar"));
+		}
+		QAction *chosen = menu.exec(captureList->viewport()->mapToGlobal(position));
+		if (chosen == addCamera) {
+			AddCaptureSource(true);
+			return;
+		}
+		if (chosen == addWindow) {
+			AddCaptureSource(false);
+			return;
+		}
+		if (!item)
+			return;
+		const bool configured = item->data(Qt::UserRole + 1).toBool();
+		if (chosen == renameAction) {
+			bool accepted = false;
+			const QString name = QInputDialog::getText(main, tr("Cambiar nombre"), tr("Nombre dentro de OPBS"),
+							      QLineEdit::Normal, item->text(), &accepted).trimmed();
+			if (!accepted || name.isEmpty())
+				return;
+			if (configured) {
+				selectedCameraName = name;
+			} else {
+				const QString id = item->data(Qt::UserRole).toString();
+				for (auto &entry : captureEntries)
+					if (entry->id == id)
+						entry->name = name;
+			}
+			RefreshCaptureList();
+			SaveSettings();
+		} else if (chosen == removeAction) {
+			if (configured) {
+				selectedCameraId.clear();
+				selectedCameraName.clear();
+				cameraEnabled = false;
+				RefreshCameraSource();
+			} else {
+				const QString id = item->data(Qt::UserRole).toString();
+				auto found = std::find_if(captureEntries.begin(), captureEntries.end(),
+							  [&id](const auto &entry) { return entry->id == id; });
+				if (found != captureEntries.end()) {
+					if ((*found)->source && activeSource.Get() == (*found)->source.Get())
+						ClearActiveMedia();
+					captureEntries.erase(found);
+				}
+			}
+			RefreshCaptureList();
+			SaveSettings();
+		}
+	});
 	toolsContentLayout->addWidget(captureList, 1);
+	ndiList = new QListWidget(toolsContentTarget);
+	ndiList->setObjectName("presenterMediaList");
+	ndiList->setAccessibleName(tr("Fuentes NDI"));
+	ndiList->setViewMode(QListView::IconMode);
+	ndiList->setResizeMode(QListView::Adjust);
+	ndiList->setMovement(QListView::Static);
+	ndiList->setWrapping(true);
+	ndiList->setIconSize(QSize(kThumbnailWidth, kThumbnailHeight));
+	ndiList->setGridSize(QSize(kThumbnailWidth + 24, kThumbnailHeight + 58));
+	ndiList->setSpacing(8);
+	ndiList->setSelectionMode(QAbstractItemView::SingleSelection);
+	ndiList->setContextMenuPolicy(Qt::CustomContextMenu);
+	ndiList->hide();
+	connect(ndiList, &QListWidget::itemClicked, this, [this](QListWidgetItem *item) {
+		if (!item)
+			return;
+		const QString id = item->data(Qt::UserRole).toString();
+		for (const auto &entry : ndiEntries) {
+			if (entry->id == id && EnsureCaptureSource(entry.get())) {
+				ActivateCaptureSource(entry->source, entry->name, item);
+				break;
+			}
+		}
+	});
+	connect(ndiList, &QWidget::customContextMenuRequested, this, [this](const QPoint &position) {
+		QListWidgetItem *item = ndiList->itemAt(position);
+		QMenu menu(ndiList);
+		QAction *addAction = menu.addAction(tr("Agregar fuente NDI…"));
+		QAction *renameAction = nullptr;
+		QAction *removeAction = nullptr;
+		if (item) {
+			menu.addSeparator();
+			renameAction = menu.addAction(tr("Cambiar nombre…"));
+			removeAction = menu.addAction(style()->standardIcon(QStyle::SP_TrashIcon), tr("Eliminar"));
+		}
+		QAction *chosen = menu.exec(ndiList->viewport()->mapToGlobal(position));
+		if (chosen == addAction) {
+			AddNdiSource();
+			return;
+		}
+		if (!item)
+			return;
+		const QString id = item->data(Qt::UserRole).toString();
+		auto found = std::find_if(ndiEntries.begin(), ndiEntries.end(),
+					  [&id](const auto &entry) { return entry->id == id; });
+		if (found == ndiEntries.end())
+			return;
+		if (chosen == renameAction) {
+			bool accepted = false;
+			const QString name = QInputDialog::getText(main, tr("Cambiar nombre"), tr("Nombre dentro de OPBS"),
+							      QLineEdit::Normal, (*found)->name, &accepted).trimmed();
+			if (accepted && !name.isEmpty())
+				(*found)->name = name;
+		} else if (chosen == removeAction) {
+			if ((*found)->source && activeSource.Get() == (*found)->source.Get())
+				ClearActiveMedia();
+			ndiEntries.erase(found);
+		}
+		RefreshNdiList();
+		SaveSettings();
+	});
+	toolsContentLayout->addWidget(ndiList, 1);
 	captureControls = new QWidget(toolsContentTarget);
 	auto *captureButtons = new QHBoxLayout(captureControls);
 	captureButtons->setContentsMargins(0, 6, 0, 0);
@@ -1229,18 +1413,24 @@ void PresenterPanel::BuildInterface()
 	audioPlayerLayout->addWidget(audioPlayerTimeline);
 	auto *audioControls = new QHBoxLayout();
 	audioControls->addStretch();
-	audioPlayerPlayPauseButton = new QToolButton(audioFrame);
+	auto *audioTransportGroup = new QFrame(audioFrame);
+	audioTransportGroup->setObjectName("presenterTransportGroup");
+	auto *audioTransportLayout = new QHBoxLayout(audioTransportGroup);
+	audioTransportLayout->setContentsMargins(3, 3, 3, 3);
+	audioTransportLayout->setSpacing(2);
+	audioPlayerPlayPauseButton = new QToolButton(audioTransportGroup);
 	audioPlayerPlayPauseButton->setObjectName("presenterTransport");
 	audioPlayerPlayPauseButton->setIcon(OpbsStandardIcon(audioPlayerPlayPauseButton, QStyle::SP_MediaPlay));
 	audioPlayerPlayPauseButton->setToolTip(tr("Reproducir / pausar audio"));
 	audioPlayerPlayPauseButton->setAccessibleName(tr("Reproducir o pausar audio"));
-	auto *audioStopButton = new QToolButton(audioFrame);
+	auto *audioStopButton = new QToolButton(audioTransportGroup);
 	audioStopButton->setObjectName("presenterTransport");
 	audioStopButton->setIcon(OpbsStandardIcon(audioStopButton, QStyle::SP_MediaStop));
 	audioStopButton->setToolTip(tr("Detener audio"));
 	audioStopButton->setAccessibleName(tr("Detener audio"));
-	audioControls->addWidget(audioPlayerPlayPauseButton);
-	audioControls->addWidget(audioStopButton);
+	audioTransportLayout->addWidget(audioPlayerPlayPauseButton);
+	audioTransportLayout->addWidget(audioStopButton);
+	audioControls->addWidget(audioTransportGroup);
 	audioControls->addStretch();
 	audioPlayerLayout->addLayout(audioControls);
 	auto *audioDropHint = new QLabel(tr("Arrastra aquí tus archivos de audio"), audioFrame);
@@ -1252,11 +1442,50 @@ void PresenterPanel::BuildInterface()
 	audioPlaylistList->setAccessibleName(tr("Lista del reproductor de audio"));
 	audioPlaylistList->setAlternatingRowColors(true);
 	audioPlaylistList->setToolTip(tr("Arrastra aquí archivos de audio"));
+	audioPlaylistList->setContextMenuPolicy(Qt::CustomContextMenu);
 	audioPlayerLayout->addWidget(audioPlaylistList, 1);
 	static_cast<AudioPlaylistList *>(audioPlaylistList.data())->filesDropped =
 		[this](const QStringList &paths) { AddAudioPlayerFiles(paths); };
 	connect(audioPlaylistList, &QListWidget::itemClicked, this,
 		[this](QListWidgetItem *item) { PlayAudioPlayerRow(audioPlaylistList->row(item)); });
+	connect(audioPlaylistList, &QWidget::customContextMenuRequested, this, [this](const QPoint &position) {
+		QListWidgetItem *item = audioPlaylistList->itemAt(position);
+		const int row = item ? audioPlaylistList->row(item) : -1;
+		QMenu menu(audioPlaylistList);
+		QAction *addAction = menu.addAction(style()->standardIcon(QStyle::SP_DialogOpenButton), tr("Agregar audio…"));
+		QAction *renameAction = nullptr;
+		QAction *removeAction = nullptr;
+		if (row >= 0) {
+			menu.addSeparator();
+			renameAction = menu.addAction(tr("Cambiar nombre…"));
+			removeAction = menu.addAction(style()->standardIcon(QStyle::SP_TrashIcon), tr("Eliminar"));
+		}
+		QAction *chosen = menu.exec(audioPlaylistList->viewport()->mapToGlobal(position));
+		if (chosen == addAction) {
+			const QString filter = tr("Audio (*.mp3 *.aac *.ogg *.wav *.flac *.m4a *.wma)");
+			AddAudioPlayerFiles(QFileDialog::getOpenFileNames(main, tr("Agregar audio"), QString(), filter));
+		} else if (row >= 0 && chosen == renameAction) {
+			bool accepted = false;
+			const QString current = row < audioPlaylistNames.size() ? audioPlaylistNames[row] : item->text();
+			const QString name = QInputDialog::getText(main, tr("Cambiar nombre"), tr("Nombre dentro de OPBS"),
+							      QLineEdit::Normal, current, &accepted).trimmed();
+			if (accepted && !name.isEmpty()) {
+				while (audioPlaylistNames.size() <= row)
+					audioPlaylistNames.push_back(QFileInfo(audioPlaylistPaths[audioPlaylistNames.size()]).fileName());
+				audioPlaylistNames[row] = name;
+				item->setText(name);
+				SaveSettings();
+			}
+		} else if (row >= 0 && chosen == removeAction) {
+			if (audioPlaylistList->currentRow() == row)
+				StopAudioPlayer();
+			audioPlaylistPaths.removeAt(row);
+			if (row < audioPlaylistNames.size())
+				audioPlaylistNames.removeAt(row);
+			delete audioPlaylistList->takeItem(row);
+			SaveSettings();
+		}
+	});
 	connect(audioPlayerPlayPauseButton, &QToolButton::clicked, this, &PresenterPanel::ToggleAudioPlayer);
 	connect(audioStopButton, &QToolButton::clicked, this, &PresenterPanel::StopAudioPlayer);
 	connect(audioPlayerTimeline, &QSlider::sliderPressed, this, [this]() { audioPlayerTimelineDragging = true; });
@@ -1315,6 +1544,11 @@ void PresenterPanel::BuildInterface()
 	audioPlayerTimer->setInterval(250);
 	connect(audioPlayerTimer, &QTimer::timeout, this, &PresenterPanel::RefreshAudioPlayerTimeline);
 	audioPlayerTimer->start();
+	transmissionStatusTimer = new QTimer(this);
+	transmissionStatusTimer->setInterval(1000);
+	connect(transmissionStatusTimer, &QTimer::timeout, this, &PresenterPanel::UpdateTransmissionStatus);
+	transmissionStatusTimer->start();
+	UpdateTransmissionStatus();
 }
 
 void PresenterPanel::ShowLibraryContent(bool tools)
@@ -1332,9 +1566,10 @@ void PresenterPanel::AddAudioPlayerFiles(const QStringList &paths)
 		if (audioPlaylistPaths.contains(absolutePath, Qt::CaseInsensitive))
 			continue;
 		audioPlaylistPaths.push_back(absolutePath);
+		audioPlaylistNames.push_back(info.fileName());
 		auto *item = new QListWidgetItem(OpbsStandardIcon(audioPlaylistList, QStyle::SP_MediaVolume,
 							       QColor("#8CC8FF")),
-					 info.fileName(),
+						 audioPlaylistNames.back(),
 						 audioPlaylistList);
 		item->setToolTip(absolutePath);
 	}
@@ -1537,6 +1772,76 @@ void PresenterPanel::RefreshCaptureList()
 		entry->item->setToolTip(entry->name);
 		LoadCaptureThumbnail(entry.get());
 	}
+}
+
+void PresenterPanel::RefreshNdiList()
+{
+	if (!ndiList)
+		return;
+	ndiList->clear();
+	for (auto &entry : ndiEntries) {
+		entry->item = new QListWidgetItem(QIcon(PlaceholderForType("ndi_source")), entry->name, ndiList);
+		entry->item->setData(Qt::UserRole, entry->id);
+		entry->item->setTextAlignment(Qt::AlignHCenter | Qt::AlignBottom);
+		entry->item->setToolTip(entry->name);
+	}
+}
+
+void PresenterPanel::AddNdiSource()
+{
+	OBSProperties properties = obs_get_source_properties("ndi_source");
+	if (!properties) {
+		QMessageBox::information(main, tr("Agregar NDI"),
+					 tr("No hay un complemento NDI disponible. Instala un complemento NDI compatible con OBS para habilitar esta opción."));
+		return;
+	}
+	obs_property_t *sourceProperty = nullptr;
+	for (obs_property_t *property = obs_properties_first(properties); property; obs_property_next(&property)) {
+		if (obs_property_get_type(property) == OBS_PROPERTY_LIST &&
+		    obs_property_list_format(property) == OBS_COMBO_FORMAT_STRING &&
+		    obs_property_list_item_count(property) > 0) {
+			sourceProperty = property;
+			break;
+		}
+	}
+	if (!sourceProperty) {
+		QMessageBox::information(main, tr("Agregar NDI"), tr("No se encontraron fuentes NDI disponibles."));
+		return;
+	}
+	QStringList names;
+	QStringList values;
+	const size_t count = obs_property_list_item_count(sourceProperty);
+	for (size_t index = 0; index < count; ++index) {
+		const QString value = QString::fromUtf8(obs_property_list_item_string(sourceProperty, index));
+		if (value.isEmpty())
+			continue;
+		names.push_back(QString::fromUtf8(obs_property_list_item_name(sourceProperty, index)));
+		values.push_back(value);
+	}
+	if (names.isEmpty()) {
+		QMessageBox::information(main, tr("Agregar NDI"), tr("No se encontraron fuentes NDI disponibles."));
+		return;
+	}
+	bool accepted = false;
+	const QString selected = QInputDialog::getItem(main, tr("Agregar fuente NDI"), tr("Fuente"), names, 0, false,
+						       &accepted);
+	const int selectedIndex = names.indexOf(selected);
+	if (!accepted || selectedIndex < 0)
+		return;
+	auto entry = std::make_unique<CaptureEntry>();
+	entry->id = QUuid::createUuid().toString(QUuid::WithoutBraces);
+	entry->name = selected;
+	entry->sourceType = QStringLiteral("ndi_source");
+	entry->propertyName = QString::fromUtf8(obs_property_name(sourceProperty));
+	entry->propertyValue = values[selectedIndex];
+	if (!EnsureCaptureSource(entry.get())) {
+		QMessageBox::critical(main, tr("Agregar NDI"), tr("No fue posible crear la fuente NDI seleccionada."));
+		return;
+	}
+	ndiEntries.emplace_back(std::move(entry));
+	RefreshNdiList();
+	ApplyLibraryFilter();
+	SaveSettings();
 }
 
 void PresenterPanel::AddCaptureSource(bool camera)
@@ -1783,15 +2088,25 @@ void PresenterPanel::Initialize()
 		obs_display_add_draw_callback(display->GetDisplay(), PresenterPanel::RenderTransmissionPreview, this);
 	});
 	connect(main, &OBSBasic::StreamingStarted, this, [this]() {
+		streamingStartedAt = QDateTime::currentMSecsSinceEpoch();
 		StartSecondaryStream();
 		UpdateTransmissionButtons();
+		UpdateTransmissionStatus();
 	});
 	connect(main, &OBSBasic::StreamingStopped, this, [this]() {
 		StopSecondaryStream();
 		UpdateTransmissionButtons();
+		UpdateTransmissionStatus();
 	});
-	connect(main, &OBSBasic::RecordingStarted, this, [this]() { UpdateTransmissionButtons(); });
-	connect(main, &OBSBasic::RecordingStopped, this, [this]() { UpdateTransmissionButtons(); });
+	connect(main, &OBSBasic::RecordingStarted, this, [this]() {
+		recordingStartedAt = QDateTime::currentMSecsSinceEpoch();
+		UpdateTransmissionButtons();
+		UpdateTransmissionStatus();
+	});
+	connect(main, &OBSBasic::RecordingStopped, this, [this]() {
+		UpdateTransmissionButtons();
+		UpdateTransmissionStatus();
+	});
 	obs_source_t *stageSource = obs_scene_get_source(stageScene);
 	obs_source_inc_showing(stageSource);
 	stageShowing = true;
@@ -1832,6 +2147,8 @@ void PresenterPanel::Shutdown()
 		timelineTimer->stop();
 	if (audioPlayerTimer)
 		audioPlayerTimer->stop();
+	if (transmissionStatusTimer)
+		transmissionStatusTimer->stop();
 	StopAudioPlayer();
 	if (stageProjector) {
 		main->DeleteProjector(stageProjector);
@@ -1865,6 +2182,9 @@ void PresenterPanel::Shutdown()
 		entry->source = nullptr;
 	}
 	captureEntries.clear();
+	for (auto &entry : ndiEntries)
+		entry->source = nullptr;
+	ndiEntries.clear();
 	if (transmissionTransition) {
 		obs_transition_force_stop(transmissionTransition);
 		obs_transition_clear(transmissionTransition);
@@ -2019,7 +2339,8 @@ void PresenterPanel::ImportPaths(const QStringList &paths, const QString &folder
 	SaveSettings();
 }
 
-void PresenterPanel::AddMediaFile(const QString &path, const QString &folderId, bool save)
+void PresenterPanel::AddMediaFile(const QString &path, const QString &folderId, bool save, const QString &displayName,
+				  bool loop)
 {
 	const QFileInfo info(path);
 	if (!info.exists() || !info.isFile())
@@ -2040,15 +2361,18 @@ void PresenterPanel::AddMediaFile(const QString &path, const QString &folderId, 
 	entry->path = info.absoluteFilePath();
 	entry->folderId = destinationFolder.isEmpty() ? QStringLiteral("general") : destinationFolder;
 	entry->isImage = isImage;
-	const QString cardName = entry->folderId == QString::fromLatin1(kPresentationsFolderId)
-					 ? info.completeBaseName()
-					 : info.fileName();
+	entry->loop = !isImage && loop;
+	entry->displayName = displayName.trimmed();
+	if (entry->displayName.isEmpty())
+		entry->displayName = entry->folderId == QString::fromLatin1(kPresentationsFolderId)
+					     ? info.completeBaseName()
+					     : info.fileName();
 	QListWidget *targetList = entry->folderId == QString::fromLatin1(kPresentationsFolderId)
 				  ? presentationMediaList.data()
 				  : mediaList.data();
 	if (!targetList)
 		return;
-	entry->item = new QListWidgetItem(cardName, targetList);
+	entry->item = new QListWidgetItem(entry->displayName, targetList);
 	entry->item->setData(Qt::UserRole, entry->path);
 	entry->item->setToolTip(entry->path);
 	entry->item->setTextAlignment(Qt::AlignHCenter | Qt::AlignBottom);
@@ -2337,6 +2661,12 @@ void PresenterPanel::ActivateMedia(MediaEntry *entry)
 	ClearActiveMedia(entry);
 	activeEntry = entry;
 	activeSource = entry->source;
+	loopCurrent = entry->loop;
+	if (loopButton) {
+		QSignalBlocker blocker(loopButton);
+		loopButton->setChecked(loopCurrent);
+	}
+	ApplyLoopSetting();
 	/* La fuente original alimenta exclusivamente el monitor local. La mezcla
 	 * de transmisión recibe una copia cruda mediante el puente independiente. */
 	obs_source_set_monitoring_type(activeSource, OBS_MONITORING_TYPE_MONITOR_ONLY);
@@ -2379,7 +2709,7 @@ void PresenterPanel::ActivateMedia(MediaEntry *entry)
 	}
 	if (entry->item && entry->item->listWidget())
 		entry->item->listWidget()->setCurrentItem(entry->item);
-	currentMedia->setText(QFileInfo(entry->path).fileName());
+	currentMedia->setText(entry->displayName);
 	RefreshTimeline();
 }
 
@@ -3572,6 +3902,8 @@ void PresenterPanel::ApplyLibraryFilter()
 		presentationMediaList->setVisible(false);
 	if (captureList)
 		captureList->setVisible(false);
+	if (ndiList)
+		ndiList->setVisible(false);
 	if (captureControls)
 		captureControls->setVisible(captureMode);
 	if (toolsEmptyState)
@@ -3580,9 +3912,13 @@ void PresenterPanel::ApplyLibraryFilter()
 		ApplyBibleFilter();
 	if (captureMode)
 		RefreshCaptureList();
-	if (ndiMode && toolsEmptyState) {
-		toolsEmptyState->setText(tr("La herramienta NDI se habilitará en una próxima versión"));
-		toolsEmptyState->show();
+	if (ndiMode) {
+		RefreshNdiList();
+		if (ndiList) {
+			ndiList->setVisible(true);
+			ndiList->setToolTip(ndiList->count() == 0 ? tr("Haz clic derecho para agregar una fuente NDI")
+								     : QString());
+		}
 	}
 	const QString query = searchEdit ? searchEdit->text().trimmed() : QString();
 	int visible = 0;
@@ -3596,8 +3932,7 @@ void PresenterPanel::ApplyLibraryFilter()
 			continue;
 		}
 		const bool matchesFolder = entry->folderId == folderId;
-		const bool matchesSearch = query.isEmpty() ||
-			QFileInfo(entry->path).fileName().contains(query, Qt::CaseInsensitive);
+		const bool matchesSearch = query.isEmpty() || entry->displayName.contains(query, Qt::CaseInsensitive);
 		const bool show = matchesFolder && matchesSearch;
 		if (entry->item)
 			entry->item->setHidden(!show);
@@ -3972,10 +4307,20 @@ void PresenterPanel::LoadSettings()
 	bibleReferencePosition = settings.value("bible/referencePosition", "bottom-center").toString();
 	bibleBackgroundPath = settings.value("bible/backgroundPath").toString();
 	bibleBackgroundLoop = settings.value("bible/backgroundLoop", false).toBool();
+	const QStringList savedAudioPaths = settings.value("audioPlayer/files").toStringList();
+	const QStringList savedAudioNames = settings.value("audioPlayer/names").toStringList();
 	audioPlaylistPaths.clear();
+	audioPlaylistNames.clear();
 	if (audioPlaylistList)
 		audioPlaylistList->clear();
-	AddAudioPlayerFiles(settings.value("audioPlayer/files").toStringList());
+	AddAudioPlayerFiles(savedAudioPaths);
+	for (int index = 0; index < savedAudioNames.size() && index < audioPlaylistNames.size(); ++index) {
+		if (!savedAudioNames[index].trimmed().isEmpty()) {
+			audioPlaylistNames[index] = savedAudioNames[index];
+			if (audioPlaylistList && audioPlaylistList->item(index))
+				audioPlaylistList->item(index)->setText(savedAudioNames[index]);
+		}
+	}
 	recentPresentationIds = settings.value("presentations/recentIds").toStringList();
 	recentPresentationNames = settings.value("presentations/recentNames").toStringList();
 	currentPresentationId = settings.value("presentations/currentId").toString();
@@ -3994,6 +4339,22 @@ void PresenterPanel::LoadSettings()
 			captureEntries.emplace_back(std::move(entry));
 	}
 	settings.endArray();
+	ndiEntries.clear();
+	const int ndiCount = settings.beginReadArray("ndiSources");
+	for (int index = 0; index < ndiCount; ++index) {
+		settings.setArrayIndex(index);
+		auto entry = std::make_unique<CaptureEntry>();
+		entry->id = settings.value("id").toString();
+		entry->name = settings.value("name").toString();
+		entry->sourceType = QStringLiteral("ndi_source");
+		entry->propertyName = settings.value("propertyName").toString();
+		entry->propertyValue = settings.value("propertyValue").toString();
+		if (!entry->id.isEmpty() && !entry->name.isEmpty() && !entry->propertyName.isEmpty() &&
+		    !entry->propertyValue.isEmpty())
+			ndiEntries.emplace_back(std::move(entry));
+	}
+	settings.endArray();
+	RefreshNdiList();
 	while (recentPresentationIds.size() > 4)
 		recentPresentationIds.removeLast();
 	while (recentPresentationNames.size() > 4)
@@ -4076,7 +4437,8 @@ void PresenterPanel::LoadSettings()
 	}
 
 	QStringList missingMediaNames;
-	const auto loadMediaPath = [this, &missingMediaNames](const QString &path, const QString &folderId) {
+	const auto loadMediaPath = [this, &missingMediaNames](const QString &path, const QString &folderId,
+							 const QString &displayName = QString(), bool loop = false) {
 		const QFileInfo file(path);
 		if (path.isEmpty())
 			return;
@@ -4094,13 +4456,13 @@ void PresenterPanel::LoadSettings()
 			   safeFolder == QString::fromLatin1(kNdiFolderId)) {
 			safeFolder = QStringLiteral("general");
 		}
-		AddMediaFile(path, safeFolder, false);
+		AddMediaFile(path, safeFolder, false, displayName, loop);
 	};
 	const int mediaEntryCount = settings.beginReadArray("media");
 	for (int index = 0; index < mediaEntryCount; ++index) {
 		settings.setArrayIndex(index);
-		loadMediaPath(settings.value("path").toString(),
-			      settings.value("folderId", "general").toString());
+		loadMediaPath(settings.value("path").toString(), settings.value("folderId", "general").toString(),
+			      settings.value("displayName").toString(), settings.value("loop", false).toBool());
 	}
 	settings.endArray();
 	if (mediaEntryCount == 0) {
@@ -4149,6 +4511,8 @@ void PresenterPanel::SaveSettings()
 		settings.setArrayIndex(index);
 		settings.setValue("path", entries[index]->path);
 		settings.setValue("folderId", entries[index]->folderId);
+		settings.setValue("displayName", entries[index]->displayName);
+		settings.setValue("loop", entries[index]->loop);
 	}
 	settings.endArray();
 	settings.remove("library/files");
@@ -4164,6 +4528,16 @@ void PresenterPanel::SaveSettings()
 		settings.setValue("sourceType", captureEntries[index]->sourceType);
 		settings.setValue("propertyName", captureEntries[index]->propertyName);
 		settings.setValue("propertyValue", captureEntries[index]->propertyValue);
+	}
+	settings.endArray();
+	settings.remove("ndiSources");
+	settings.beginWriteArray("ndiSources", static_cast<int>(ndiEntries.size()));
+	for (int index = 0; index < static_cast<int>(ndiEntries.size()); ++index) {
+		settings.setArrayIndex(index);
+		settings.setValue("id", ndiEntries[index]->id);
+		settings.setValue("name", ndiEntries[index]->name);
+		settings.setValue("propertyName", ndiEntries[index]->propertyName);
+		settings.setValue("propertyValue", ndiEntries[index]->propertyValue);
 	}
 	settings.endArray();
 	settings.setValue("stage/monitorName", selectedMonitorName);
@@ -4184,6 +4558,7 @@ void PresenterPanel::SaveSettings()
 	settings.setValue("audio/deviceName", audioDeviceName);
 	settings.setValue("audio/deviceId", audioDeviceId);
 	settings.setValue("audioPlayer/files", audioPlaylistPaths);
+	settings.setValue("audioPlayer/names", audioPlaylistNames);
 	settings.setValue("presentations/recentIds", recentPresentationIds);
 	settings.setValue("presentations/recentNames", recentPresentationNames);
 	settings.setValue("presentations/currentId", currentPresentationId);
@@ -4588,10 +4963,64 @@ void PresenterPanel::UpdateTransmissionButtons()
 	const bool recording = main && main->RecordingActive();
 	if (streamButton) {
 		streamButton->setChecked(streaming);
-		streamButton->setText(streaming ? tr("Finalizar") : tr("Transmitir"));
+		streamButton->setText(streaming ? tr("Finalizar LIVE") : tr("Transmitir"));
 	}
 	if (recordButton) {
 		recordButton->setChecked(recording);
-		recordButton->setText(recording ? tr("Detener") : tr("Grabar"));
+		recordButton->setText(recording ? tr("Detener REC") : tr("Grabar"));
 	}
+}
+
+void PresenterPanel::UpdateTransmissionStatus()
+{
+	const bool streaming = main && main->StreamingActive();
+	const bool recording = main && main->RecordingActive();
+	const qint64 now = QDateTime::currentMSecsSinceEpoch();
+	auto elapsedText = [now](qint64 startedAt, bool active) {
+		const qint64 totalSeconds = active && startedAt > 0 ? std::max<qint64>(0, (now - startedAt) / 1000) : 0;
+		return QStringLiteral("%1:%2:%3")
+			.arg(totalSeconds / 3600, 2, 10, QLatin1Char('0'))
+			.arg((totalSeconds / 60) % 60, 2, 10, QLatin1Char('0'))
+			.arg(totalSeconds % 60, 2, 10, QLatin1Char('0'));
+	};
+	auto applyState = [](QLabel *label, const QString &text, const char *state) {
+		if (!label)
+			return;
+		label->setText(text);
+		const QString value = QString::fromLatin1(state);
+		if (label->property("state").toString() != value) {
+			label->setProperty("state", value);
+			label->style()->unpolish(label);
+			label->style()->polish(label);
+		}
+	};
+	applyState(liveStatusLabel, streaming ? tr("● LIVE · %1").arg(elapsedText(streamingStartedAt, true))
+					      : tr("○ LIVE · Inactivo · 00:00:00"),
+		   streaming ? "live" : "idle");
+	applyState(recordingStatusLabel, recording ? tr("● REC · %1").arg(elapsedText(recordingStartedAt, true))
+						    : tr("○ REC · Inactivo · 00:00:00"),
+		   recording ? "recording" : "idle");
+
+	auto signalText = [this](const QString &service, obs_output_t *output, bool enabled) {
+		if (!enabled)
+			return qMakePair(tr("%1 · Desactivado").arg(service), QStringLiteral("idle"));
+		if (!output || !obs_output_active(output))
+			return qMakePair(tr("%1 · Sin señal").arg(service), QStringLiteral("idle"));
+		const float congestion = std::clamp(obs_output_get_congestion(output), 0.0f, 1.0f);
+		int health = qRound((1.0f - congestion) * 100.0f);
+		const int total = obs_output_get_total_frames(output);
+		const int dropped = obs_output_get_frames_dropped(output);
+		if (total > 0)
+			health = std::min(health, std::clamp(100 - qRound(dropped * 100.0 / total), 0, 100));
+		const QString state = health >= 85 ? QStringLiteral("good")
+					 : health >= 60 ? QStringLiteral("warning")
+							: QStringLiteral("bad");
+		return qMakePair(tr("%1 · Señal %2%").arg(service).arg(health), state);
+	};
+	OBSOutputAutoRelease primaryOutput = obs_frontend_get_streaming_output();
+	const auto primary = signalText(streamDestinations[0].service, primaryOutput, streaming);
+	applyState(primarySignalLabel, primary.first, primary.second.toUtf8().constData());
+	const auto secondary = signalText(streamDestinations[1].service, secondaryStreamOutput,
+					  streaming && streamDestinations[1].enabled);
+	applyState(secondarySignalLabel, secondary.first, secondary.second.toUtf8().constData());
 }

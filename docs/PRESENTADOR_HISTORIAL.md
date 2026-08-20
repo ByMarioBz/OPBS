@@ -264,8 +264,13 @@ build_x64/rundir/RelWithDebInfo/obs-plugins/64bit/obs-ffmpeg.dll
   alto. Pantallas, Sonido, Transmisión y Biblia comparten ahora títulos, subtítulos, superficies y navegación lateral
   del sistema visual de OPBS. Los controles de emisión incorporan iconos originales y los modos Cámaras, Presentador
   y Ambos conservan un selector segmentado más claro sin alterar su comportamiento.
+- La novena iteración estabiliza buscadores en paneles estrechos, unifica controles compactos y reduce los radios que
+  producían esquinas negras exageradas. Añade menús contextuales separados para Multimedia, audio, Captura y NDI con
+  importación restringida, alias persistentes y eliminación solo de OPBS. El bucle pasa a ser una propiedad persistente
+  de cada medio. En vivo incorpora estados LIVE/REC, duración y salud real por destino basada en congestión y pérdida
+  de fotogramas. Esta identidad queda declarada como base visual compartida con Broadcast Presenter.
 - `Build-Presenter.cmd` y `Package-Presenter.cmd` terminaron correctamente. OPBS inició en modo seguro, permaneció
-  respondiendo y alcanzó `Startup complete` después de las ocho iteraciones; el registro no contiene errores de análisis
+  respondiendo y alcanzó `Startup complete` después de las nueve iteraciones; el registro no contiene errores de análisis
   de QSS. La herramienta de
   control visual bloqueó `OPBS.exe` por política, por lo que la inspección visual automatizada queda sustituida por una
   revisión manual de la ventana abierta.
