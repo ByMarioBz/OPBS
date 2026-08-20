@@ -84,8 +84,8 @@ resalta únicamente mientras el archivo está encima; un destino inválido conse
   monocromos, geométricos y de 16 px. Los símbolos describen la función y no son decoración de marca.
 - **Tarjetas:** miniatura 16:9, nombre legible, borde de selección y tooltip para rutas largas.
 - **Buscadores:** campo local a su panel, glifo original de búsqueda, botón de limpiar y foco azul; el placeholder
-  explica el alcance. Los glifos se generan respetando el factor de escala de Qt una sola vez para evitar recortes en
-  monitores con escalado de Windows.
+  explica el alcance. El glifo se dibuja dentro del propio campo y se centra con su altura real, evitando recortes o
+  desplazamientos al cambiar el escalado de Windows.
 - **Botones:** verbo concreto o icono estándar con tooltip y nombre accesible.
 - **Diálogos:** comparten el mismo sistema de superficies, títulos, subtítulos y navegación lateral que el espacio de
   trabajo; mantienen grupos claros, acción principal a la derecha y Cancelar siempre disponible.
@@ -95,7 +95,8 @@ resalta únicamente mientras el archivo está encima; un destino inválido conse
 - **Acciones de transmisión:** Transmitir y Grabar mantienen color de advertencia y un icono descriptivo; Cámaras,
   Presentador y Ambos forman un selector segmentado con iconos propios y un único estado activo.
 - **Estado operativo:** LIVE, REC y los destinos remotos usan cápsulas compactas alineadas a la izquierda. El estado
-  combina texto, color, duración y porcentaje cuando existe telemetría real; nunca depende solo de un punto de color.
+  vive en la franja superior común, frente al interruptor de Escenario, para no reducir las vistas previas. Combina
+  texto, color, duración y porcentaje cuando existe telemetría real; nunca depende solo de un punto de color.
 - **Menús contextuales:** conservan el mismo material y espaciado del menú principal. Las acciones destructivas se
   separan de Agregar y Cambiar nombre; los estados por elemento muestran una marca al lado derecho del texto.
 - **Estados vacíos:** explican qué falta y cuál es la acción siguiente; no se usan como mensajes de error.

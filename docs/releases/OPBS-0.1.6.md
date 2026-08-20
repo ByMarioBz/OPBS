@@ -31,7 +31,9 @@ de OBS Studio.
   internos y quitar referencias sin borrar archivos originales.
 - Repetición individual persistente para cada video o canción de Multimedia, con marca visible en su menú.
 - Indicadores LIVE y REC con duración, más salud de señal independiente para YouTube y Facebook basada en la salida
-  real. Los controles de transmisión y grabación distinguen mejor sus estados activos.
+  real. Se integran en la franja superior junto al control de Escenario para no reducir la vista previa. Los controles
+  de transmisión y grabación distinguen mejor sus estados activos.
+- Buscadores multimedia y bíblico con icono propio centrado y estable bajo escalado de Windows.
 - Multimedia y Herramientas funcionan simultáneamente con cuadrículas independientes; los medios arrastrados ya no
   pueden aparecer dentro de Presentación, Captura o NDI.
 - Buscador multimedia independiente y buscador de Herramientas visible únicamente al seleccionar Biblia.

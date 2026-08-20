@@ -269,6 +269,10 @@ build_x64/rundir/RelWithDebInfo/obs-plugins/64bit/obs-ffmpeg.dll
   importación restringida, alias persistentes y eliminación solo de OPBS. El bucle pasa a ser una propiedad persistente
   de cada medio. En vivo incorpora estados LIVE/REC, duración y salud real por destino basada en congestión y pérdida
   de fotogramas. Esta identidad queda declarada como base visual compartida con Broadcast Presenter.
+- La décima iteración mueve toda la telemetría LIVE/REC y de destinos a la franja superior, a la izquierda del control
+  de Escenario, recuperando el espacio vertical completo de la vista previa de transmisión. Los dos buscadores dejan de
+  usar acciones incrustadas de Qt y dibujan su lupa centrada según la altura efectiva del campo para corregir su
+  desplazamiento con DPI y paneles estrechos.
 - `Build-Presenter.cmd` y `Package-Presenter.cmd` terminaron correctamente. OPBS inició en modo seguro, permaneció
   respondiendo y alcanzó `Startup complete` después de las nueve iteraciones; el registro no contiene errores de análisis
   de QSS. La herramienta de

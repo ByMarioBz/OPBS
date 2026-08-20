@@ -162,19 +162,26 @@ QPixmap OpbsPanelPixmap(OpbsPanelKind kind)
 	return pixmap;
 }
 
-QIcon OpbsSearchIcon()
-{
-	QPixmap pixmap(36, 36);
-	pixmap.setDevicePixelRatio(2.0);
-	pixmap.fill(Qt::transparent);
-	QPainter painter(&pixmap);
-	painter.setRenderHint(QPainter::Antialiasing);
-	painter.setPen(QPen(QColor("#A6A6B0"), 1.45, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
-	painter.setBrush(Qt::NoBrush);
-	painter.drawEllipse(QRectF(3.2, 3.2, 8.4, 8.4));
-	painter.drawLine(QPointF(10.1, 10.1), QPointF(14.6, 14.6));
-	return QIcon(pixmap);
-}
+class OpbsSearchEdit : public QLineEdit {
+public:
+	explicit OpbsSearchEdit(QWidget *parent = nullptr) : QLineEdit(parent)
+	{
+		setTextMargins(25, 0, 0, 0);
+	}
+
+protected:
+	void paintEvent(QPaintEvent *event) override
+	{
+		QLineEdit::paintEvent(event);
+		QPainter painter(this);
+		painter.setRenderHint(QPainter::Antialiasing);
+		painter.setPen(QPen(QColor("#A6A6B0"), 1.4, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+		painter.setBrush(Qt::NoBrush);
+		const qreal top = (height() - 13.0) / 2.0;
+		painter.drawEllipse(QRectF(11.0, top, 8.0, 8.0));
+		painter.drawLine(QPointF(17.5, top + 6.5), QPointF(22.0, top + 11.0));
+	}
+};
 
 QIcon OpbsTransmissionActionIcon(OpbsTransmissionAction action)
 {
@@ -656,7 +663,23 @@ void PresenterPanel::BuildInterface()
 	header->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
 	header->setFixedHeight(44);
 	auto *headerLayout = new QHBoxLayout(header);
-	headerLayout->setContentsMargins(0, 5, 22, 5);
+	headerLayout->setContentsMargins(14, 5, 22, 5);
+	auto *transmissionStatus = new QFrame(header);
+	transmissionStatus->setObjectName("transmissionStatusStrip");
+	auto *statusLayout = new QHBoxLayout(transmissionStatus);
+	statusLayout->setContentsMargins(5, 2, 5, 2);
+	statusLayout->setSpacing(6);
+	auto makeStatus = [transmissionStatus, statusLayout](const QString &name) {
+		auto *label = new QLabel(name, transmissionStatus);
+		label->setObjectName("transmissionStatusChip");
+		statusLayout->addWidget(label);
+		return label;
+	};
+	liveStatusLabel = makeStatus(tr("○ LIVE · Inactivo · 00:00:00"));
+	recordingStatusLabel = makeStatus(tr("○ REC · Inactivo · 00:00:00"));
+	primarySignalLabel = makeStatus(tr("YouTube · Desactivado"));
+	secondarySignalLabel = makeStatus(tr("Facebook · Desactivado"));
+	headerLayout->addWidget(transmissionStatus);
 	headerLayout->addStretch();
 	stageStatus = new QLabel(tr("ESCENARIO"), header);
 	stageStatus->setObjectName("presenterScreenStatus");
@@ -849,23 +872,6 @@ void PresenterPanel::BuildInterface()
 	transmissionPreview->setMinimumSize(288, 162);
 	transmissionPreview->SetDisplayBackgroundColor(QColor("#09090c"));
 	transmissionLayout->addWidget(transmissionPreview, 1);
-	auto *transmissionStatus = new QFrame(transmissionFrame);
-	transmissionStatus->setObjectName("transmissionStatusStrip");
-	auto *statusLayout = new QHBoxLayout(transmissionStatus);
-	statusLayout->setContentsMargins(10, 6, 10, 6);
-	statusLayout->setSpacing(8);
-	auto makeStatus = [transmissionStatus, statusLayout](const QString &name) {
-		auto *label = new QLabel(name, transmissionStatus);
-		label->setObjectName("transmissionStatusChip");
-		statusLayout->addWidget(label);
-		return label;
-	};
-	liveStatusLabel = makeStatus(tr("LIVE · Inactivo · 00:00:00"));
-	recordingStatusLabel = makeStatus(tr("REC · Inactivo · 00:00:00"));
-	primarySignalLabel = makeStatus(tr("YouTube · Sin señal"));
-	secondarySignalLabel = makeStatus(tr("Facebook · Desactivado"));
-	statusLayout->addStretch();
-	transmissionLayout->addWidget(transmissionStatus);
 	auto *transmissionButtons = new QHBoxLayout();
 	transmissionButtons->setSpacing(7);
 	auto makeTransmissionButton = [transmissionFrame](QHBoxLayout *target, const QString &text, const QString &tip,
@@ -987,11 +993,10 @@ void PresenterPanel::BuildInterface()
 	bibleToolbar->setObjectName("presenterBibleControls");
 	auto *bibleToolbarLayout = new QHBoxLayout(bibleToolbar);
 	bibleToolbarLayout->setContentsMargins(10, 8, 10, 8);
-	bibleSearchEdit = new QLineEdit(bibleToolbar);
+	bibleSearchEdit = new OpbsSearchEdit(bibleToolbar);
 	bibleSearchEdit->setObjectName("presenterSearch");
 	bibleSearchEdit->setPlaceholderText(tr("Buscar texto o referencia bíblica…"));
 	bibleSearchEdit->setClearButtonEnabled(true);
-	bibleSearchEdit->addAction(OpbsSearchIcon(), QLineEdit::LeadingPosition);
 	bibleSearchEdit->setAccessibleName(tr("Buscar en la Biblia"));
 	bibleSearchEdit->setMinimumWidth(160);
 	bibleSearchEdit->setMaximumWidth(480);
@@ -1104,11 +1109,10 @@ void PresenterPanel::BuildInterface()
 			ProjectBibleVerse(item->data(Qt::UserRole + 1).toString(), item->data(Qt::UserRole).toString());
 	});
 	mediaArea->addWidget(bibleResultsList, 1);
-	searchEdit = new QLineEdit(library);
+	searchEdit = new OpbsSearchEdit(library);
 	searchEdit->setObjectName("presenterSearch");
 	searchEdit->setPlaceholderText(tr("Buscar en esta carpeta…"));
 	searchEdit->setClearButtonEnabled(true);
-	searchEdit->addAction(OpbsSearchIcon(), QLineEdit::LeadingPosition);
 	searchEdit->setAccessibleName(tr("Buscar contenido multimedia"));
 	multimediaContentTarget = new QWidget(library);
 	auto *multimediaTargetLayout = new QVBoxLayout(multimediaContentTarget);
