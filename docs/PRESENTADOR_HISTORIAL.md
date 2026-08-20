@@ -253,8 +253,11 @@ build_x64/rundir/RelWithDebInfo/obs-plugins/64bit/obs-ffmpeg.dll
   OPBS. Cinco glifos vectoriales dibujados en tiempo de ejecución identifican Escenario, Multimedia, En vivo,
   Herramientas y Audio sin incorporar activos externos. Los eventos no consumidos se propagan al dock para conservar
   el comportamiento de movimiento y doble clic documentado por Qt.
+- La sexta iteración corrige el recorte observado en esas cabeceras declarando una altura, política y tamaño sugerido
+  estables al sistema de acoplamiento. La paleta abandona los negros azulados por seis niveles de gris neutral, con
+  azul separado entre acción rellena y foco; los contrastes documentados superan `4.5:1` para texto normal.
 - `Build-Presenter.cmd` y `Package-Presenter.cmd` terminaron correctamente. OPBS inició en modo seguro, permaneció
-  respondiendo y alcanzó `Startup complete` después de las cinco iteraciones; el registro no contiene errores de análisis
+  respondiendo y alcanzó `Startup complete` después de las seis iteraciones; el registro no contiene errores de análisis
   de QSS. La herramienta de
   control visual bloqueó `OPBS.exe` por política, por lo que la inspección visual automatizada queda sustituida por una
   revisión manual de la ventana abierta.

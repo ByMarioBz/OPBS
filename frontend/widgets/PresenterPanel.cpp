@@ -71,6 +71,7 @@
 #include <QSaveFile>
 #include <QSettings>
 #include <QSignalBlocker>
+#include <QSizePolicy>
 #include <QShortcut>
 #include <QSlider>
 #include <QSpinBox>
@@ -162,15 +163,18 @@ QPixmap OpbsPanelPixmap(OpbsPanelKind kind)
 
 class OpbsDockTitleBar : public QFrame {
 public:
-	OpbsDockTitleBar(const QString &title, OpbsPanelKind kind, QDockWidget *dock) : QFrame(dock)
+	OpbsDockTitleBar(const QString &title, OpbsPanelKind kind) : QFrame(nullptr)
 	{
 		setObjectName("opbsDockTitleBar");
-		setFixedHeight(38);
+		setAttribute(Qt::WA_StyledBackground, true);
+		setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+		setMinimumHeight(40);
+		setMaximumHeight(40);
 		setCursor(Qt::SizeAllCursor);
 		setToolTip(QObject::tr("Arrastra para mover; doble clic para desacoplar"));
 		setAccessibleName(QObject::tr("Panel %1").arg(title));
 		auto *layout = new QHBoxLayout(this);
-		layout->setContentsMargins(13, 0, 13, 0);
+		layout->setContentsMargins(14, 0, 14, 0);
 		layout->setSpacing(8);
 		auto *icon = new QLabel(this);
 		icon->setObjectName("opbsDockTitleIcon");
@@ -184,6 +188,9 @@ public:
 		layout->addWidget(label);
 		layout->addStretch();
 	}
+
+	QSize sizeHint() const override { return QSize(180, 40); }
+	QSize minimumSizeHint() const override { return QSize(72, 40); }
 
 protected:
 	void mousePressEvent(QMouseEvent *event) override { event->ignore(); }
@@ -1163,7 +1170,7 @@ void PresenterPanel::BuildInterface()
 		dock->setObjectName(name);
 		dock->setFeatures(QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetFloatable);
 		dock->setAllowedAreas(Qt::AllDockWidgetAreas);
-		dock->setTitleBarWidget(new OpbsDockTitleBar(title, kind, dock));
+		dock->setTitleBarWidget(new OpbsDockTitleBar(title, kind));
 		dock->setWidget(widget);
 		return dock;
 	};

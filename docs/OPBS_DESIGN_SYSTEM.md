@@ -18,21 +18,26 @@ productos.
 
 | Función | Valor | Uso |
 |---|---:|---|
-| Fondo raíz | `#05070A` | Separadores y espacio exterior |
-| Fondo de ventana | `#080A0E` | Ventana y diálogos |
-| Superficie | `#11151A` | Paneles principales |
-| Superficie elevada | `#171C22` | Tarjetas, menús y listas |
-| Superficie interactiva | `#20262E` | Botones secundarios |
-| Borde | `#303945` | Separación de componentes |
-| Texto principal | `#F4F7FA` | Etiquetas y acciones |
-| Texto secundario | `#98A3B1` | Metadatos y tiempo |
-| Acento OPBS | `#0A84FF` | Selección, foco y acción primaria |
-| Acento claro | `#38A0FF` | Bordes activos |
-| Directo/peligro | `#C93646` | Transmitir, grabar y estados críticos |
-| Audio correcto | `#32D583` | Medidores y confirmaciones |
+| Fondo raíz | `#070709` | Separadores y espacio exterior |
+| Fondo de ventana | `#0B0B0E` | Ventana y diálogos |
+| Superficie | `#121216` | Paneles principales |
+| Superficie elevada | `#19191E` | Tarjetas, menús y listas |
+| Superficie interactiva | `#232329` | Botones secundarios |
+| Borde | `#303038` | Separación de componentes |
+| Texto principal | `#F5F5F7` | Etiquetas y acciones |
+| Texto secundario | `#A6A6B0` | Metadatos y tiempo |
+| Acción primaria | `#0969BD` | Controles rellenos con texto blanco |
+| Foco/acento OPBS | `#5AAEFF` | Foco, borde activo y señal interactiva |
+| Directo/peligro | `#C43D4D` | Transmitir, grabar y estados críticos |
+| Audio correcto | `#35C98A` | Medidores y confirmaciones |
 
 El azul significa interacción o selección. El rojo se reserva para salida en vivo, grabación, error o acción
 destructiva. Ningún texto informativo debe usar esos colores si no es interactivo o un estado.
+
+La escala de superficies mantiene incrementos pequeños y constantes de luminosidad para comunicar profundidad sin
+gradientes ni transparencia costosa. Sobre la superficie principal, el texto primario alcanza aproximadamente `17:1`
+y el secundario `7.7:1`; el texto blanco sobre la acción primaria alcanza aproximadamente `5.1:1`. El azul claro se
+usa como elemento gráfico o contorno, no como texto pequeño sobre fondos claros.
 
 ## Tipografía
 
@@ -73,6 +78,8 @@ resalta únicamente mientras el archivo está encima; un destino inválido conse
 - **Paneles:** una sola superficie continua; el título se integra sin caja ni borde propio y el separador exterior
   conserva el espacio suficiente para redimensionar. Arrastrar o hacer doble clic en el título mantiene las funciones
   de mover y desacoplar sin mostrar controles permanentes que compitan con el contenido.
+- **Cabeceras de panel:** altura fija de 40 px, icono de 16 px, margen horizontal de 14 px y separación de 8 px. Su
+  tamaño mínimo se declara al sistema de acoplamiento para impedir que el contenido invada o recorte el título.
 - **Iconografía de panel:** Escenario, Multimedia, En vivo, Herramientas y Audio usan glifos originales de OPBS,
   monocromos, geométricos y de 16 px. Los símbolos describen la función y no son decoración de marca.
 - **Tarjetas:** miniatura 16:9, nombre legible, borde de selección y tooltip para rutas largas.
