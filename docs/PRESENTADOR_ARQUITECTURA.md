@@ -109,7 +109,7 @@ rutas ausentes dejan de formar parte de `presenter.ini`. El reparador de archivo
 desactivado en este frontend: esa colección permanece oculta y no es la fuente de verdad de la biblioteca.
 
 La interfaz principal usa un `QMainWindow` interno como espacio de trabajo de cinco `QDockWidget`. Presentador y
-transmisión forman la columna izquierda; Multimedia ocupa la parte superior derecha; Herramientas y el reproductor de
+transmisión forman la columna izquierda; Herramientas ocupa la parte superior derecha; Multimedia y el reproductor de
 audio forman la fila inferior derecha. Todos pueden redimensionarse, moverse o flotar. `saveState` conserva el árbol de
 paneles en `window/dockWorkspace`; la versión del estado evita restaurar geometrías incompatibles de diseños anteriores.
 La distribución inicial mantiene aproximadamente 31/69 entre las vistas previas y el espacio de biblioteca/herramientas.
@@ -119,6 +119,8 @@ la composición.
 El estado operativo de transmisión se actualiza una vez por segundo. LIVE y REC usan relojes de sesión independientes;
 YouTube/Facebook muestran salud porcentual derivada de `obs_output_get_congestion` y de la proporción real de fotogramas
 descartados. Un destino inactivo o no configurado se identifica como tal y nunca muestra una señal ficticia.
+Al cargar configuraciones antiguas, el servicio del segundo destino se reconcilia con su servidor RTMP para evitar que
+una salida de Facebook quede rotulada como YouTube.
 
 Multimedia y Herramientas tienen vistas independientes: `mediaList` nunca abandona Multimedia y
 `presentationMediaList`, `bibleResultsList` y `captureList` pertenecen permanentemente a Herramientas. Los archivos

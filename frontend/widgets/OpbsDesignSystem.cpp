@@ -19,6 +19,12 @@ QString ApplicationStyleSheet()
 	return QStringLiteral(R"(
 		QMainWindow, QDialog { background: #0B0B0E; color: #F5F5F7; }
 		QDialog#opbsSettingsDialog { background: #101014; }
+		QFileDialog { background: #101014; }
+		QFileDialog QTreeView, QFileDialog QListView { background: #141418; color: #F5F5F7;
+			border: 1px solid #303038; border-radius: 8px; alternate-background-color: #19191E;
+			selection-background-color: #0969BD; selection-color: white; outline: 0; }
+		QFileDialog QHeaderView::section { background: #1D1D22; color: #DEDEE3; border: 0;
+			border-bottom: 1px solid #303038; padding: 6px; }
 		QLabel#opbsDialogTitle { color: #F5F5F7; font-size: 22px; font-weight: 650; }
 		QLabel#opbsDialogSubtitle { color: #A6A6B0; font-size: 13px; }
 		QWidget { color: #F5F5F7; font-family: "Segoe UI Variable"; font-size: 13px; }

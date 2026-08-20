@@ -9,7 +9,8 @@ integrar funciones de forma gradual.
 
 - Espacio de trabajo modular con cinco paneles acoplables, flotantes y redimensionables: `Presentador / escenario`,
   `Transmisión / en vivo`, `Multimedia`, `Herramientas` y `Reproductor de audio`. El acomodo se conserva entre
-  ejecuciones y la distribución inicial sigue la proporción aproximada 31/69 del diseño de producto.
+  ejecuciones y la distribución inicial sigue la proporción aproximada 31/69 del diseño de producto: Herramientas
+  arriba y Multimedia junto al reproductor de audio abajo en el área derecha.
 - Biblioteca persistente dividida en `Multimedia` y `Presentación`; esta última incluye las bibliotecas independientes
   `Biblia` y `Presentaciones`.
 - `Presentación` pasa al panel `Herramientas`, junto con `Captura` y la entrada reservada `NDI`. Captura muestra la
@@ -23,7 +24,8 @@ integrar funciones de forma gradual.
   selección, deshabilitado y salida en vivo; sus reglas están en `OPBS_DESIGN_SYSTEM.md`.
 - Cabecera compacta con el menú principal en la fila superior y una franja negra dedicada al interruptor de Escenario,
   sin repetir dentro del área de trabajo el nombre, la versión ni las acciones de importación.
-- Carpetas multimedia con búsqueda local, arrastrar y soltar, reordenamiento y carga diferida.
+- Carpetas multimedia con búsqueda local, arrastrar y soltar incluso cuando la carpeta está vacía, reordenamiento y
+  carga diferida. Los selectores de archivos propios respetan la paleta oscura y parten de una carpeta existente.
 - Buscador bíblico por texto o referencia, selector de traducciones locales y cuadrícula limitada de resultados para
   mantener el rendimiento con biblias completas.
 - Menú `Biblia` para importar traducciones TXT compatibles y configurar el lienzo con vista previa: tipografía, tamaño,

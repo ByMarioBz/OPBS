@@ -75,6 +75,7 @@
 #include <QShortcut>
 #include <QSlider>
 #include <QSpinBox>
+#include <QStandardPaths>
 #include <QSplitter>
 #include <QStatusBar>
 #include <QStackedWidget>
@@ -108,6 +109,38 @@ constexpr auto kTransmissionAudioBridgeId = "opbs_transmission_audio_bridge";
 const QStringList imageExtensions = {"bmp", "gif", "jpeg", "jpg", "png", "tga", "webp"};
 const QStringList audioExtensions = {"mp3", "aac", "ogg", "wav", "flac", "m4a", "wma"};
 const QStringList videoExtensions = {"mp4", "m4v", "mov", "mkv", "avi", "webm", "wmv", "mpeg", "mpg"};
+
+QString OpbsValidDialogDirectory(const QString &initialPath = QString())
+{
+	const QFileInfo initial(initialPath);
+	if (!initialPath.isEmpty()) {
+		const QString directory = initial.isDir() ? initial.absoluteFilePath() : initial.absolutePath();
+		if (QDir(directory).exists())
+			return directory;
+	}
+	const QString documents = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
+	return QDir(documents).exists() ? documents : QDir::homePath();
+}
+
+QStringList OpbsOpenFiles(QWidget *parent, const QString &caption, const QString &filter,
+			  const QString &initialPath = QString())
+{
+	QFileDialog dialog(parent, caption, OpbsValidDialogDirectory(initialPath), filter);
+	dialog.setObjectName("opbsFileDialog");
+	dialog.setOption(QFileDialog::DontUseNativeDialog, true);
+	dialog.setAcceptMode(QFileDialog::AcceptOpen);
+	dialog.setFileMode(QFileDialog::ExistingFiles);
+	if (!initialPath.isEmpty() && QFileInfo(initialPath).isFile())
+		dialog.selectFile(initialPath);
+	return dialog.exec() == QDialog::Accepted ? dialog.selectedFiles() : QStringList();
+}
+
+QString OpbsOpenFile(QWidget *parent, const QString &caption, const QString &filter,
+			 const QString &initialPath = QString())
+{
+	const QStringList paths = OpbsOpenFiles(parent, caption, filter, initialPath);
+	return paths.isEmpty() ? QString() : paths.front();
+}
 
 enum class OpbsPanelKind { Stage, Media, Live, Tools, Audio };
 
@@ -384,6 +417,41 @@ protected:
 		QListWidget::dropEvent(event);
 		if (orderChanged)
 			orderChanged();
+	}
+};
+
+class PresenterMediaDropLabel final : public QLabel {
+public:
+	std::function<void(const QStringList &)> filesDropped;
+
+	explicit PresenterMediaDropLabel(const QString &text, QWidget *parent) : QLabel(text, parent)
+	{
+		setAcceptDrops(true);
+	}
+
+protected:
+	void dragEnterEvent(QDragEnterEvent *event) override
+	{
+		if (event->mimeData()->hasUrls())
+			event->acceptProposedAction();
+	}
+
+	void dragMoveEvent(QDragMoveEvent *event) override
+	{
+		if (event->mimeData()->hasUrls())
+			event->acceptProposedAction();
+	}
+
+	void dropEvent(QDropEvent *event) override
+	{
+		QStringList paths;
+		for (const QUrl &url : event->mimeData()->urls()) {
+			if (url.isLocalFile())
+				paths.push_back(url.toLocalFile());
+		}
+		if (!paths.isEmpty() && filesDropped)
+			filesDropped(paths);
+		event->acceptProposedAction();
 	}
 };
 
@@ -1009,10 +1077,13 @@ void PresenterPanel::BuildInterface()
 	bibleToolbarLayout->addWidget(bibleSelector);
 	bibleToolbar->hide();
 	mediaArea->addWidget(bibleToolbar);
-	emptyState = new QLabel(tr("Arrastra aquí imágenes, videos o audio para comenzar"), library);
+	auto *mediaDropState =
+		new PresenterMediaDropLabel(tr("Arrastra aquí imágenes, videos o audio para comenzar"), library);
+	emptyState = mediaDropState;
 	emptyState->setObjectName("presenterEmpty");
 	emptyState->setAlignment(Qt::AlignCenter);
 	emptyState->setMinimumHeight(220);
+	mediaDropState->filesDropped = [this](const QStringList &paths) { ImportPaths(paths, SelectedFolderId()); };
 	mediaArea->addWidget(emptyState, 1);
 	auto *list = new PresenterMediaList(library);
 	mediaList = list;
@@ -1467,7 +1538,7 @@ void PresenterPanel::BuildInterface()
 		QAction *chosen = menu.exec(audioPlaylistList->viewport()->mapToGlobal(position));
 		if (chosen == addAction) {
 			const QString filter = tr("Audio (*.mp3 *.aac *.ogg *.wav *.flac *.m4a *.wma)");
-			AddAudioPlayerFiles(QFileDialog::getOpenFileNames(main, tr("Agregar audio"), QString(), filter));
+			AddAudioPlayerFiles(OpbsOpenFiles(main, tr("Agregar audio"), filter));
 		} else if (row >= 0 && chosen == renameAction) {
 			bool accepted = false;
 			const QString current = row < audioPlaylistNames.size() ? audioPlaylistNames[row] : item->text();
@@ -1526,13 +1597,13 @@ void PresenterPanel::BuildInterface()
 	dockWorkspace->addDockWidget(Qt::LeftDockWidgetArea, toolsDock);
 	dockWorkspace->addDockWidget(Qt::LeftDockWidgetArea, audioDock);
 	dockWorkspace->splitDockWidget(presenterDock, transmissionDock, Qt::Vertical);
-	dockWorkspace->splitDockWidget(presenterDock, multimediaDock, Qt::Horizontal);
-	dockWorkspace->splitDockWidget(transmissionDock, toolsDock, Qt::Horizontal);
-	dockWorkspace->splitDockWidget(toolsDock, audioDock, Qt::Horizontal);
-	dockWorkspace->resizeDocks({presenterDock, multimediaDock}, {600, 1300}, Qt::Horizontal);
+	dockWorkspace->splitDockWidget(presenterDock, toolsDock, Qt::Horizontal);
+	dockWorkspace->splitDockWidget(toolsDock, multimediaDock, Qt::Vertical);
+	dockWorkspace->splitDockWidget(multimediaDock, audioDock, Qt::Horizontal);
+	dockWorkspace->resizeDocks({presenterDock, toolsDock}, {640, 1280}, Qt::Horizontal);
 	dockWorkspace->resizeDocks({presenterDock, transmissionDock}, {420, 460}, Qt::Vertical);
-	dockWorkspace->resizeDocks({multimediaDock, toolsDock}, {420, 460}, Qt::Vertical);
-	dockWorkspace->resizeDocks({toolsDock, audioDock}, {1000, 300}, Qt::Horizontal);
+	dockWorkspace->resizeDocks({toolsDock, multimediaDock}, {430, 450}, Qt::Vertical);
+	dockWorkspace->resizeDocks({multimediaDock, audioDock}, {1000, 270}, Qt::Horizontal);
 	for (QDockWidget *dock : {presenterDock, transmissionDock, multimediaDock, toolsDock, audioDock}) {
 		dock->setFloating(false);
 		dock->show();
@@ -2222,16 +2293,14 @@ void PresenterPanel::Shutdown()
 void PresenterPanel::ImportMedia()
 {
 	const QString filter = tr("Contenido multimedia (*.bmp *.gif *.jpeg *.jpg *.png *.tga *.webp *.mp4 *.m4v *.mov *.mkv *.avi *.webm *.wmv *.mpeg *.mpg *.mp3 *.wav *.m4a *.aac *.flac *.ogg);;Todos los archivos (*.*)");
-	ImportPaths(QFileDialog::getOpenFileNames(this, tr("Importar contenido multimedia"), QString(), filter),
-		    SelectedFolderId());
+	ImportPaths(OpbsOpenFiles(this, tr("Importar contenido multimedia"), filter), SelectedFolderId());
 }
 
 void PresenterPanel::ImportPresentation(bool pdf)
 {
 	const QString filter = pdf ? tr("Documento PDF (*.pdf)")
 				   : tr("Presentación de PowerPoint (*.ppt *.pptx)");
-	const QString path = QFileDialog::getOpenFileName(
-		main, pdf ? tr("Importar PDF") : tr("Importar PowerPoint"), QString(), filter);
+	const QString path = OpbsOpenFile(main, pdf ? tr("Importar PDF") : tr("Importar PowerPoint"), filter);
 	if (path.isEmpty())
 		return;
 
@@ -3590,8 +3659,8 @@ void PresenterPanel::ShowTransmissionDialog()
 		const bool video = backgroundType->currentData().toString() == QStringLiteral("video");
 		const QString filter = video ? tr("Videos (*.mp4 *.mkv *.mov *.webm *.avi);;Todos (*.*)")
 					     : tr("Imágenes (*.png *.jpg *.jpeg *.webp *.bmp);;Todos (*.*)");
-		const QString path = QFileDialog::getOpenFileName(&dialog, tr("Seleccionar fondo"),
-							       backgroundPathEdit->text(), filter);
+		const QString path =
+			OpbsOpenFile(&dialog, tr("Seleccionar fondo"), filter, backgroundPathEdit->text());
 		if (!path.isEmpty())
 			backgroundPathEdit->setText(path);
 	});
@@ -3788,15 +3857,15 @@ void PresenterPanel::ShowBibleDialog()
 		const QString filter =
 			tr("Fondos compatibles (*.bmp *.gif *.jpeg *.jpg *.png *.tga *.webp *.mp4 *.m4v *.mov *.mkv "
 			   "*.avi *.webm *.wmv *.mpeg *.mpg)");
-		const QString path = QFileDialog::getOpenFileName(main, tr("Seleccionar fondo bíblico"), QString(),
-								  filter);
+		const QString path = OpbsOpenFile(main, tr("Seleccionar fondo bíblico"), filter,
+						       backgroundEdit->text());
 		if (!path.isEmpty())
 			backgroundEdit->setText(path);
 	});
 	connect(backgroundClear, &QPushButton::clicked, &dialog, [backgroundEdit]() { backgroundEdit->clear(); });
 	connect(browseButton, &QPushButton::clicked, &dialog, [this, pathEdit]() {
-		const QString path = QFileDialog::getOpenFileName(main, tr("Seleccionar Biblia"), QString(),
-								  tr("Archivos de texto (*.txt)"));
+		const QString path =
+			OpbsOpenFile(main, tr("Seleccionar Biblia"), tr("Archivos de texto (*.txt)"));
 		if (!path.isEmpty())
 			pathEdit->setText(path);
 	});
@@ -4280,6 +4349,17 @@ void PresenterPanel::LoadSettings()
 					       .toString();
 	streamDestinations[1].key = settings.value("transmission/destination2/key").toString();
 	streamDestinations[1].enabled = settings.value("transmission/destination2/enabled", false).toBool();
+	// Repair configurations saved by older OPBS builds that showed the primary
+	// service name on both destination indicators.
+	if (streamDestinations[1].server.contains(QStringLiteral("facebook.com"), Qt::CaseInsensitive))
+		streamDestinations[1].service = QStringLiteral("Facebook");
+	else if (streamDestinations[1].server.contains(QStringLiteral("youtube.com"), Qt::CaseInsensitive))
+		streamDestinations[1].service = QStringLiteral("YouTube");
+	else if (streamDestinations[1].service == streamDestinations[0].service &&
+		 streamDestinations[1].server.trimmed().isEmpty() && streamDestinations[1].key.trimmed().isEmpty()) {
+		streamDestinations[1].service = QStringLiteral("Facebook");
+		streamDestinations[1].server = QStringLiteral("rtmps://rtmp-api.facebook.com:443/rtmp/");
+	}
 	transmissionView = static_cast<TransmissionView>(
 		std::clamp(settings.value("transmission/view", int(TransmissionView::Presenter)).toInt(), 0, 2));
 	transmissionTransitionDuration =
@@ -4381,8 +4461,8 @@ void PresenterPanel::LoadSettings()
 		main->restoreGeometry(geometry);
 	const int layoutVersion = settings.value("window/layoutVersion", 0).toInt();
 	const QByteArray dockState = settings.value("window/dockWorkspace").toByteArray();
-	if (dockWorkspace && layoutVersion >= 14 && !dockState.isEmpty())
-		dockWorkspace->restoreState(dockState, 14);
+	if (dockWorkspace && layoutVersion >= 15 && !dockState.isEmpty())
+		dockWorkspace->restoreState(dockState, 15);
 	if (!audioDeviceId.isEmpty())
 		obs_set_audio_monitoring_device(audioDeviceName.toUtf8().constData(), audioDeviceId.toUtf8().constData());
 
@@ -4600,9 +4680,9 @@ void PresenterPanel::SaveSettings()
 	settings.setValue("transmission/destination2/key", streamDestinations[1].key);
 	settings.setValue("transmission/destination2/enabled", streamDestinations[1].enabled);
 	settings.setValue("window/geometry", main->saveGeometry());
-	settings.setValue("window/layoutVersion", 14);
+	settings.setValue("window/layoutVersion", 15);
 	if (dockWorkspace)
-		settings.setValue("window/dockWorkspace", dockWorkspace->saveState(14));
+		settings.setValue("window/dockWorkspace", dockWorkspace->saveState(15));
 	settings.sync();
 }
 
