@@ -27,6 +27,7 @@
 #include <obs-frontend-api.h>
 
 #include <QAction>
+#include <QAbstractAnimation>
 #include <QApplication>
 #include <QCheckBox>
 #include <QColorDialog>
@@ -39,6 +40,7 @@
 #include <QDoubleSpinBox>
 #include <QDragEnterEvent>
 #include <QDragMoveEvent>
+#include <QEasingCurve>
 #include <QFile>
 #include <QFileDialog>
 #include <QFileInfo>
@@ -64,6 +66,7 @@
 #include <QProgressBar>
 #include <QProgressDialog>
 #include <QProcess>
+#include <QPropertyAnimation>
 #include <QPushButton>
 #include <QScreen>
 #include <QScrollBar>
@@ -146,6 +149,8 @@ enum class OpbsPanelKind { Stage, Media, Live, Tools, Audio };
 
 enum class OpbsTransmissionAction { Stream, Record, Cameras, Presenter, Both };
 
+enum class OpbsMenuIcon { Add, Rename, Repeat, Delete, Camera, Window, Network, Audio };
+
 QPixmap OpbsPanelPixmap(OpbsPanelKind kind)
 {
 	QPixmap pixmap(32, 32);
@@ -224,8 +229,81 @@ void PrepareOpbsContextMenu(QMenu *menu)
 		return;
 	menu->setObjectName("opbsContextMenu");
 	menu->setAttribute(Qt::WA_TranslucentBackground, true);
-	menu->setWindowFlag(Qt::NoDropShadowWindowHint, true);
-	menu->setMinimumWidth(270);
+	menu->setMinimumWidth(248);
+	menu->setToolTipsVisible(true);
+	QObject::connect(menu, &QMenu::aboutToShow, menu, [menu]() {
+		if (!QApplication::isEffectEnabled(Qt::UI_FadeMenu))
+			return;
+		menu->setWindowOpacity(0.0);
+		auto *animation = new QPropertyAnimation(menu, "windowOpacity", menu);
+		animation->setDuration(140);
+		animation->setStartValue(0.0);
+		animation->setEndValue(1.0);
+		animation->setEasingCurve(QEasingCurve::OutCubic);
+		animation->start(QAbstractAnimation::DeleteWhenStopped);
+	});
+}
+
+QIcon OpbsMenuActionIcon(OpbsMenuIcon icon, const QColor &color = QColor("#D9D9DF"))
+{
+	QPixmap pixmap(32, 32);
+	pixmap.setDevicePixelRatio(2.0);
+	pixmap.fill(Qt::transparent);
+	QPainter painter(&pixmap);
+	painter.setRenderHint(QPainter::Antialiasing);
+	painter.setPen(QPen(color, 1.35, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+	painter.setBrush(Qt::NoBrush);
+
+	switch (icon) {
+	case OpbsMenuIcon::Add:
+		painter.drawRoundedRect(QRectF(2.0, 3.0, 12.0, 10.5), 2.0, 2.0);
+		painter.drawLine(QPointF(8.0, 5.5), QPointF(8.0, 11.0));
+		painter.drawLine(QPointF(5.25, 8.25), QPointF(10.75, 8.25));
+		break;
+	case OpbsMenuIcon::Rename:
+		painter.drawLine(QPointF(3.0, 12.8), QPointF(5.0, 8.2));
+		painter.drawLine(QPointF(5.0, 8.2), QPointF(11.8, 1.8));
+		painter.drawLine(QPointF(11.8, 1.8), QPointF(14.2, 4.2));
+		painter.drawLine(QPointF(14.2, 4.2), QPointF(7.4, 10.6));
+		painter.drawLine(QPointF(3.0, 12.8), QPointF(7.4, 10.6));
+		break;
+	case OpbsMenuIcon::Repeat:
+		painter.drawArc(QRectF(2.2, 2.6, 11.6, 10.8), 25 * 16, 240 * 16);
+		painter.drawLine(QPointF(12.7, 2.7), QPointF(13.7, 6.2));
+		painter.drawLine(QPointF(12.7, 2.7), QPointF(9.3, 3.8));
+		break;
+	case OpbsMenuIcon::Delete:
+		painter.drawRoundedRect(QRectF(4.0, 4.6, 8.0, 9.2), 1.4, 1.4);
+		painter.drawLine(QPointF(2.8, 3.2), QPointF(13.2, 3.2));
+		painter.drawLine(QPointF(6.2, 1.7), QPointF(9.8, 1.7));
+		painter.drawLine(QPointF(6.6, 6.5), QPointF(6.6, 11.7));
+		painter.drawLine(QPointF(9.4, 6.5), QPointF(9.4, 11.7));
+		break;
+	case OpbsMenuIcon::Camera:
+		painter.drawRoundedRect(QRectF(2.0, 4.0, 10.5, 8.5), 2.0, 2.0);
+		painter.drawEllipse(QPointF(7.25, 8.25), 2.0, 2.0);
+		painter.drawLine(QPointF(12.5, 6.5), QPointF(15.0, 5.2));
+		painter.drawLine(QPointF(15.0, 5.2), QPointF(15.0, 11.3));
+		painter.drawLine(QPointF(15.0, 11.3), QPointF(12.5, 10.0));
+		break;
+	case OpbsMenuIcon::Window:
+		painter.drawRoundedRect(QRectF(1.8, 2.3, 12.4, 10.8), 1.8, 1.8);
+		painter.drawLine(QPointF(1.8, 5.3), QPointF(14.2, 5.3));
+		break;
+	case OpbsMenuIcon::Network:
+		painter.drawEllipse(QPointF(8.0, 12.4), 1.2, 1.2);
+		painter.drawArc(QRectF(4.2, 7.0, 7.6, 7.0), 45 * 16, 90 * 16);
+		painter.drawArc(QRectF(1.8, 3.0, 12.4, 11.0), 45 * 16, 90 * 16);
+		break;
+	case OpbsMenuIcon::Audio:
+		painter.drawLine(QPointF(6.0, 3.2), QPointF(6.0, 11.8));
+		painter.drawLine(QPointF(6.0, 3.2), QPointF(12.8, 2.0));
+		painter.drawLine(QPointF(12.8, 2.0), QPointF(12.8, 10.2));
+		painter.drawEllipse(QPointF(4.1, 12.2), 1.9, 1.5);
+		painter.drawEllipse(QPointF(10.9, 10.6), 1.9, 1.5);
+		break;
+	}
+	return QIcon(pixmap);
 }
 
 QIcon OpbsTransmissionActionIcon(OpbsTransmissionAction action)
@@ -293,13 +371,13 @@ public:
 		setObjectName("opbsDockTitleBar");
 		setAttribute(Qt::WA_StyledBackground, true);
 		setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-		setMinimumHeight(44);
-		setMaximumHeight(44);
+		setMinimumHeight(46);
+		setMaximumHeight(46);
 		setCursor(Qt::SizeAllCursor);
 		setToolTip(QObject::tr("Arrastra para mover; doble clic para desacoplar"));
 		setAccessibleName(QObject::tr("Panel %1").arg(title));
 		auto *layout = new QHBoxLayout(this);
-		layout->setContentsMargins(16, 0, 16, 0);
+		layout->setContentsMargins(17, 0, 17, 0);
 		layout->setSpacing(10);
 		auto *icon = new QLabel(this);
 		icon->setObjectName("opbsDockTitleIcon");
@@ -314,8 +392,8 @@ public:
 		layout->addStretch();
 	}
 
-	QSize sizeHint() const override { return QSize(190, 44); }
-	QSize minimumSizeHint() const override { return QSize(84, 44); }
+	QSize sizeHint() const override { return QSize(190, 46); }
+	QSize minimumSizeHint() const override { return QSize(84, 46); }
 
 protected:
 	void mousePressEvent(QMouseEvent *event) override { event->ignore(); }
@@ -741,9 +819,9 @@ void PresenterPanel::BuildInterface()
 	auto *header = new QFrame(this);
 	header->setObjectName("presenterHeader");
 	header->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-	header->setFixedHeight(44);
+	header->setFixedHeight(48);
 	auto *headerLayout = new QHBoxLayout(header);
-	headerLayout->setContentsMargins(14, 5, 22, 5);
+	headerLayout->setContentsMargins(16, 6, 22, 6);
 	auto *transmissionStatus = new QFrame(header);
 	transmissionStatus->setObjectName("transmissionStatusStrip");
 	auto *statusLayout = new QHBoxLayout(transmissionStatus);
@@ -777,7 +855,7 @@ void PresenterPanel::BuildInterface()
 	dockWorkspace->setWindowFlags(Qt::Widget);
 	dockWorkspace->setObjectName("presenterDockWorkspace");
 	dockWorkspace->setDockNestingEnabled(true);
-	dockWorkspace->setAnimated(false);
+	dockWorkspace->setAnimated(QApplication::isEffectEnabled(Qt::UI_AnimateCombo));
 	dockWorkspace->setMinimumHeight(420);
 	auto *dockAnchor = new QWidget(dockWorkspace);
 	dockAnchor->setFixedSize(1, 1);
@@ -807,7 +885,7 @@ void PresenterPanel::BuildInterface()
 	previewFrame->setMinimumWidth(420);
 	auto *previewLayout = new QVBoxLayout(previewFrame);
 	previewLayout->setSizeConstraint(QLayout::SetNoConstraint);
-	previewLayout->setContentsMargins(18, 16, 18, 16);
+	previewLayout->setContentsMargins(18, 18, 18, 18);
 	addPreviewStatus(previewLayout, previewFrame, tr("Vista previa del escenario"));
 	preview = new OBSQTDisplay(previewFrame);
 	preview->setMinimumSize(288, 162);
@@ -1012,7 +1090,7 @@ void PresenterPanel::BuildInterface()
 	auto *library = new QFrame(dockWorkspace);
 	library->setObjectName("presenterLibrary");
 	auto *libraryLayout = new QVBoxLayout(library);
-	libraryLayout->setContentsMargins(18, 16, 18, 18);
+	libraryLayout->setContentsMargins(18, 18, 18, 18);
 	auto *libraryBody = new QHBoxLayout();
 	libraryBody->setSpacing(16);
 	auto *folderPanel = new QFrame(library);
@@ -1126,7 +1204,7 @@ void PresenterPanel::BuildInterface()
 		QListWidgetItem *item = list->itemAt(position);
 		QMenu menu(list);
 		PrepareOpbsContextMenu(&menu);
-		QAction *addAction = menu.addAction(OpbsStandardIcon(list, QStyle::SP_DialogOpenButton, QColor("#8CC8FF")),
+		QAction *addAction = menu.addAction(OpbsMenuActionIcon(OpbsMenuIcon::Add),
 					     tr("Agregar multimedia…"));
 		QAction *renameAction = nullptr;
 		QAction *loopAction = nullptr;
@@ -1137,15 +1215,13 @@ void PresenterPanel::BuildInterface()
 					     [item](const auto &entry) { return entry->item == item; });
 			if (found != entries.end()) {
 				menu.addSeparator();
-				renameAction = menu.addAction(
-					OpbsStandardIcon(list, QStyle::SP_FileDialogDetailedView, QColor("#D8D8DE")),
-					tr("Cambiar nombre…"));
-				loopAction = menu.addAction(
-					OpbsStandardIcon(list, QStyle::SP_BrowserReload, QColor("#D8D8DE")),
+				renameAction = menu.addAction(OpbsMenuActionIcon(OpbsMenuIcon::Rename), tr("Cambiar nombre…"));
+				loopAction = menu.addAction(OpbsMenuActionIcon(OpbsMenuIcon::Repeat),
 					tr("Repetir este archivo en bucle") +
 						((*found)->loop ? QStringLiteral("\t✓") : QString()));
 				loopAction->setEnabled(!(*found)->isImage);
-				removeAction = menu.addAction(OpbsStandardIcon(list, QStyle::SP_TrashIcon, QColor("#FF7B82")),
+				menu.addSeparator();
+				removeAction = menu.addAction(OpbsMenuActionIcon(OpbsMenuIcon::Delete, QColor("#FF7B82")),
 							      tr("Eliminar"));
 			}
 		}
@@ -1262,8 +1338,8 @@ void PresenterPanel::BuildInterface()
 	auto *toolsFrame = new QFrame(dockWorkspace);
 	toolsFrame->setObjectName("presenterLibrary");
 	auto *toolsLayout = new QHBoxLayout(toolsFrame);
-	toolsLayout->setContentsMargins(12, 10, 12, 12);
-	toolsLayout->setSpacing(14);
+	toolsLayout->setContentsMargins(16, 14, 16, 16);
+	toolsLayout->setSpacing(16);
 	auto *toolsSidebar = new QFrame(toolsFrame);
 	toolsSidebar->setObjectName("presenterFolderPanel");
 	toolsSidebar->setMinimumWidth(165);
@@ -1353,22 +1429,21 @@ void PresenterPanel::BuildInterface()
 		PrepareOpbsContextMenu(&menu);
 		QMenu *addMenu = menu.addMenu(tr("Agregar"));
 		PrepareOpbsContextMenu(addMenu);
-		addMenu->setIcon(OpbsStandardIcon(captureList, QStyle::SP_DialogOpenButton, QColor("#8CC8FF")));
+		addMenu->setIcon(OpbsMenuActionIcon(OpbsMenuIcon::Add));
 		QAction *addCamera = addMenu->addAction(
-			OpbsStandardIcon(captureList, QStyle::SP_ComputerIcon, QColor("#D8D8DE")),
+			OpbsMenuActionIcon(OpbsMenuIcon::Camera),
 			tr("Dispositivo de captura de video…"));
 		QAction *addWindow = addMenu->addAction(
-			OpbsStandardIcon(captureList, QStyle::SP_DesktopIcon, QColor("#D8D8DE")),
+			OpbsMenuActionIcon(OpbsMenuIcon::Window),
 			tr("Captura de ventana…"));
 		QAction *renameAction = nullptr;
 		QAction *removeAction = nullptr;
 		if (item) {
 			menu.addSeparator();
-			renameAction = menu.addAction(
-				OpbsStandardIcon(captureList, QStyle::SP_FileDialogDetailedView, QColor("#D8D8DE")),
-				tr("Cambiar nombre…"));
+			renameAction = menu.addAction(OpbsMenuActionIcon(OpbsMenuIcon::Rename), tr("Cambiar nombre…"));
+			menu.addSeparator();
 			removeAction = menu.addAction(
-				OpbsStandardIcon(captureList, QStyle::SP_TrashIcon, QColor("#FF7B82")), tr("Eliminar"));
+				OpbsMenuActionIcon(OpbsMenuIcon::Delete, QColor("#FF7B82")), tr("Eliminar"));
 		}
 		QAction *chosen = menu.exec(captureList->viewport()->mapToGlobal(position));
 		if (chosen == addCamera) {
@@ -1448,17 +1523,16 @@ void PresenterPanel::BuildInterface()
 		QMenu menu(ndiList);
 		PrepareOpbsContextMenu(&menu);
 		QAction *addAction = menu.addAction(
-			OpbsStandardIcon(ndiList, QStyle::SP_DriveNetIcon, QColor("#8CC8FF")),
+			OpbsMenuActionIcon(OpbsMenuIcon::Network),
 			tr("Agregar fuente NDI…"));
 		QAction *renameAction = nullptr;
 		QAction *removeAction = nullptr;
 		if (item) {
 			menu.addSeparator();
-			renameAction = menu.addAction(
-				OpbsStandardIcon(ndiList, QStyle::SP_FileDialogDetailedView, QColor("#D8D8DE")),
-				tr("Cambiar nombre…"));
+			renameAction = menu.addAction(OpbsMenuActionIcon(OpbsMenuIcon::Rename), tr("Cambiar nombre…"));
+			menu.addSeparator();
 			removeAction = menu.addAction(
-				OpbsStandardIcon(ndiList, QStyle::SP_TrashIcon, QColor("#FF7B82")), tr("Eliminar"));
+				OpbsMenuActionIcon(OpbsMenuIcon::Delete, QColor("#FF7B82")), tr("Eliminar"));
 		}
 		QAction *chosen = menu.exec(ndiList->viewport()->mapToGlobal(position));
 		if (chosen == addAction) {
@@ -1559,17 +1633,16 @@ void PresenterPanel::BuildInterface()
 		QMenu menu(audioPlaylistList);
 		PrepareOpbsContextMenu(&menu);
 		QAction *addAction = menu.addAction(
-			OpbsStandardIcon(audioPlaylistList, QStyle::SP_DialogOpenButton, QColor("#8CC8FF")),
+			OpbsMenuActionIcon(OpbsMenuIcon::Audio),
 			tr("Agregar audio…"));
 		QAction *renameAction = nullptr;
 		QAction *removeAction = nullptr;
 		if (row >= 0) {
 			menu.addSeparator();
-			renameAction = menu.addAction(
-				OpbsStandardIcon(audioPlaylistList, QStyle::SP_FileDialogDetailedView, QColor("#D8D8DE")),
-				tr("Cambiar nombre…"));
+			renameAction = menu.addAction(OpbsMenuActionIcon(OpbsMenuIcon::Rename), tr("Cambiar nombre…"));
+			menu.addSeparator();
 			removeAction = menu.addAction(
-				OpbsStandardIcon(audioPlaylistList, QStyle::SP_TrashIcon, QColor("#FF7B82")),
+				OpbsMenuActionIcon(OpbsMenuIcon::Delete, QColor("#FF7B82")),
 				tr("Eliminar"));
 		}
 		QAction *chosen = menu.exec(audioPlaylistList->viewport()->mapToGlobal(position));

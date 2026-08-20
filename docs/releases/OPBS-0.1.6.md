@@ -37,6 +37,8 @@ de OBS Studio.
   de transmisión y grabación distinguen mejor sus estados activos.
 - Buscadores multimedia y bíblico con icono propio centrado y estable bajo escalado de Windows.
 - Buscadores adaptables al ancho de sus docks y menús contextuales elevados con el lenguaje visual propio de OPBS.
+- Revisión visual integral de paneles, diálogos, campos y selecciones, con menús contextuales más compactos, sombra del
+  sistema, glifos vectoriales originales y movimiento breve condicionado por las preferencias visuales de Windows.
 - Selector de archivos oscuro con ruta inicial válida y restauración del arrastre directo sobre carpetas multimedia
   vacías.
 - Corrección del rótulo del segundo destino para distinguir Facebook de YouTube en configuraciones ya existentes.

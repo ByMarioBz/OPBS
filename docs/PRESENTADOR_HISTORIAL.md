@@ -285,6 +285,11 @@ build_x64/rundir/RelWithDebInfo/obs-plugins/64bit/obs-ffmpeg.dll
   abajo. Los buscadores eliminan anchos máximos rígidos, reservan correctamente el espacio de lupa y borrado, y se
   expanden con el dock. Los menús contextuales adoptan una superficie elevada oscura, radios, espaciado e iconografía
   monocroma propios de OPBS; el bucle conserva su marca al extremo derecho.
+- La duodécima iteración profundiza el lenguaje visual en toda la aplicación: eleva la escala mínima de controles,
+  unifica radios y márgenes, suaviza la jerarquía de superficies y amplía el aire entre grupos. Los menús contextuales
+  dejan de reutilizar pictogramas rellenos de Windows y dibujan glifos vectoriales propios de 16 px; recuperan la sombra
+  nativa, reducen sus filas a 32 px, separan la acción destructiva y aparecen con una transición breve que respeta los
+  efectos configurados en el sistema. Las animaciones de acoplamiento siguen la misma preferencia de Windows.
 - `Build-Presenter.cmd` y `Package-Presenter.cmd` terminaron correctamente. OPBS inició en modo seguro, permaneció
   respondiendo y alcanzó `Startup complete` después de las nueve iteraciones; el registro no contiene errores de análisis
   de QSS. La herramienta de

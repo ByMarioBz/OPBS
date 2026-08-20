@@ -53,8 +53,8 @@ usa como elemento gráfico o contorno, no como texto pequeño sobre fondos claro
 - Unidad base: 4 px.
 - Separaciones normales: 8 px y 12 px.
 - Márgenes de panel: 10–16 px.
-- Altura mínima de control: 30 px; objetivo habitual: 36–38 px para campos de entrada frecuentes.
-- Radio pequeño: 6 px; control: 10–12 px; tarjeta o superficie elevada: 12–14 px.
+- Altura mínima de control: 34 px; objetivo habitual: 36–40 px para campos de entrada frecuentes.
+- Radio pequeño: 7 px; control: 10–13 px; tarjeta o superficie elevada: 13–15 px.
 - Los grupos relacionados permanecen próximos; los grupos diferentes se separan por al menos 12 px.
 
 ## Estados interactivos
@@ -78,7 +78,7 @@ resalta únicamente mientras el archivo está encima; un destino inválido conse
 - **Paneles:** una sola superficie continua; el título usa un material opaco ligeramente elevado y el separador exterior
   conserva el espacio suficiente para redimensionar. Arrastrar o hacer doble clic en el título mantiene las funciones
   de mover y desacoplar sin mostrar controles permanentes que compitan con el contenido.
-- **Cabeceras de panel:** altura fija de 44 px, icono de 16 px, margen horizontal de 16 px y separación de 10 px. Su
+- **Cabeceras de panel:** altura fija de 46 px, icono de 16 px, margen horizontal de 17 px y separación de 10 px. Su
   tamaño mínimo se declara al sistema de acoplamiento para impedir que el contenido invada o recorte el título.
 - **Iconografía de panel:** Escenario, Multimedia, En vivo, Herramientas y Audio usan glifos originales de OPBS,
   monocromos, geométricos y de 16 px. Los símbolos describen la función y no son decoración de marca.
@@ -100,8 +100,9 @@ resalta únicamente mientras el archivo está encima; un destino inválido conse
   texto, color, duración y porcentaje cuando existe telemetría real; nunca depende solo de un punto de color.
 - **Menús contextuales:** conservan el mismo material y espaciado del menú principal. Las acciones destructivas se
   separan de Agregar y Cambiar nombre; los estados por elemento muestran una marca al lado derecho del texto. Se
-  presentan como una superficie elevada de radio amplio, con iconografía monocroma consistente y áreas de selección
-  completas, sin depender de los iconos coloreados del Explorador de Windows.
+  presentan como una superficie elevada de radio amplio, sombra del sistema, filas compactas de 32 px, iconografía
+  vectorial monocroma de 16 px y áreas de selección completas. No dependen de los iconos coloreados del Explorador de
+  Windows. Su aparición usa un desvanecimiento de 140 ms únicamente cuando los efectos del sistema están habilitados.
 - **Estados vacíos:** explican qué falta y cuál es la acción siguiente; no se usan como mensajes de error.
 - **Indicadores de estado:** usan cápsulas compactas y nunca barras decorativas de ancho completo.
 - **Búsqueda en escritorio:** conserva un ancho de lectura razonable en ventanas grandes; el espacio restante pertenece
