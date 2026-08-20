@@ -21,6 +21,8 @@ de OBS Studio.
 - Paneles de superficie continua, sin la doble barra superior heredada del aspecto de OBS.
 - Cabeceras propias e iconografía monocroma original para los cinco paneles del espacio de trabajo.
 - Corrección de cabeceras recortadas y nueva paleta oscura neutral con contraste calculado para texto, acciones y foco.
+- Jerarquía visual más profunda con materiales opacos, buscadores con icono, selección lateral discreta y controles
+  multimedia y de transmisión agrupados.
 - Multimedia y Herramientas funcionan simultáneamente con cuadrículas independientes; los medios arrastrados ya no
   pueden aparecer dentro de Presentación, Captura o NDI.
 - Buscador multimedia independiente y buscador de Herramientas visible únicamente al seleccionar Biblia.

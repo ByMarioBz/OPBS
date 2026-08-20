@@ -75,24 +75,27 @@ resalta únicamente mientras el archivo está encima; un destino inválido conse
 ## Componentes
 
 - **Menú principal:** una sola fila compacta, sin repetir funciones en una cabecera secundaria.
-- **Paneles:** una sola superficie continua; el título se integra sin caja ni borde propio y el separador exterior
+- **Paneles:** una sola superficie continua; el título usa un material opaco ligeramente elevado y el separador exterior
   conserva el espacio suficiente para redimensionar. Arrastrar o hacer doble clic en el título mantiene las funciones
   de mover y desacoplar sin mostrar controles permanentes que compitan con el contenido.
-- **Cabeceras de panel:** altura fija de 40 px, icono de 16 px, margen horizontal de 14 px y separación de 8 px. Su
+- **Cabeceras de panel:** altura fija de 44 px, icono de 16 px, margen horizontal de 16 px y separación de 10 px. Su
   tamaño mínimo se declara al sistema de acoplamiento para impedir que el contenido invada o recorte el título.
 - **Iconografía de panel:** Escenario, Multimedia, En vivo, Herramientas y Audio usan glifos originales de OPBS,
   monocromos, geométricos y de 16 px. Los símbolos describen la función y no son decoración de marca.
 - **Tarjetas:** miniatura 16:9, nombre legible, borde de selección y tooltip para rutas largas.
-- **Buscadores:** campo local a su panel, botón de limpiar y foco azul; el placeholder explica el alcance.
+- **Buscadores:** campo local a su panel, glifo original de búsqueda, botón de limpiar y foco azul; el placeholder
+  explica el alcance.
 - **Botones:** verbo concreto o icono estándar con tooltip y nombre accesible.
 - **Diálogos:** grupos claros, acción principal a la derecha y Cancelar siempre disponible.
 - **Controles multimedia:** orden estable, iconos familiares, foco por teclado y estado reproducir/pausar perceptible.
+- **Controles agrupados:** acciones consecutivas del mismo nivel comparten una superficie contenedora. El transporte y
+  los modos de transmisión se perciben como unidades, mientras cada botón conserva su foco y nombre accesible.
 - **Estados vacíos:** explican qué falta y cuál es la acción siguiente; no se usan como mensajes de error.
 - **Indicadores de estado:** usan cápsulas compactas y nunca barras decorativas de ancho completo.
 - **Búsqueda en escritorio:** conserva un ancho de lectura razonable en ventanas grandes; el espacio restante pertenece
   al contenido y a los metadatos del panel.
 - **Selección lateral:** emplea una superficie elevada con tinte moderado; el azul brillante se reserva para el foco y
-  las acciones primarias, evitando contornos intensos alrededor de listas completas.
+  un indicador de 3 px, evitando rellenos saturados y contornos intensos alrededor de listas completas.
 
 ## Accesibilidad y entrada
 

@@ -161,6 +161,21 @@ QPixmap OpbsPanelPixmap(OpbsPanelKind kind)
 	return pixmap;
 }
 
+QIcon OpbsSearchIcon()
+{
+	QPixmap pixmap(36, 36);
+	pixmap.setDevicePixelRatio(2.0);
+	pixmap.fill(Qt::transparent);
+	QPainter painter(&pixmap);
+	painter.setRenderHint(QPainter::Antialiasing);
+	painter.scale(2.0, 2.0);
+	painter.setPen(QPen(QColor("#A6A6B0"), 1.45, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+	painter.setBrush(Qt::NoBrush);
+	painter.drawEllipse(QRectF(3.2, 3.2, 8.4, 8.4));
+	painter.drawLine(QPointF(10.1, 10.1), QPointF(14.6, 14.6));
+	return QIcon(pixmap);
+}
+
 class OpbsDockTitleBar : public QFrame {
 public:
 	OpbsDockTitleBar(const QString &title, OpbsPanelKind kind) : QFrame(nullptr)
@@ -168,14 +183,14 @@ public:
 		setObjectName("opbsDockTitleBar");
 		setAttribute(Qt::WA_StyledBackground, true);
 		setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-		setMinimumHeight(40);
-		setMaximumHeight(40);
+		setMinimumHeight(44);
+		setMaximumHeight(44);
 		setCursor(Qt::SizeAllCursor);
 		setToolTip(QObject::tr("Arrastra para mover; doble clic para desacoplar"));
 		setAccessibleName(QObject::tr("Panel %1").arg(title));
 		auto *layout = new QHBoxLayout(this);
-		layout->setContentsMargins(14, 0, 14, 0);
-		layout->setSpacing(8);
+		layout->setContentsMargins(16, 0, 16, 0);
+		layout->setSpacing(10);
 		auto *icon = new QLabel(this);
 		icon->setObjectName("opbsDockTitleIcon");
 		icon->setPixmap(OpbsPanelPixmap(kind));
@@ -189,8 +204,8 @@ public:
 		layout->addStretch();
 	}
 
-	QSize sizeHint() const override { return QSize(180, 40); }
-	QSize minimumSizeHint() const override { return QSize(72, 40); }
+	QSize sizeHint() const override { return QSize(190, 44); }
+	QSize minimumSizeHint() const override { return QSize(84, 44); }
 
 protected:
 	void mousePressEvent(QMouseEvent *event) override { event->ignore(); }
@@ -631,11 +646,11 @@ void PresenterPanel::BuildInterface()
 	previewFrame->setMinimumWidth(420);
 	auto *previewLayout = new QVBoxLayout(previewFrame);
 	previewLayout->setSizeConstraint(QLayout::SetNoConstraint);
-	previewLayout->setContentsMargins(16, 16, 16, 16);
+	previewLayout->setContentsMargins(18, 16, 18, 16);
 	addPreviewStatus(previewLayout, previewFrame, tr("Vista previa del escenario"));
 	preview = new OBSQTDisplay(previewFrame);
 	preview->setMinimumSize(288, 162);
-	preview->SetDisplayBackgroundColor(QColor("#08090c"));
+	preview->SetDisplayBackgroundColor(QColor("#09090c"));
 	previewLayout->addWidget(preview, 1);
 	currentMedia = new QLabel(tr("Ningún contenido seleccionado"), previewFrame);
 	currentMedia->setObjectName("presenterCurrent");
@@ -687,14 +702,20 @@ void PresenterPanel::BuildInterface()
 
 	auto *transportRow = new QHBoxLayout();
 	transportRow->addStretch();
-	auto makeTransportButton = [previewFrame, transportRow](QStyle::StandardPixmap icon, const QString &tip) {
-		auto *button = new QToolButton(previewFrame);
+	auto *transportGroup = new QFrame(previewFrame);
+	transportGroup->setObjectName("presenterTransportGroup");
+	auto *transportGroupLayout = new QHBoxLayout(transportGroup);
+	transportGroupLayout->setContentsMargins(3, 3, 3, 3);
+	transportGroupLayout->setSpacing(2);
+	auto makeTransportButton = [transportGroup, transportGroupLayout](QStyle::StandardPixmap icon,
+								    const QString &tip) {
+		auto *button = new QToolButton(transportGroup);
 		button->setObjectName("presenterTransport");
-		button->setIcon(OpbsStandardIcon(previewFrame, icon));
+		button->setIcon(OpbsStandardIcon(transportGroup, icon));
 		button->setIconSize(QSize(20, 20));
 		button->setToolTip(tip);
 		button->setAccessibleName(tip);
-		transportRow->addWidget(button);
+		transportGroupLayout->addWidget(button);
 		return button;
 	};
 	auto *previousButton = makeTransportButton(QStyle::SP_MediaSkipBackward, tr("Anterior (tecla multimedia anterior)"));
@@ -704,6 +725,7 @@ void PresenterPanel::BuildInterface()
 	loopButton = makeTransportButton(QStyle::SP_BrowserReload, tr("Repetir continuamente el archivo actual"));
 	loopButton->setCheckable(true);
 	loopButton->setEnabled(false);
+	transportRow->addWidget(transportGroup);
 	transportRow->addStretch();
 	previewLayout->addLayout(transportRow);
 	connect(previousButton, &QToolButton::clicked, this, &PresenterPanel::PreviousMedia);
@@ -761,16 +783,16 @@ void PresenterPanel::BuildInterface()
 	auto *transmissionFrame = new QFrame(dockWorkspace);
 	transmissionFrame->setObjectName("transmissionPreviewFrame");
 	auto *transmissionLayout = new QVBoxLayout(transmissionFrame);
-	transmissionLayout->setContentsMargins(10, 10, 10, 10);
+	transmissionLayout->setContentsMargins(14, 12, 14, 12);
 	addPreviewStatus(transmissionLayout, transmissionFrame, tr("Vista previa de transmisión"));
 	transmissionPreview = new OBSQTDisplay(transmissionFrame);
 	transmissionPreview->setMinimumSize(288, 162);
-	transmissionPreview->SetDisplayBackgroundColor(QColor("#08090c"));
+	transmissionPreview->SetDisplayBackgroundColor(QColor("#09090c"));
 	transmissionLayout->addWidget(transmissionPreview, 1);
 	auto *transmissionButtons = new QHBoxLayout();
 	transmissionButtons->setSpacing(7);
-	auto makeTransmissionButton = [transmissionFrame, transmissionButtons](const QString &text, const QString &tip,
-								 bool checkable = true) {
+	auto makeTransmissionButton = [transmissionFrame](QHBoxLayout *target, const QString &text, const QString &tip,
+							     bool checkable = true) {
 		auto *button = new QToolButton(transmissionFrame);
 		button->setObjectName("transmissionMode");
 		button->setText(text);
@@ -778,18 +800,27 @@ void PresenterPanel::BuildInterface()
 		button->setAccessibleName(text);
 		button->setAccessibleDescription(tip);
 		button->setCheckable(checkable);
-		transmissionButtons->addWidget(button);
+		target->addWidget(button);
 		return button;
 	};
-	streamButton = makeTransmissionButton(tr("Transmitir"), tr("Iniciar o detener los destinos configurados"));
+	streamButton = makeTransmissionButton(transmissionButtons, tr("Transmitir"),
+					      tr("Iniciar o detener los destinos configurados"));
 	streamButton->setObjectName("transmissionLive");
-	recordButton = makeTransmissionButton(tr("Grabar"), tr("Iniciar o detener la grabación"));
+	recordButton = makeTransmissionButton(transmissionButtons, tr("Grabar"), tr("Iniciar o detener la grabación"));
 	recordButton->setObjectName("transmissionLive");
 	transmissionButtons->addStretch();
-	camerasViewButton = makeTransmissionButton(tr("Cámaras"), tr("Mostrar solo la cámara asignada"));
-	presenterViewButton = makeTransmissionButton(tr("Presentador"), tr("Mostrar solo el contenido del presentador"));
-	combinedViewButton = makeTransmissionButton(tr("Ambos"),
-						      tr("Mostrar la cámara con el presentador en recuadro"));
+	auto *modeGroup = new QFrame(transmissionFrame);
+	modeGroup->setObjectName("transmissionModeGroup");
+	auto *modeGroupLayout = new QHBoxLayout(modeGroup);
+	modeGroupLayout->setContentsMargins(3, 3, 3, 3);
+	modeGroupLayout->setSpacing(2);
+	camerasViewButton = makeTransmissionButton(modeGroupLayout, tr("Cámaras"),
+						  tr("Mostrar solo la cámara asignada"));
+	presenterViewButton = makeTransmissionButton(modeGroupLayout, tr("Presentador"),
+						    tr("Mostrar solo el contenido del presentador"));
+	combinedViewButton = makeTransmissionButton(modeGroupLayout, tr("Ambos"),
+						   tr("Mostrar la cámara con el presentador en recuadro"));
+	transmissionButtons->addWidget(modeGroup);
 	transmissionLayout->addLayout(transmissionButtons);
 	connect(streamButton, &QToolButton::clicked, this, &PresenterPanel::ToggleStreaming);
 	connect(recordButton, &QToolButton::clicked, this, &PresenterPanel::ToggleRecording);
@@ -803,14 +834,14 @@ void PresenterPanel::BuildInterface()
 	auto *library = new QFrame(dockWorkspace);
 	library->setObjectName("presenterLibrary");
 	auto *libraryLayout = new QVBoxLayout(library);
-	libraryLayout->setContentsMargins(16, 16, 16, 16);
+	libraryLayout->setContentsMargins(18, 16, 18, 18);
 	auto *libraryBody = new QHBoxLayout();
-	libraryBody->setSpacing(12);
+	libraryBody->setSpacing(16);
 	auto *folderPanel = new QFrame(library);
 	folderPanel->setObjectName("presenterFolderPanel");
-	folderPanel->setFixedWidth(165);
+	folderPanel->setFixedWidth(172);
 	auto *folderLayout = new QVBoxLayout(folderPanel);
-	folderLayout->setContentsMargins(8, 8, 8, 8);
+	folderLayout->setContentsMargins(10, 10, 10, 10);
 	auto *folderTitle = new QLabel(tr("Carpetas"), folderPanel);
 	folderTitle->setObjectName("presenterSectionLabel");
 	folderLayout->addWidget(folderTitle);
@@ -866,6 +897,7 @@ void PresenterPanel::BuildInterface()
 	bibleSearchEdit->setObjectName("presenterSearch");
 	bibleSearchEdit->setPlaceholderText(tr("Buscar texto o referencia bíblica…"));
 	bibleSearchEdit->setClearButtonEnabled(true);
+	bibleSearchEdit->addAction(OpbsSearchIcon(), QLineEdit::LeadingPosition);
 	bibleSearchEdit->setAccessibleName(tr("Buscar en la Biblia"));
 	bibleSearchEdit->setMinimumWidth(280);
 	bibleSearchEdit->setMaximumWidth(520);
@@ -946,6 +978,7 @@ void PresenterPanel::BuildInterface()
 	searchEdit->setObjectName("presenterSearch");
 	searchEdit->setPlaceholderText(tr("Buscar en esta carpeta…"));
 	searchEdit->setClearButtonEnabled(true);
+	searchEdit->addAction(OpbsSearchIcon(), QLineEdit::LeadingPosition);
 	searchEdit->setAccessibleName(tr("Buscar contenido multimedia"));
 	multimediaContentTarget = new QWidget(library);
 	auto *multimediaTargetLayout = new QVBoxLayout(multimediaContentTarget);
@@ -1009,13 +1042,14 @@ void PresenterPanel::BuildInterface()
 	auto *toolsFrame = new QFrame(dockWorkspace);
 	toolsFrame->setObjectName("presenterLibrary");
 	auto *toolsLayout = new QHBoxLayout(toolsFrame);
-	toolsLayout->setContentsMargins(8, 8, 8, 8);
+	toolsLayout->setContentsMargins(12, 10, 12, 12);
+	toolsLayout->setSpacing(14);
 	auto *toolsSidebar = new QFrame(toolsFrame);
 	toolsSidebar->setObjectName("presenterFolderPanel");
 	toolsSidebar->setMinimumWidth(165);
 	toolsSidebar->setMaximumWidth(230);
 	auto *toolsSidebarLayout = new QVBoxLayout(toolsSidebar);
-	toolsSidebarLayout->setContentsMargins(8, 8, 8, 8);
+	toolsSidebarLayout->setContentsMargins(10, 10, 10, 10);
 	toolsSidebarLayout->addWidget(presentationsWidget);
 	toolsSidebarLayout->addSpacing(12);
 	auto *recentTitle = new QLabel(tr("Presentaciones recientes"), toolsSidebar);
@@ -1116,7 +1150,7 @@ void PresenterPanel::BuildInterface()
 	auto *audioFrame = new QFrame(dockWorkspace);
 	audioFrame->setObjectName("presenterLibrary");
 	auto *audioPlayerLayout = new QVBoxLayout(audioFrame);
-	audioPlayerLayout->setContentsMargins(10, 10, 10, 10);
+	audioPlayerLayout->setContentsMargins(14, 12, 14, 14);
 	audioPlayerTimeline = new AbsoluteSlider(Qt::Horizontal, audioFrame);
 	audioPlayerTimeline->setRange(0, 1000);
 	audioPlayerTimeline->setEnabled(false);
