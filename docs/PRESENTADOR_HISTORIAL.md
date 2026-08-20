@@ -260,8 +260,12 @@ build_x64/rundir/RelWithDebInfo/obs-plugins/64bit/obs-ffmpeg.dll
   superior usan capas opacas sutiles, los buscadores incorporan un glifo propio, la selección lateral reduce el relleno
   azul a un indicador de 3 px y los transportes/modos de transmisión se agrupan en controles continuos. Se ampliaron
   márgenes, radios y blancos internos sin introducir desenfoque sobre video ni copiar activos de otra plataforma.
+- La octava iteración corrige el doble escalado que recortaba los iconos vectoriales en cabeceras y buscadores con DPI
+  alto. Pantallas, Sonido, Transmisión y Biblia comparten ahora títulos, subtítulos, superficies y navegación lateral
+  del sistema visual de OPBS. Los controles de emisión incorporan iconos originales y los modos Cámaras, Presentador
+  y Ambos conservan un selector segmentado más claro sin alterar su comportamiento.
 - `Build-Presenter.cmd` y `Package-Presenter.cmd` terminaron correctamente. OPBS inició en modo seguro, permaneció
-  respondiendo y alcanzó `Startup complete` después de las siete iteraciones; el registro no contiene errores de análisis
+  respondiendo y alcanzó `Startup complete` después de las ocho iteraciones; el registro no contiene errores de análisis
   de QSS. La herramienta de
   control visual bloqueó `OPBS.exe` por política, por lo que la inspección visual automatizada queda sustituida por una
   revisión manual de la ventana abierta.

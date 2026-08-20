@@ -18,6 +18,9 @@ QString ApplicationStyleSheet()
 {
 	return QStringLiteral(R"(
 		QMainWindow, QDialog { background: #0B0B0E; color: #F5F5F7; }
+		QDialog#opbsSettingsDialog { background: #101014; }
+		QLabel#opbsDialogTitle { color: #F5F5F7; font-size: 22px; font-weight: 650; }
+		QLabel#opbsDialogSubtitle { color: #A6A6B0; font-size: 13px; }
 		QWidget { color: #F5F5F7; font-family: "Segoe UI Variable"; font-size: 13px; }
 		QMenuBar { min-height: 30px; background: #17171B; color: #E8E8ED; border: 0;
 			border-bottom: 1px solid #29292F; padding: 2px 8px; spacing: 3px; }
@@ -31,9 +34,9 @@ QString ApplicationStyleSheet()
 		QMenu::item:disabled { color: #6F6F78; }
 		QMenu::separator { height: 1px; background: #303038; margin: 5px 8px; }
 		QLabel { color: #F5F5F7; }
-		QGroupBox { background: #151519; border: 1px solid #303038; border-radius: 10px;
-			margin-top: 14px; padding: 14px 12px 10px 12px; font-weight: 600; }
-		QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 5px; color: #F5F5F7; }
+		QGroupBox { background: #18181D; border: 1px solid #303038; border-radius: 13px;
+			margin-top: 18px; padding: 17px 14px 12px 14px; font-weight: 600; }
+		QGroupBox::title { subcontrol-origin: margin; left: 12px; padding: 0 6px; color: #F5F5F7; }
 		QPushButton, QToolButton { min-height: 30px; color: #F5F5F7; background: #24242A;
 			border: 1px solid #3A3A43; border-radius: 10px; padding: 3px 12px; }
 		QPushButton:hover, QToolButton:hover { background: #2D2D34; border-color: #666672; }
@@ -54,6 +57,17 @@ QString ApplicationStyleSheet()
 		QComboBox::drop-down { border: 0; width: 26px; }
 		QComboBox QAbstractItemView { background: #19191E; color: #F5F5F7; border: 1px solid #3A3A43;
 			selection-background-color: #0969BD; selection-color: white; outline: 0; }
+		QListWidget#opbsSettingsSidebar { background: #18181D; border: 1px solid #303038;
+			border-radius: 13px; padding: 7px; outline: 0; }
+		QListWidget#opbsSettingsSidebar::item { min-height: 32px; border: 0; border-left: 3px solid transparent;
+			border-radius: 9px; padding: 5px 9px; margin: 2px; }
+		QListWidget#opbsSettingsSidebar::item:hover { background: #24242A; }
+		QListWidget#opbsSettingsSidebar::item:selected { background: #2A2A30; border-left: 3px solid #5AAEFF;
+			color: #F5F5F7; }
+		QStackedWidget#opbsSettingsPages { background: #141418; border: 1px solid #2C2C33;
+			border-radius: 14px; }
+		QScrollArea { background: transparent; border: 0; }
+		QScrollArea > QWidget > QWidget { background: transparent; }
 		QCheckBox { spacing: 7px; }
 		QCheckBox::indicator { width: 16px; height: 16px; border: 1px solid #5B5B66;
 			border-radius: 4px; background: #121216; }
@@ -75,7 +89,8 @@ QString ApplicationStyleSheet()
 		QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal { width: 0; background: transparent; }
 		QToolTip { background: #24242A; color: #F5F5F7; border: 1px solid #4A4A54;
 			border-radius: 8px; padding: 7px 9px; }
-		QDialogButtonBox QPushButton { min-width: 84px; }
+		QDialogButtonBox { border-top: 1px solid #29292F; padding-top: 14px; }
+		QDialogButtonBox QPushButton { min-width: 92px; min-height: 32px; }
 	)");
 }
 
@@ -157,14 +172,14 @@ QString PresenterStyleSheet()
 		QToolButton#presenterTransport:focus { border: 2px solid #5AAEFF; }
 		QToolButton#presenterTransport:checked { background: #0969BD; border: 0; color: white; }
 		QToolButton#presenterTransport:disabled { color: #6F6F78; background: transparent; border: 0; }
-		QToolButton#transmissionMode { min-height: 30px; background: transparent; color: #F5F5F7;
-			border: 0; border-radius: 9px; padding: 3px 12px; font-weight: 600; }
+		QToolButton#transmissionMode { min-height: 34px; background: transparent; color: #F5F5F7;
+			border: 0; border-radius: 9px; padding: 3px 13px; font-weight: 600; }
 		QToolButton#transmissionMode:hover { background: #303038; border: 0; }
 		QToolButton#transmissionMode:focus { border: 2px solid #5AAEFF; }
 		QToolButton#transmissionMode:checked { background: #0969BD; border: 0; }
-		QToolButton#transmissionLive { min-height: 30px; background: #C43D4D; color: white; border: 1px solid #E06472;
-			border-radius: 8px; padding: 3px 12px; font-weight: 700; }
-		QToolButton#transmissionLive:hover { background: #D14858; }
+		QToolButton#transmissionLive { min-height: 34px; background: #B93646; color: white; border: 1px solid #D95B68;
+			border-radius: 10px; padding: 3px 15px; font-weight: 700; }
+		QToolButton#transmissionLive:hover { background: #CC4252; }
 		QToolButton#transmissionLive:focus { border: 2px solid white; }
 		QToolButton#transmissionLive:checked { background: #D94B5B; }
 		QToolButton#captureAdd { min-height: 30px; background: #0969BD; color: white; border: 1px solid #5AAEFF;

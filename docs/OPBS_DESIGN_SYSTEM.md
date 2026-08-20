@@ -84,12 +84,16 @@ resalta únicamente mientras el archivo está encima; un destino inválido conse
   monocromos, geométricos y de 16 px. Los símbolos describen la función y no son decoración de marca.
 - **Tarjetas:** miniatura 16:9, nombre legible, borde de selección y tooltip para rutas largas.
 - **Buscadores:** campo local a su panel, glifo original de búsqueda, botón de limpiar y foco azul; el placeholder
-  explica el alcance.
+  explica el alcance. Los glifos se generan respetando el factor de escala de Qt una sola vez para evitar recortes en
+  monitores con escalado de Windows.
 - **Botones:** verbo concreto o icono estándar con tooltip y nombre accesible.
-- **Diálogos:** grupos claros, acción principal a la derecha y Cancelar siempre disponible.
+- **Diálogos:** comparten el mismo sistema de superficies, títulos, subtítulos y navegación lateral que el espacio de
+  trabajo; mantienen grupos claros, acción principal a la derecha y Cancelar siempre disponible.
 - **Controles multimedia:** orden estable, iconos familiares, foco por teclado y estado reproducir/pausar perceptible.
 - **Controles agrupados:** acciones consecutivas del mismo nivel comparten una superficie contenedora. El transporte y
   los modos de transmisión se perciben como unidades, mientras cada botón conserva su foco y nombre accesible.
+- **Acciones de transmisión:** Transmitir y Grabar mantienen color de advertencia y un icono descriptivo; Cámaras,
+  Presentador y Ambos forman un selector segmentado con iconos propios y un único estado activo.
 - **Estados vacíos:** explican qué falta y cuál es la acción siguiente; no se usan como mensajes de error.
 - **Indicadores de estado:** usan cápsulas compactas y nunca barras decorativas de ancho completo.
 - **Búsqueda en escritorio:** conserva un ancho de lectura razonable en ventanas grandes; el espacio restante pertenece

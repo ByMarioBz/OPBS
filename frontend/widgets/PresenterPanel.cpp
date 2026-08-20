@@ -111,6 +111,8 @@ const QStringList videoExtensions = {"mp4", "m4v", "mov", "mkv", "avi", "webm", 
 
 enum class OpbsPanelKind { Stage, Media, Live, Tools, Audio };
 
+enum class OpbsTransmissionAction { Stream, Record, Cameras, Presenter, Both };
+
 QPixmap OpbsPanelPixmap(OpbsPanelKind kind)
 {
 	QPixmap pixmap(32, 32);
@@ -118,7 +120,6 @@ QPixmap OpbsPanelPixmap(OpbsPanelKind kind)
 	pixmap.fill(Qt::transparent);
 	QPainter painter(&pixmap);
 	painter.setRenderHint(QPainter::Antialiasing);
-	painter.scale(2.0, 2.0);
 	QPen pen(QColor("#8CC8FF"), 1.35, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin);
 	painter.setPen(pen);
 	painter.setBrush(Qt::NoBrush);
@@ -168,12 +169,69 @@ QIcon OpbsSearchIcon()
 	pixmap.fill(Qt::transparent);
 	QPainter painter(&pixmap);
 	painter.setRenderHint(QPainter::Antialiasing);
-	painter.scale(2.0, 2.0);
 	painter.setPen(QPen(QColor("#A6A6B0"), 1.45, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
 	painter.setBrush(Qt::NoBrush);
 	painter.drawEllipse(QRectF(3.2, 3.2, 8.4, 8.4));
 	painter.drawLine(QPointF(10.1, 10.1), QPointF(14.6, 14.6));
 	return QIcon(pixmap);
+}
+
+QIcon OpbsTransmissionActionIcon(OpbsTransmissionAction action)
+{
+	QPixmap pixmap(36, 36);
+	pixmap.setDevicePixelRatio(2.0);
+	pixmap.fill(Qt::transparent);
+	QPainter painter(&pixmap);
+	painter.setRenderHint(QPainter::Antialiasing);
+	QPen pen(QColor("#F5F5F7"), 1.5, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin);
+	painter.setPen(pen);
+	painter.setBrush(Qt::NoBrush);
+
+	switch (action) {
+	case OpbsTransmissionAction::Stream:
+		painter.setBrush(QColor("#F5F5F7"));
+		painter.drawEllipse(QPointF(9.0, 9.0), 1.5, 1.5);
+		painter.setBrush(Qt::NoBrush);
+		painter.drawArc(QRectF(5.0, 5.0, 8.0, 8.0), 48 * 16, 264 * 16);
+		painter.drawArc(QRectF(2.0, 2.0, 14.0, 14.0), 48 * 16, 264 * 16);
+		break;
+	case OpbsTransmissionAction::Record:
+		painter.setPen(Qt::NoPen);
+		painter.setBrush(QColor("#F5F5F7"));
+		painter.drawEllipse(QPointF(9.0, 9.0), 4.2, 4.2);
+		break;
+	case OpbsTransmissionAction::Cameras:
+		painter.drawRoundedRect(QRectF(2.0, 4.2, 11.2, 9.6), 2.0, 2.0);
+		painter.drawEllipse(QPointF(7.6, 9.0), 2.1, 2.1);
+		painter.drawLine(QPointF(13.2, 7.0), QPointF(16.0, 5.6));
+		painter.drawLine(QPointF(16.0, 5.6), QPointF(16.0, 12.4));
+		painter.drawLine(QPointF(16.0, 12.4), QPointF(13.2, 11.0));
+		break;
+	case OpbsTransmissionAction::Presenter:
+		painter.drawRoundedRect(QRectF(2.0, 2.5, 14.0, 10.0), 2.0, 2.0);
+		painter.drawLine(QPointF(9.0, 12.5), QPointF(9.0, 15.5));
+		painter.drawLine(QPointF(6.7, 15.5), QPointF(11.3, 15.5));
+		break;
+	case OpbsTransmissionAction::Both:
+		painter.drawRoundedRect(QRectF(1.8, 4.0, 6.3, 10.0), 1.7, 1.7);
+		painter.drawRoundedRect(QRectF(9.9, 2.0, 6.3, 12.0), 1.7, 1.7);
+		break;
+	}
+	return QIcon(pixmap);
+}
+
+void AddDialogHeading(QVBoxLayout *layout, QWidget *parent, const QString &title, const QString &subtitle)
+{
+	auto *heading = new QLabel(title, parent);
+	heading->setObjectName("opbsDialogTitle");
+	layout->addWidget(heading);
+	if (!subtitle.isEmpty()) {
+		auto *description = new QLabel(subtitle, parent);
+		description->setObjectName("opbsDialogSubtitle");
+		description->setWordWrap(true);
+		layout->addWidget(description);
+	}
+	layout->addSpacing(4);
 }
 
 class OpbsDockTitleBar : public QFrame {
@@ -806,8 +864,14 @@ void PresenterPanel::BuildInterface()
 	streamButton = makeTransmissionButton(transmissionButtons, tr("Transmitir"),
 					      tr("Iniciar o detener los destinos configurados"));
 	streamButton->setObjectName("transmissionLive");
+	streamButton->setIcon(OpbsTransmissionActionIcon(OpbsTransmissionAction::Stream));
+	streamButton->setIconSize(QSize(18, 18));
+	streamButton->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
 	recordButton = makeTransmissionButton(transmissionButtons, tr("Grabar"), tr("Iniciar o detener la grabación"));
 	recordButton->setObjectName("transmissionLive");
+	recordButton->setIcon(OpbsTransmissionActionIcon(OpbsTransmissionAction::Record));
+	recordButton->setIconSize(QSize(18, 18));
+	recordButton->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
 	transmissionButtons->addStretch();
 	auto *modeGroup = new QFrame(transmissionFrame);
 	modeGroup->setObjectName("transmissionModeGroup");
@@ -820,6 +884,13 @@ void PresenterPanel::BuildInterface()
 						    tr("Mostrar solo el contenido del presentador"));
 	combinedViewButton = makeTransmissionButton(modeGroupLayout, tr("Ambos"),
 						   tr("Mostrar la cámara con el presentador en recuadro"));
+	camerasViewButton->setIcon(OpbsTransmissionActionIcon(OpbsTransmissionAction::Cameras));
+	presenterViewButton->setIcon(OpbsTransmissionActionIcon(OpbsTransmissionAction::Presenter));
+	combinedViewButton->setIcon(OpbsTransmissionActionIcon(OpbsTransmissionAction::Both));
+	for (QToolButton *button : {camerasViewButton.data(), presenterViewButton.data(), combinedViewButton.data()}) {
+		button->setIconSize(QSize(18, 18));
+		button->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+	}
 	transmissionButtons->addWidget(modeGroup);
 	transmissionLayout->addLayout(transmissionButtons);
 	connect(streamButton, &QToolButton::clicked, this, &PresenterPanel::ToggleStreaming);
@@ -2635,13 +2706,14 @@ void PresenterPanel::AudioMeterUpdated(void *data, const float[], const float pe
 void PresenterPanel::ShowScreensDialog()
 {
 	QDialog dialog(main);
+	dialog.setObjectName("opbsSettingsDialog");
 	dialog.setWindowTitle(tr("Configuración de pantallas"));
 	dialog.setMinimumWidth(480);
 	auto *layout = new QVBoxLayout(&dialog);
-	auto *title = new QLabel(tr("Escenario"), &dialog);
-	title->setObjectName("presenterTitle");
-	layout->addWidget(title);
-	layout->addWidget(new QLabel(tr("Elige la pantalla conectada donde se proyectará el contenido a tamaño completo."), &dialog));
+	layout->setContentsMargins(24, 22, 24, 20);
+	layout->setSpacing(14);
+	AddDialogHeading(layout, &dialog, tr("Escenario"),
+			 tr("Elige la pantalla conectada donde se proyectará el contenido a tamaño completo."));
 	auto *combo = new QComboBox(&dialog);
 	const auto screens = QGuiApplication::screens();
 	const auto descriptions = OBSBasic::GetProjectorMenuMonitorsFormatted();
@@ -2675,9 +2747,14 @@ void PresenterPanel::ShowSoundDialog()
 	obs_get_audio_monitoring_device(&runtimeDeviceName, &runtimeDeviceId);
 	const QString currentRuntimeId = QString::fromUtf8(runtimeDeviceId ? runtimeDeviceId : "");
 	QDialog dialog(main);
+	dialog.setObjectName("opbsSettingsDialog");
 	dialog.setWindowTitle(tr("Configuración de sonido"));
 	dialog.setMinimumWidth(500);
 	auto *layout = new QVBoxLayout(&dialog);
+	layout->setContentsMargins(24, 22, 24, 20);
+	layout->setSpacing(14);
+	AddDialogHeading(layout, &dialog, tr("Sonido"),
+			 tr("Configura los altavoces y el procesamiento de la salida del presentador."));
 	layout->addWidget(new QLabel(tr("Altavoces / monitor de salida"), &dialog));
 	auto *deviceCombo = new QComboBox(&dialog);
 	for (const AudioDevice &device : devices) {
@@ -2734,11 +2811,18 @@ void PresenterPanel::ShowSoundDialog()
 void PresenterPanel::ShowTransmissionDialog()
 {
 	QDialog dialog(main);
+	dialog.setObjectName("opbsSettingsDialog");
 	dialog.setWindowTitle(tr("Configuración de transmisión"));
 	dialog.resize(900, 650);
 	auto *root = new QVBoxLayout(&dialog);
+	root->setContentsMargins(20, 18, 20, 18);
+	root->setSpacing(16);
+	AddDialogHeading(root, &dialog, tr("Transmisión"),
+			 tr("Configura destinos, salida, cámaras, audio y la composición que llegará a tu audiencia."));
 	auto *body = new QHBoxLayout();
+	body->setSpacing(16);
 	auto *sections = new QListWidget(&dialog);
+	sections->setObjectName("opbsSettingsSidebar");
 	sections->setFixedWidth(170);
 	sections->addItem(tr("📡  Emisión"));
 	sections->addItem(tr("🖥  Salida"));
@@ -2746,6 +2830,7 @@ void PresenterPanel::ShowTransmissionDialog()
 	sections->addItem(tr("🎙  Audio"));
 	sections->addItem(tr("▣  Lienzo de ambos"));
 	auto *pages = new QStackedWidget(&dialog);
+	pages->setObjectName("opbsSettingsPages");
 	body->addWidget(sections);
 	body->addWidget(pages, 1);
 	root->addLayout(body, 1);
@@ -2767,6 +2852,8 @@ void PresenterPanel::ShowTransmissionDialog()
 
 	auto *emissionPage = new QWidget(pages);
 	auto *emissionLayout = new QVBoxLayout(emissionPage);
+	emissionLayout->setContentsMargins(18, 18, 18, 18);
+	emissionLayout->setSpacing(12);
 	auto *emissionIntro = new QLabel(
 		tr("OPBS puede enviar la misma composición a dos destinos de forma nativa. Configura al menos el primero."),
 		emissionPage);
@@ -2805,6 +2892,8 @@ void PresenterPanel::ShowTransmissionDialog()
 
 	auto *outputPage = new QWidget(pages);
 	auto *outputLayout = new QVBoxLayout(outputPage);
+	outputLayout->setContentsMargins(18, 18, 18, 18);
+	outputLayout->setSpacing(12);
 	auto *fixedVideo = new QGroupBox(tr("Video interno"), outputPage);
 	auto *fixedVideoLayout = new QFormLayout(fixedVideo);
 	fixedVideoLayout->addRow(tr("Resolución del lienzo"), new QLabel(tr("1920 × 1080 (16:9)"), fixedVideo));
@@ -2842,6 +2931,8 @@ void PresenterPanel::ShowTransmissionDialog()
 
 	auto *cameraPage = new QWidget(pages);
 	auto *cameraLayout = new QVBoxLayout(cameraPage);
+	cameraLayout->setContentsMargins(18, 18, 18, 18);
+	cameraLayout->setSpacing(12);
 	auto *cameraGroup = new QGroupBox(tr("Configurar cámara"), cameraPage);
 	auto *cameraForm = new QFormLayout(cameraGroup);
 	const QString originalCameraId = selectedCameraId;
@@ -2907,6 +2998,8 @@ void PresenterPanel::ShowTransmissionDialog()
 
 	auto *audioPage = new QWidget(pages);
 	auto *audioLayout = new QVBoxLayout(audioPage);
+	audioLayout->setContentsMargins(18, 18, 18, 18);
+	audioLayout->setSpacing(12);
 	auto *audioSourcesGroup = new QGroupBox(tr("Entradas de audio de transmisión"), audioPage);
 	auto *audioSourcesForm = new QFormLayout(audioSourcesGroup);
 	auto *presenterAudioFixed = new QLineEdit(tr("Audio del presentador (fijo)"), audioSourcesGroup);
@@ -3027,6 +3120,8 @@ void PresenterPanel::ShowTransmissionDialog()
 	bothScroll->setWidgetResizable(true);
 	auto *bothPage = new QWidget(bothScroll);
 	auto *bothLayout = new QVBoxLayout(bothPage);
+	bothLayout->setContentsMargins(18, 18, 18, 18);
+	bothLayout->setSpacing(14);
 	auto *canvasPreview = new QFrame(bothPage);
 	canvasPreview->setFixedSize(480, 270);
 	canvasPreview->setFrameShape(QFrame::StyledPanel);
@@ -3249,6 +3344,7 @@ void PresenterPanel::ShowTransmissionDialog()
 void PresenterPanel::ShowBibleDialog()
 {
 	QDialog dialog(main);
+	dialog.setObjectName("opbsSettingsDialog");
 	dialog.setWindowTitle(tr("Configuración de Biblia"));
 	dialog.setMinimumSize(620, 480);
 	const QRect available = main->screen() ? main->screen()->availableGeometry()
@@ -3256,11 +3352,17 @@ void PresenterPanel::ShowBibleDialog()
 	dialog.resize(std::min(760, std::max(620, available.width() - 80)),
 		      std::min(820, std::max(480, available.height() - 80)));
 	auto *layout = new QVBoxLayout(&dialog);
+	layout->setContentsMargins(20, 18, 20, 18);
+	layout->setSpacing(16);
+	AddDialogHeading(layout, &dialog, tr("Biblia"),
+			 tr("Agrega traducciones y define cómo se verá el texto bíblico en el escenario."));
 	auto *scrollArea = new QScrollArea(&dialog);
 	scrollArea->setWidgetResizable(true);
 	scrollArea->setFrameShape(QFrame::NoFrame);
 	auto *content = new QWidget(scrollArea);
 	auto *contentLayout = new QVBoxLayout(content);
+	contentLayout->setContentsMargins(2, 2, 8, 2);
+	contentLayout->setSpacing(14);
 
 	auto *importGroup = new QGroupBox(tr("Agregar Biblia"), content);
 	auto *importLayout = new QVBoxLayout(importGroup);
