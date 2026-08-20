@@ -274,10 +274,13 @@ build_x64/rundir/RelWithDebInfo/obs-plugins/64bit/obs-ffmpeg.dll
   usar acciones incrustadas de Qt y dibujan su lupa centrada según la altura efectiva del campo para corregir su
   desplazamiento con DPI y paneles estrechos.
 - La undécima iteración adopta el acomodo solicitado con Herramientas arriba y Multimedia/Audio abajo a la derecha,
-  mediante la versión 15 del estado de docks. El estado vacío de Multimedia vuelve a aceptar archivos arrastrados. El
+  mediante un estado versionado de docks. El estado vacío de Multimedia vuelve a aceptar archivos arrastrados. El
   selector de archivos deja de depender del diálogo claro y de la última ruta inválida de Windows; ahora usa una vista
   Qt oscura con una carpeta inicial existente. También repara el nombre del segundo servicio a partir de su servidor
   RTMP para diferenciar Facebook de YouTube en configuraciones anteriores.
+- La versión 16 del estado corrige una regresión del primer acomodo: cada dock se inserta directamente al construir el
+  árbol de dos columnas, en lugar de añadir los cinco al mismo sector antes de dividirlos. Presentador/Transmisión quedan
+  en la izquierda y Herramientas sobre Multimedia/Audio en la derecha sin agrupaciones intermedias de Qt.
 - `Build-Presenter.cmd` y `Package-Presenter.cmd` terminaron correctamente. OPBS inició en modo seguro, permaneció
   respondiendo y alcanzó `Startup complete` después de las nueve iteraciones; el registro no contiene errores de análisis
   de QSS. La herramienta de

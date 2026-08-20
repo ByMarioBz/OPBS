@@ -1592,12 +1592,8 @@ void PresenterPanel::BuildInterface()
 	auto *audioDock =
 		makeDock("opbsAudioPlayerDock", tr("Reproductor de audio"), OpbsPanelKind::Audio, audioFrame);
 	dockWorkspace->addDockWidget(Qt::LeftDockWidgetArea, presenterDock);
-	dockWorkspace->addDockWidget(Qt::LeftDockWidgetArea, transmissionDock);
-	dockWorkspace->addDockWidget(Qt::LeftDockWidgetArea, multimediaDock);
-	dockWorkspace->addDockWidget(Qt::LeftDockWidgetArea, toolsDock);
-	dockWorkspace->addDockWidget(Qt::LeftDockWidgetArea, audioDock);
-	dockWorkspace->splitDockWidget(presenterDock, transmissionDock, Qt::Vertical);
 	dockWorkspace->splitDockWidget(presenterDock, toolsDock, Qt::Horizontal);
+	dockWorkspace->splitDockWidget(presenterDock, transmissionDock, Qt::Vertical);
 	dockWorkspace->splitDockWidget(toolsDock, multimediaDock, Qt::Vertical);
 	dockWorkspace->splitDockWidget(multimediaDock, audioDock, Qt::Horizontal);
 	dockWorkspace->resizeDocks({presenterDock, toolsDock}, {640, 1280}, Qt::Horizontal);
@@ -4461,8 +4457,8 @@ void PresenterPanel::LoadSettings()
 		main->restoreGeometry(geometry);
 	const int layoutVersion = settings.value("window/layoutVersion", 0).toInt();
 	const QByteArray dockState = settings.value("window/dockWorkspace").toByteArray();
-	if (dockWorkspace && layoutVersion >= 15 && !dockState.isEmpty())
-		dockWorkspace->restoreState(dockState, 15);
+	if (dockWorkspace && layoutVersion >= 16 && !dockState.isEmpty())
+		dockWorkspace->restoreState(dockState, 16);
 	if (!audioDeviceId.isEmpty())
 		obs_set_audio_monitoring_device(audioDeviceName.toUtf8().constData(), audioDeviceId.toUtf8().constData());
 
@@ -4680,9 +4676,9 @@ void PresenterPanel::SaveSettings()
 	settings.setValue("transmission/destination2/key", streamDestinations[1].key);
 	settings.setValue("transmission/destination2/enabled", streamDestinations[1].enabled);
 	settings.setValue("window/geometry", main->saveGeometry());
-	settings.setValue("window/layoutVersion", 15);
+	settings.setValue("window/layoutVersion", 16);
 	if (dockWorkspace)
-		settings.setValue("window/dockWorkspace", dockWorkspace->saveState(15));
+		settings.setValue("window/dockWorkspace", dockWorkspace->saveState(16));
 	settings.sync();
 }
 
