@@ -242,8 +242,12 @@ build_x64/rundir/RelWithDebInfo/obs-plugins/64bit/obs-ffmpeg.dll
   estilo oración, coloca la búsqueda de Multimedia arriba junto a un contador compacto y diferencia las vistas previas
   mediante rótulos con acento azul. Los iconos estándar de transporte y listas se recolorean para mantener contraste
   sobre el tema oscuro.
+- La tercera iteración reduce el uso ornamental del azul: los estados de vista previa pasan a cápsulas compactas, las
+  selecciones laterales usan un tinte moderado y desaparecen los contornos de foco alrededor de listas completas. Los
+  buscadores mantienen un ancho de lectura limitado en ventanas grandes, y el reproductor de audio explica su destino
+  de arrastre cuando está vacío.
 - `Build-Presenter.cmd` y `Package-Presenter.cmd` terminaron correctamente. OPBS inició en modo seguro, permaneció
-  respondiendo y alcanzó `Startup complete` después de ambas iteraciones; el registro no contiene errores de análisis
+  respondiendo y alcanzó `Startup complete` después de las tres iteraciones; el registro no contiene errores de análisis
   de QSS. La herramienta de
   control visual bloqueó `OPBS.exe` por política, por lo que la inspección visual automatizada queda sustituida por una
   revisión manual de la ventana abierta.

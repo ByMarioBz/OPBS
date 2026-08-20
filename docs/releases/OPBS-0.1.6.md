@@ -17,6 +17,7 @@ de OBS Studio.
 - Nueva identidad visual en negro, grafito, blanco y azul para distinguir claramente OPBS.
 - Jerarquía más limpia en el espacio de trabajo: títulos sin duplicados, búsqueda multimedia superior con contador e
   iconos de reproducción de alto contraste.
+- Indicadores compactos, selecciones laterales más sobrias y mejor aprovechamiento del espacio en ventanas grandes.
 - Multimedia y Herramientas funcionan simultáneamente con cuadrículas independientes; los medios arrastrados ya no
   pueden aparecer dentro de Presentación, Captura o NDI.
 - Buscador multimedia independiente y buscador de Herramientas visible únicamente al seleccionar Biblia.

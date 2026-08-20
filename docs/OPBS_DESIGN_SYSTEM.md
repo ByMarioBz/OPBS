@@ -77,6 +77,11 @@ resalta únicamente mientras el archivo está encima; un destino inválido conse
 - **Diálogos:** grupos claros, acción principal a la derecha y Cancelar siempre disponible.
 - **Controles multimedia:** orden estable, iconos familiares, foco por teclado y estado reproducir/pausar perceptible.
 - **Estados vacíos:** explican qué falta y cuál es la acción siguiente; no se usan como mensajes de error.
+- **Indicadores de estado:** usan cápsulas compactas y nunca barras decorativas de ancho completo.
+- **Búsqueda en escritorio:** conserva un ancho de lectura razonable en ventanas grandes; el espacio restante pertenece
+  al contenido y a los metadatos del panel.
+- **Selección lateral:** emplea una superficie elevada con tinte moderado; el azul brillante se reserva para el foco y
+  las acciones primarias, evitando contornos intensos alrededor de listas completas.
 
 ## Accesibilidad y entrada
 
@@ -108,4 +113,3 @@ este documento, las convenciones de Windows, las necesidades de producción audi
 - `PresenterStyleSheet()` cubre el espacio modular, paneles, bibliotecas, transporte y transmisión.
 - Los colores nuevos deben representar una función semántica existente o añadirse primero a esta especificación.
 - No añadir hojas de estilo extensas directamente a un panel salvo que sean exclusivas de una vista previa dinámica.
-

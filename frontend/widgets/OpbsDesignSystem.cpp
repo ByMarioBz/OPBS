@@ -84,42 +84,44 @@ QString PresenterStyleSheet()
 		#presenterHeader { background: #030405; border: 0; border-bottom: 1px solid #1D232B; }
 		#presenterTitle { color: #F8FAFC; font-size: 19px; font-weight: 650; }
 		#presenterSubtitle, #presenterMediaCount, #presenterTime { color: #98A3B1; }
-		#presenterSectionLabel { color: #99A6B5; font-size: 11px; font-weight: 600; padding: 2px 4px; }
+		#presenterSectionLabel { color: #A9B3BF; font-size: 12px; font-weight: 600; padding: 3px 4px; }
 		#presenterCountBadge { color: #B8C5D3; background: #171E27; border: 1px solid #2D3946;
-			border-radius: 11px; padding: 4px 10px; font-size: 11px; }
-		#presenterLive { color: #DCEBFA; background: #111D2A; border: 0; border-left: 3px solid #0A84FF;
-			border-radius: 4px; padding: 5px 9px; font-size: 11px; font-weight: 600; }
+			border-radius: 12px; padding: 5px 11px; font-size: 11px; }
+		#presenterStatusChip { background: #171D25; border: 1px solid #2E3945; border-radius: 11px; }
+		#presenterStatusDot { color: #58AFFF; font-size: 9px; }
+		#presenterStatusText { color: #DCE4ED; font-size: 11px; font-weight: 600; }
 		#presenterPreviewFrame, #presenterLibrary, #transmissionPreviewFrame {
 			background: #0E1218; border: 1px solid #252D37; border-radius: 8px; }
 		#presenterCurrent { color: #EEF2F6; font-weight: 600; }
 		#presenterEmpty { color: #8D99A8; font-size: 14px; }
+		#presenterHint { color: #8995A3; font-size: 11px; padding: 7px 3px; }
 		#presenterDockWorkspace { background: #06080C; }
-		QDockWidget { color: #DCE3EB; font-weight: 600; }
+		QDockWidget { color: #DCE3EB; font-weight: 600; font-size: 13px; }
 		QDockWidget::title { background: #12171E; border: 1px solid #252D37; border-bottom: 1px solid #313B47;
-			padding: 8px 11px; text-align: left; }
+			padding: 9px 12px; text-align: left; }
 		QMainWindow::separator { background: #06080C; width: 10px; height: 10px; }
 		QListWidget#presenterMediaList { background: transparent; border: 0; outline: 0; }
 		QListWidget#presenterMediaList::item { background: #151A21; color: #EEF2F6;
 			border: 1px solid #2D3743; border-radius: 10px; padding: 7px; }
 		QListWidget#presenterMediaList::item:hover { border-color: #526273; background: #1B222B; }
 		QListWidget#presenterMediaList::item:selected { border: 2px solid #0A84FF; background: #10263C; }
-		QListWidget#presenterMediaList:focus { border: 1px solid #0A84FF; border-radius: 6px; }
+		QListWidget#presenterMediaList:focus { border: 0; }
 		#presenterFolderPanel { background: #0A0E13; border: 1px solid #252E39; border-radius: 9px; }
 		QListWidget#presenterFolderList, QListWidget#presenterPresentationList {
 			background: transparent; border: 0; outline: 0; }
 		QListWidget#presenterFolderList::item, QListWidget#presenterPresentationList::item {
-			padding: 9px 10px; margin: 2px; border: 1px solid transparent; border-radius: 7px; }
+			padding: 10px 11px; margin: 2px; border: 1px solid transparent; border-radius: 8px; }
 		QListWidget#presenterFolderList::item:hover, QListWidget#presenterPresentationList::item:hover {
 			background: #1B2129; }
 		QListWidget#presenterFolderList::item:selected, QListWidget#presenterPresentationList::item:selected {
-			background: #0F3558; border-color: #218FFF; color: white; }
+			background: #15314B; border-color: #387DB5; color: white; }
 		QListWidget#presenterFolderList:focus, QListWidget#presenterPresentationList:focus {
-			border: 1px solid #0A84FF; border-radius: 6px; }
+			border: 0; }
 		QLineEdit#presenterSearch { min-height: 34px; background: #0A0E13; color: #EEF2F6;
 			border: 1px solid #34404D; border-radius: 9px; padding: 2px 12px; }
 		QLineEdit#presenterSearch:hover { border-color: #5E6B7A; }
 		QLineEdit#presenterSearch:focus { border: 2px solid #0A84FF; padding: 1px 11px; }
-		#presenterBibleControls { background: #0E1217; border: 1px solid #29313A; border-radius: 7px; }
+		#presenterBibleControls { background: #0A0E13; border: 1px solid #252E39; border-radius: 9px; }
 		QComboBox#presenterBibleSelector { min-height: 30px; background: #151A21; color: #EEF2F6;
 			border: 1px solid #35404C; border-radius: 7px; padding: 2px 10px; min-width: 190px; }
 		QComboBox#presenterBibleSelector::drop-down { border: 0; width: 28px; }
@@ -127,15 +129,15 @@ QString PresenterStyleSheet()
 		QListWidget#presenterBibleList::item { background: #171C22; color: #EEF2F6; border: 1px solid #303945;
 			border-radius: 9px; padding: 12px; }
 		QListWidget#presenterBibleList::item:hover { border-color: #637182; background: #20262E; }
-		QListWidget#presenterBibleList::item:selected { border: 2px solid #0A84FF; background: #15263A; }
+		QListWidget#presenterBibleList::item:selected { border: 2px solid #0A84FF; background: #132A41; }
 		QProgressBar#presenterMeter { background: #252C35; border: 0; border-radius: 3px; max-height: 7px; }
 		QProgressBar#presenterMeter::chunk { background: #32D583; border-radius: 3px; }
 		QLabel#presenterScreenStatus { color: #F4F7FA; font-size: 11px; font-weight: 600; }
-		QCheckBox#presenterStageToggle { spacing: 6px; color: white; background: #0A84FF;
-			border: 1px solid #38A0FF; border-radius: 9px; padding: 5px 9px; font-weight: 700; }
+		QCheckBox#presenterStageToggle { spacing: 7px; color: white; background: #0A84FF;
+			border: 1px solid #4AA9FF; border-radius: 12px; padding: 5px 10px; font-weight: 700; }
 		QCheckBox#presenterStageToggle:hover { background: #2493FF; }
 		QCheckBox#presenterStageToggle:focus { border: 2px solid white; padding: 4px 8px; }
-		QCheckBox#presenterStageToggle:unchecked { background: #20262E; border-color: #3A4552; color: #B8C1CB; }
+		QCheckBox#presenterStageToggle:unchecked { background: #171D25; border-color: #3A4552; color: #C3CBD4; }
 		QCheckBox#presenterStageToggle::indicator { width: 15px; height: 10px; border: 2px solid white;
 			border-radius: 2px; background: transparent; }
 		QCheckBox#presenterStageToggle::indicator:unchecked { border-color: #B8C1CB; }
