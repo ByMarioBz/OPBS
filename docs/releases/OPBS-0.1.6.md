@@ -9,7 +9,7 @@ de OBS Studio.
 - Cinco paneles redimensionables, movibles y flotantes: Presentador/Escenario, Transmisión/En vivo, Multimedia,
   Herramientas y Reproductor de audio.
 - Distribución inicial aproximada 31/69 y restauración automática del acomodo elegido por el usuario.
-- Distribución refinada con Herramientas en la parte superior derecha y Multimedia/Reproductor de audio en la fila
+- Distribución refinada con Multimedia en la parte superior derecha y Herramientas/Reproductor de audio en la fila
   inferior, conservando Presentador y Transmisión en la columna izquierda.
 - Biblioteca multimedia con tarjetas compactas de 176 × 99 píxeles.
 - Herramientas reúne Biblia, Presentación, Captura y NDI.
@@ -36,6 +36,7 @@ de OBS Studio.
   real. Se integran en la franja superior junto al control de Escenario para no reducir la vista previa. Los controles
   de transmisión y grabación distinguen mejor sus estados activos.
 - Buscadores multimedia y bíblico con icono propio centrado y estable bajo escalado de Windows.
+- Buscadores adaptables al ancho de sus docks y menús contextuales elevados con el lenguaje visual propio de OPBS.
 - Selector de archivos oscuro con ruta inicial válida y restauración del arrastre directo sobre carpetas multimedia
   vacías.
 - Corrección del rótulo del segundo destino para distinguir Facebook de YouTube en configuraciones ya existentes.

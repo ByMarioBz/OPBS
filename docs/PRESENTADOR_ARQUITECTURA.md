@@ -109,11 +109,11 @@ rutas ausentes dejan de formar parte de `presenter.ini`. El reparador de archivo
 desactivado en este frontend: esa colección permanece oculta y no es la fuente de verdad de la biblioteca.
 
 La interfaz principal usa un `QMainWindow` interno como espacio de trabajo de cinco `QDockWidget`. Presentador y
-transmisión forman la columna izquierda; Herramientas ocupa la parte superior derecha; Multimedia y el reproductor de
+transmisión forman la columna izquierda; Multimedia ocupa la parte superior derecha; Herramientas y el reproductor de
 audio forman la fila inferior derecha. Todos pueden redimensionarse, moverse o flotar. `saveState` conserva el árbol de
 paneles en `window/dockWorkspace`; la versión del estado evita restaurar geometrías incompatibles de diseños anteriores.
 La distribución inicial mantiene aproximadamente 31/69 entre las vistas previas y el espacio de biblioteca/herramientas.
-El árbol predeterminado se crea jerárquicamente: primero las columnas Presentador/Herramientas y después las divisiones
+El árbol predeterminado se crea jerárquicamente: primero las columnas Presentador/Multimedia y después las divisiones
 verticales independientes. Esto evita que Qt agrupe Transmisión dentro de la fila derecha durante el primer inicio.
 La configuración de transmisión recuerda el modo activo, la duración de Move, el fondo de `Ambos` y las ocho medidas de
 la composición.

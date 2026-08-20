@@ -39,6 +39,15 @@ QString ApplicationStyleSheet()
 		QMenu::item:selected { background: #0969BD; color: white; }
 		QMenu::item:disabled { color: #6F6F78; }
 		QMenu::separator { height: 1px; background: #303038; margin: 5px 8px; }
+		QMenu#opbsContextMenu { background: #202024; color: #F5F5F7; border: 1px solid #3A3A43;
+			border-radius: 12px; padding: 8px; }
+		QMenu#opbsContextMenu::item { min-height: 30px; border: 0; border-radius: 8px;
+			padding: 6px 32px 6px 34px; margin: 1px 0; }
+		QMenu#opbsContextMenu::item:selected { background: #34343B; color: white; }
+		QMenu#opbsContextMenu::item:disabled { color: #777780; }
+		QMenu#opbsContextMenu::icon { left: 9px; }
+		QMenu#opbsContextMenu::separator { height: 1px; background: #3A3A42; margin: 7px 9px; }
+		QMenu#opbsContextMenu::right-arrow { width: 7px; height: 7px; margin-right: 9px; }
 		QLabel { color: #F5F5F7; }
 		QGroupBox { background: #18181D; border: 1px solid #303038; border-radius: 13px;
 			margin-top: 18px; padding: 17px 14px 12px 14px; font-weight: 600; }
@@ -146,8 +155,8 @@ QString PresenterStyleSheet()
 			background: #2A2A30; border-left: 3px solid #5AAEFF; color: white; }
 		QListWidget#presenterFolderList:focus, QListWidget#presenterPresentationList:focus {
 			border: 0; }
-		QLineEdit#presenterSearch { min-height: 36px; max-height: 36px; background: #1C1C21; color: #EEEEF2;
-			border: 1px solid #34343C; border-radius: 11px; padding: 1px 10px; }
+		QLineEdit#presenterSearch { min-height: 38px; max-height: 38px; background: #1C1C21; color: #EEEEF2;
+			border: 1px solid #34343C; border-radius: 12px; padding: 0 11px; }
 		QLineEdit#presenterSearch:hover { border-color: #62626D; }
 		QLineEdit#presenterSearch:focus { border: 2px solid #5AAEFF; padding: 0 9px; }
 		#presenterBibleControls { background: #18181D; border: 1px solid #2C2C33; border-radius: 12px; }

@@ -281,6 +281,10 @@ build_x64/rundir/RelWithDebInfo/obs-plugins/64bit/obs-ffmpeg.dll
 - La versión 16 del estado corrige una regresión del primer acomodo: cada dock se inserta directamente al construir el
   árbol de dos columnas, en lugar de añadir los cinco al mismo sector antes de dividirlos. Presentador/Transmisión quedan
   en la izquierda y Herramientas sobre Multimedia/Audio en la derecha sin agrupaciones intermedias de Qt.
+- La versión 17 intercambia las secciones derechas según la decisión final: Multimedia queda arriba y Herramientas/Audio
+  abajo. Los buscadores eliminan anchos máximos rígidos, reservan correctamente el espacio de lupa y borrado, y se
+  expanden con el dock. Los menús contextuales adoptan una superficie elevada oscura, radios, espaciado e iconografía
+  monocroma propios de OPBS; el bucle conserva su marca al extremo derecho.
 - `Build-Presenter.cmd` y `Package-Presenter.cmd` terminaron correctamente. OPBS inició en modo seguro, permaneció
   respondiendo y alcanzó `Startup complete` después de las nueve iteraciones; el registro no contiene errores de análisis
   de QSS. La herramienta de

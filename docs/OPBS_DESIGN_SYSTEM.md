@@ -53,8 +53,8 @@ usa como elemento gráfico o contorno, no como texto pequeño sobre fondos claro
 - Unidad base: 4 px.
 - Separaciones normales: 8 px y 12 px.
 - Márgenes de panel: 10–16 px.
-- Altura mínima de control: 28 px; objetivo habitual: 30–32 px.
-- Radio pequeño: 4 px; control: 6–7 px; tarjeta: 8 px.
+- Altura mínima de control: 30 px; objetivo habitual: 36–38 px para campos de entrada frecuentes.
+- Radio pequeño: 6 px; control: 10–12 px; tarjeta o superficie elevada: 12–14 px.
 - Los grupos relacionados permanecen próximos; los grupos diferentes se separan por al menos 12 px.
 
 ## Estados interactivos
@@ -85,7 +85,8 @@ resalta únicamente mientras el archivo está encima; un destino inválido conse
 - **Tarjetas:** miniatura 16:9, nombre legible, borde de selección y tooltip para rutas largas.
 - **Buscadores:** campo local a su panel, glifo original de búsqueda, botón de limpiar y foco azul; el placeholder
   explica el alcance. El glifo se dibuja dentro del propio campo y se centra con su altura real, evitando recortes o
-  desplazamientos al cambiar el escalado de Windows.
+  desplazamientos al cambiar el escalado de Windows. El campo se expande con el panel y solo cede espacio a controles
+  del mismo alcance, como el selector de Biblia o el contador multimedia.
 - **Botones:** verbo concreto o icono estándar con tooltip y nombre accesible.
 - **Diálogos:** comparten el mismo sistema de superficies, títulos, subtítulos y navegación lateral que el espacio de
   trabajo; mantienen grupos claros, acción principal a la derecha y Cancelar siempre disponible.
@@ -98,7 +99,9 @@ resalta únicamente mientras el archivo está encima; un destino inválido conse
   vive en la franja superior común, frente al interruptor de Escenario, para no reducir las vistas previas. Combina
   texto, color, duración y porcentaje cuando existe telemetría real; nunca depende solo de un punto de color.
 - **Menús contextuales:** conservan el mismo material y espaciado del menú principal. Las acciones destructivas se
-  separan de Agregar y Cambiar nombre; los estados por elemento muestran una marca al lado derecho del texto.
+  separan de Agregar y Cambiar nombre; los estados por elemento muestran una marca al lado derecho del texto. Se
+  presentan como una superficie elevada de radio amplio, con iconografía monocroma consistente y áreas de selección
+  completas, sin depender de los iconos coloreados del Explorador de Windows.
 - **Estados vacíos:** explican qué falta y cuál es la acción siguiente; no se usan como mensajes de error.
 - **Indicadores de estado:** usan cápsulas compactas y nunca barras decorativas de ancho completo.
 - **Búsqueda en escritorio:** conserva un ancho de lectura razonable en ventanas grandes; el espacio restante pertenece

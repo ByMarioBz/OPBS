@@ -199,7 +199,9 @@ class OpbsSearchEdit : public QLineEdit {
 public:
 	explicit OpbsSearchEdit(QWidget *parent = nullptr) : QLineEdit(parent)
 	{
-		setTextMargins(25, 0, 0, 0);
+		setTextMargins(30, 0, 6, 0);
+		setMinimumHeight(38);
+		setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
 	}
 
 protected:
@@ -210,11 +212,21 @@ protected:
 		painter.setRenderHint(QPainter::Antialiasing);
 		painter.setPen(QPen(QColor("#A6A6B0"), 1.4, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
 		painter.setBrush(Qt::NoBrush);
-		const qreal top = (height() - 13.0) / 2.0;
-		painter.drawEllipse(QRectF(11.0, top, 8.0, 8.0));
-		painter.drawLine(QPointF(17.5, top + 6.5), QPointF(22.0, top + 11.0));
+		const qreal top = std::round((height() - 14.0) / 2.0);
+		painter.drawEllipse(QRectF(12.0, top, 8.5, 8.5));
+		painter.drawLine(QPointF(18.8, top + 6.8), QPointF(23.0, top + 11.0));
 	}
 };
+
+void PrepareOpbsContextMenu(QMenu *menu)
+{
+	if (!menu)
+		return;
+	menu->setObjectName("opbsContextMenu");
+	menu->setAttribute(Qt::WA_TranslucentBackground, true);
+	menu->setWindowFlag(Qt::NoDropShadowWindowHint, true);
+	menu->setMinimumWidth(270);
+}
 
 QIcon OpbsTransmissionActionIcon(OpbsTransmissionAction action)
 {
@@ -1066,14 +1078,13 @@ void PresenterPanel::BuildInterface()
 	bibleSearchEdit->setPlaceholderText(tr("Buscar texto o referencia bíblica…"));
 	bibleSearchEdit->setClearButtonEnabled(true);
 	bibleSearchEdit->setAccessibleName(tr("Buscar en la Biblia"));
-	bibleSearchEdit->setMinimumWidth(160);
-	bibleSearchEdit->setMaximumWidth(480);
-	bibleSearchEdit->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+	bibleSearchEdit->setMinimumWidth(220);
 	bibleSelector = new QComboBox(bibleToolbar);
 	bibleSelector->setObjectName("presenterBibleSelector");
 	bibleSelector->setToolTip(tr("Biblia seleccionada"));
-	bibleToolbarLayout->addWidget(bibleSearchEdit);
-	bibleToolbarLayout->addStretch(1);
+	bibleSelector->setMinimumWidth(210);
+	bibleSelector->setMaximumWidth(310);
+	bibleToolbarLayout->addWidget(bibleSearchEdit, 1);
 	bibleToolbarLayout->addWidget(bibleSelector);
 	bibleToolbar->hide();
 	mediaArea->addWidget(bibleToolbar);
@@ -1114,7 +1125,8 @@ void PresenterPanel::BuildInterface()
 			return;
 		QListWidgetItem *item = list->itemAt(position);
 		QMenu menu(list);
-		QAction *addAction = menu.addAction(style()->standardIcon(QStyle::SP_DialogOpenButton),
+		PrepareOpbsContextMenu(&menu);
+		QAction *addAction = menu.addAction(OpbsStandardIcon(list, QStyle::SP_DialogOpenButton, QColor("#8CC8FF")),
 					     tr("Agregar multimedia…"));
 		QAction *renameAction = nullptr;
 		QAction *loopAction = nullptr;
@@ -1125,11 +1137,16 @@ void PresenterPanel::BuildInterface()
 					     [item](const auto &entry) { return entry->item == item; });
 			if (found != entries.end()) {
 				menu.addSeparator();
-				renameAction = menu.addAction(tr("Cambiar nombre…"));
-				loopAction = menu.addAction((*found)->loop ? tr("Repetir este archivo en bucle    ✓")
-									       : tr("Repetir este archivo en bucle"));
+				renameAction = menu.addAction(
+					OpbsStandardIcon(list, QStyle::SP_FileDialogDetailedView, QColor("#D8D8DE")),
+					tr("Cambiar nombre…"));
+				loopAction = menu.addAction(
+					OpbsStandardIcon(list, QStyle::SP_BrowserReload, QColor("#D8D8DE")),
+					tr("Repetir este archivo en bucle") +
+						((*found)->loop ? QStringLiteral("\t✓") : QString()));
 				loopAction->setEnabled(!(*found)->isImage);
-				removeAction = menu.addAction(style()->standardIcon(QStyle::SP_TrashIcon), tr("Eliminar"));
+				removeAction = menu.addAction(OpbsStandardIcon(list, QStyle::SP_TrashIcon, QColor("#FF7B82")),
+							      tr("Eliminar"));
 			}
 		}
 		QAction *chosen = menu.exec(list->viewport()->mapToGlobal(position));
@@ -1191,13 +1208,10 @@ void PresenterPanel::BuildInterface()
 	auto *multimediaToolbar = new QHBoxLayout();
 	multimediaToolbar->setSpacing(10);
 	searchEdit->setParent(multimediaContentTarget);
-	searchEdit->setMinimumWidth(160);
-	searchEdit->setMaximumWidth(420);
-	searchEdit->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+	searchEdit->setMinimumWidth(220);
 	mediaCount = new QLabel(tr("0 archivos"), multimediaContentTarget);
 	mediaCount->setObjectName("presenterCountBadge");
-	multimediaToolbar->addWidget(searchEdit);
-	multimediaToolbar->addStretch(1);
+	multimediaToolbar->addWidget(searchEdit, 1);
 	multimediaToolbar->addWidget(mediaCount);
 	multimediaTargetLayout->addLayout(multimediaToolbar);
 	multimediaTargetLayout->addWidget(libraryContentHost, 1);
@@ -1336,15 +1350,25 @@ void PresenterPanel::BuildInterface()
 	connect(captureList, &QWidget::customContextMenuRequested, this, [this](const QPoint &position) {
 		QListWidgetItem *item = captureList->itemAt(position);
 		QMenu menu(captureList);
+		PrepareOpbsContextMenu(&menu);
 		QMenu *addMenu = menu.addMenu(tr("Agregar"));
-		QAction *addCamera = addMenu->addAction(tr("Dispositivo de captura de video…"));
-		QAction *addWindow = addMenu->addAction(tr("Captura de ventana…"));
+		PrepareOpbsContextMenu(addMenu);
+		addMenu->setIcon(OpbsStandardIcon(captureList, QStyle::SP_DialogOpenButton, QColor("#8CC8FF")));
+		QAction *addCamera = addMenu->addAction(
+			OpbsStandardIcon(captureList, QStyle::SP_ComputerIcon, QColor("#D8D8DE")),
+			tr("Dispositivo de captura de video…"));
+		QAction *addWindow = addMenu->addAction(
+			OpbsStandardIcon(captureList, QStyle::SP_DesktopIcon, QColor("#D8D8DE")),
+			tr("Captura de ventana…"));
 		QAction *renameAction = nullptr;
 		QAction *removeAction = nullptr;
 		if (item) {
 			menu.addSeparator();
-			renameAction = menu.addAction(tr("Cambiar nombre…"));
-			removeAction = menu.addAction(style()->standardIcon(QStyle::SP_TrashIcon), tr("Eliminar"));
+			renameAction = menu.addAction(
+				OpbsStandardIcon(captureList, QStyle::SP_FileDialogDetailedView, QColor("#D8D8DE")),
+				tr("Cambiar nombre…"));
+			removeAction = menu.addAction(
+				OpbsStandardIcon(captureList, QStyle::SP_TrashIcon, QColor("#FF7B82")), tr("Eliminar"));
 		}
 		QAction *chosen = menu.exec(captureList->viewport()->mapToGlobal(position));
 		if (chosen == addCamera) {
@@ -1422,13 +1446,19 @@ void PresenterPanel::BuildInterface()
 	connect(ndiList, &QWidget::customContextMenuRequested, this, [this](const QPoint &position) {
 		QListWidgetItem *item = ndiList->itemAt(position);
 		QMenu menu(ndiList);
-		QAction *addAction = menu.addAction(tr("Agregar fuente NDI…"));
+		PrepareOpbsContextMenu(&menu);
+		QAction *addAction = menu.addAction(
+			OpbsStandardIcon(ndiList, QStyle::SP_DriveNetIcon, QColor("#8CC8FF")),
+			tr("Agregar fuente NDI…"));
 		QAction *renameAction = nullptr;
 		QAction *removeAction = nullptr;
 		if (item) {
 			menu.addSeparator();
-			renameAction = menu.addAction(tr("Cambiar nombre…"));
-			removeAction = menu.addAction(style()->standardIcon(QStyle::SP_TrashIcon), tr("Eliminar"));
+			renameAction = menu.addAction(
+				OpbsStandardIcon(ndiList, QStyle::SP_FileDialogDetailedView, QColor("#D8D8DE")),
+				tr("Cambiar nombre…"));
+			removeAction = menu.addAction(
+				OpbsStandardIcon(ndiList, QStyle::SP_TrashIcon, QColor("#FF7B82")), tr("Eliminar"));
 		}
 		QAction *chosen = menu.exec(ndiList->viewport()->mapToGlobal(position));
 		if (chosen == addAction) {
@@ -1527,13 +1557,20 @@ void PresenterPanel::BuildInterface()
 		QListWidgetItem *item = audioPlaylistList->itemAt(position);
 		const int row = item ? audioPlaylistList->row(item) : -1;
 		QMenu menu(audioPlaylistList);
-		QAction *addAction = menu.addAction(style()->standardIcon(QStyle::SP_DialogOpenButton), tr("Agregar audio…"));
+		PrepareOpbsContextMenu(&menu);
+		QAction *addAction = menu.addAction(
+			OpbsStandardIcon(audioPlaylistList, QStyle::SP_DialogOpenButton, QColor("#8CC8FF")),
+			tr("Agregar audio…"));
 		QAction *renameAction = nullptr;
 		QAction *removeAction = nullptr;
 		if (row >= 0) {
 			menu.addSeparator();
-			renameAction = menu.addAction(tr("Cambiar nombre…"));
-			removeAction = menu.addAction(style()->standardIcon(QStyle::SP_TrashIcon), tr("Eliminar"));
+			renameAction = menu.addAction(
+				OpbsStandardIcon(audioPlaylistList, QStyle::SP_FileDialogDetailedView, QColor("#D8D8DE")),
+				tr("Cambiar nombre…"));
+			removeAction = menu.addAction(
+				OpbsStandardIcon(audioPlaylistList, QStyle::SP_TrashIcon, QColor("#FF7B82")),
+				tr("Eliminar"));
 		}
 		QAction *chosen = menu.exec(audioPlaylistList->viewport()->mapToGlobal(position));
 		if (chosen == addAction) {
@@ -1592,14 +1629,14 @@ void PresenterPanel::BuildInterface()
 	auto *audioDock =
 		makeDock("opbsAudioPlayerDock", tr("Reproductor de audio"), OpbsPanelKind::Audio, audioFrame);
 	dockWorkspace->addDockWidget(Qt::LeftDockWidgetArea, presenterDock);
-	dockWorkspace->splitDockWidget(presenterDock, toolsDock, Qt::Horizontal);
+	dockWorkspace->splitDockWidget(presenterDock, multimediaDock, Qt::Horizontal);
 	dockWorkspace->splitDockWidget(presenterDock, transmissionDock, Qt::Vertical);
-	dockWorkspace->splitDockWidget(toolsDock, multimediaDock, Qt::Vertical);
-	dockWorkspace->splitDockWidget(multimediaDock, audioDock, Qt::Horizontal);
-	dockWorkspace->resizeDocks({presenterDock, toolsDock}, {640, 1280}, Qt::Horizontal);
+	dockWorkspace->splitDockWidget(multimediaDock, toolsDock, Qt::Vertical);
+	dockWorkspace->splitDockWidget(toolsDock, audioDock, Qt::Horizontal);
+	dockWorkspace->resizeDocks({presenterDock, multimediaDock}, {640, 1280}, Qt::Horizontal);
 	dockWorkspace->resizeDocks({presenterDock, transmissionDock}, {420, 460}, Qt::Vertical);
-	dockWorkspace->resizeDocks({toolsDock, multimediaDock}, {430, 450}, Qt::Vertical);
-	dockWorkspace->resizeDocks({multimediaDock, audioDock}, {1000, 270}, Qt::Horizontal);
+	dockWorkspace->resizeDocks({multimediaDock, toolsDock}, {430, 450}, Qt::Vertical);
+	dockWorkspace->resizeDocks({toolsDock, audioDock}, {1000, 270}, Qt::Horizontal);
 	for (QDockWidget *dock : {presenterDock, transmissionDock, multimediaDock, toolsDock, audioDock}) {
 		dock->setFloating(false);
 		dock->show();
@@ -4457,8 +4494,8 @@ void PresenterPanel::LoadSettings()
 		main->restoreGeometry(geometry);
 	const int layoutVersion = settings.value("window/layoutVersion", 0).toInt();
 	const QByteArray dockState = settings.value("window/dockWorkspace").toByteArray();
-	if (dockWorkspace && layoutVersion >= 16 && !dockState.isEmpty())
-		dockWorkspace->restoreState(dockState, 16);
+	if (dockWorkspace && layoutVersion >= 17 && !dockState.isEmpty())
+		dockWorkspace->restoreState(dockState, 17);
 	if (!audioDeviceId.isEmpty())
 		obs_set_audio_monitoring_device(audioDeviceName.toUtf8().constData(), audioDeviceId.toUtf8().constData());
 
@@ -4676,9 +4713,9 @@ void PresenterPanel::SaveSettings()
 	settings.setValue("transmission/destination2/key", streamDestinations[1].key);
 	settings.setValue("transmission/destination2/enabled", streamDestinations[1].enabled);
 	settings.setValue("window/geometry", main->saveGeometry());
-	settings.setValue("window/layoutVersion", 16);
+	settings.setValue("window/layoutVersion", 17);
 	if (dockWorkspace)
-		settings.setValue("window/dockWorkspace", dockWorkspace->saveState(16));
+		settings.setValue("window/dockWorkspace", dockWorkspace->saveState(17));
 	settings.sync();
 }
 
