@@ -829,19 +829,24 @@ void PresenterPanel::BuildInterface()
 	headerLayout->setContentsMargins(16, 6, 22, 6);
 	auto *transmissionStatus = new QFrame(header);
 	transmissionStatus->setObjectName("transmissionStatusStrip");
+	transmissionStatus->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 	auto *statusLayout = new QHBoxLayout(transmissionStatus);
 	statusLayout->setContentsMargins(5, 2, 5, 2);
 	statusLayout->setSpacing(6);
-	auto makeStatus = [transmissionStatus, statusLayout](const QString &name) {
+	auto makeStatus = [transmissionStatus, statusLayout](const QString &name, int width) {
 		auto *label = new QLabel(name, transmissionStatus);
 		label->setObjectName("transmissionStatusChip");
+		label->setFixedSize(width, 30);
+		label->setAlignment(Qt::AlignCenter);
+		label->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 		statusLayout->addWidget(label);
 		return label;
 	};
-	liveStatusLabel = makeStatus(tr("○ LIVE · Inactivo · 00:00:00"));
-	recordingStatusLabel = makeStatus(tr("○ REC · Inactivo · 00:00:00"));
-	primarySignalLabel = makeStatus(tr("YouTube · Desactivado"));
-	secondarySignalLabel = makeStatus(tr("Facebook · Desactivado"));
+	liveStatusLabel = makeStatus(tr("○ LIVE · Inactivo · 00:00:00"), 160);
+	recordingStatusLabel = makeStatus(tr("○ REC · Inactivo · 00:00:00"), 160);
+	primarySignalLabel = makeStatus(tr("YouTube · Desactivado"), 150);
+	secondarySignalLabel = makeStatus(tr("Facebook · Desactivado"), 150);
+	transmissionStatus->setFixedSize(648, 36);
 	headerLayout->addWidget(transmissionStatus);
 	headerLayout->addStretch();
 	stageStatus = new QLabel(tr("ESCENARIO"), header);
@@ -1056,12 +1061,14 @@ void PresenterPanel::BuildInterface()
 	streamButton->setIcon(OpbsTransmissionActionIcon(OpbsTransmissionAction::Stream));
 	streamButton->setIconSize(QSize(18, 18));
 	streamButton->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+	streamButton->setFixedWidth(152);
 	recordButton = makeTransmissionButton(transmissionButtons, tr("Grabar"), tr("Iniciar o detener la grabación"));
 	recordButton->setObjectName("transmissionLive");
 	recordButton->setProperty("action", "record");
 	recordButton->setIcon(OpbsTransmissionActionIcon(OpbsTransmissionAction::Record));
 	recordButton->setIconSize(QSize(18, 18));
 	recordButton->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+	recordButton->setFixedWidth(126);
 	transmissionButtons->addStretch();
 	auto *modeGroup = new QFrame(transmissionFrame);
 	modeGroup->setObjectName("transmissionModeGroup");
@@ -5255,6 +5262,10 @@ void PresenterPanel::UpdateTransmissionStatus()
 {
 	const bool streaming = main && main->StreamingActive();
 	const bool recording = main && main->RecordingActive();
+	/* Output callbacks are not guaranteed for every connection failure. Keep
+	 * the controls synchronized with the authoritative output state on the same
+	 * one-second clock used by the counters. */
+	UpdateTransmissionButtons();
 	const qint64 now = QDateTime::currentMSecsSinceEpoch();
 	auto elapsedText = [now](qint64 startedAt, bool active) {
 		const qint64 totalSeconds = active && startedAt > 0 ? std::max<qint64>(0, (now - startedAt) / 1000) : 0;

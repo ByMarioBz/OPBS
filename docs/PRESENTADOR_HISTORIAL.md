@@ -321,6 +321,18 @@ elegirla una vez, cambiar entre video y dos canciones sin volver a abrir `Sonido
   aproximadamente 206 MB de memoria residente. La prueba real de adaptación RTMP sigue pendiente porque requiere
   claves privadas y condiciones de red controladas.
 
+## 2026-08-21 - Estados de transmisión estables
+
+- La franja superior reserva dimensiones fijas para LIVE, REC, YouTube y Facebook. Los cambios de texto, contador y
+  calidad de señal ya no recalculan el ancho de la cabecera ni desplazan los docks de las vistas previas.
+- Los botones Transmitir y Grabar también conservan un ancho estable entre sus estados inactivo y activo.
+- El reloj de estado consulta cada segundo la actividad real de las salidas y vuelve a sincronizar ambos botones. Así,
+  una transmisión o grabación que finalice por desconexión, error o ausencia de una notificación vuelve a mostrar
+  `Transmitir` o `Grabar` sin quedar visualmente activa.
+- `Build-Presenter.cmd` y `Package-Presenter.cmd` terminaron correctamente. Tras retirar a una copia recuperable los
+  marcadores temporales dejados por cierres forzados de pruebas anteriores, OPBS 0.1.6 inició en modo seguro y alcanzó
+  `Startup complete`. La finalización real de RTMP/REC sigue requiriendo una prueba con credenciales y destino válidos.
+
 ## Próximos límites conocidos
 
 - La monitorización depende de que Windows mantenga válido el identificador del dispositivo elegido.
