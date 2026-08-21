@@ -50,6 +50,9 @@ integrar funciones de forma gradual.
 - Ventanas `Pantallas`, `Sonido` y `Biblia`; se conservan monitor, dispositivo, audio y layout bíblico seleccionados.
 - El panel En vivo muestra estado y duración de LIVE y REC, además de la salud de señal independiente para los dos
   destinos configurados a partir de congestión y fotogramas descartados de la salida real.
+- Perfil adaptativo de rendimiento: selecciona resolución, FPS y codificador según CPU/RAM; carga miniaturas fuera del
+  hilo de interfaz; reduce trabajo visual no esencial bajo presión; y coordina el bitrate compartido a partir del peor
+  estado de los dos destinos. Una pérdida grave sostenida puede bajar la resolución mediante una reconexión controlada.
 - Posición y tamaño de la ventana principal persistentes.
 - Ejecución portátil local en `dist/OPBS` para desarrollo, sin alterar una instalación normal de OBS. Los Releases
   públicos se distribuyen únicamente mediante el instalador propio.
@@ -80,6 +83,7 @@ git diff obs-original...feature/media-presenter
 - Cargar traducciones y revisar el formato de versículos: `BIBLIAS.md`.
 - Importar y sustituir presentaciones: `PRESENTACIONES.md`.
 - Revisar decisiones, commits, pruebas y trabajo pendiente: `PRESENTADOR_HISTORIAL.md`.
+- Entender perfiles, umbrales y recuperación automática: `OPBS_RENDIMIENTO_ADAPTATIVO.md`.
 - Revisar o incorporar versiones nuevas de OBS: `OBS_ACTUALIZACIONES.md`.
 - Compilar, empaquetar y publicar versiones: `COMPILACION_Y_RELEASES.md`.
 - Reglas para colaboradores: `../AGENTS.md`.

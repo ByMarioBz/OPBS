@@ -25,6 +25,8 @@
 
 #include <obs-audio-controls.h>
 #include <obs-frontend-api.h>
+#include <media-io/video-io.h>
+#include <util/platform.h>
 
 #include <QAction>
 #include <QAbstractAnimation>
@@ -51,6 +53,7 @@
 #include <QGroupBox>
 #include <QHBoxLayout>
 #include <QImageReader>
+#include <QImage>
 #include <QIcon>
 #include <QInputDialog>
 #include <QLabel>
@@ -84,6 +87,7 @@
 #include <QStackedWidget>
 #include <QStyle>
 #include <QTextStream>
+#include <QThreadPool>
 #include <QTimer>
 #include <QToolButton>
 #include <QUrl>
@@ -796,7 +800,8 @@ QString BibleDisplayName(const QString &path)
 }
 } // namespace
 
-PresenterPanel::PresenterPanel(OBSBasic *main_) : QWidget(main_), main(main_)
+PresenterPanel::PresenterPanel(OBSBasic *main_)
+	: QWidget(main_), main(main_), adaptiveHostProfile(OpbsAdaptivePerformanceController::DetectHostProfile())
 {
 	setObjectName("presenterPanel");
 	setAcceptDrops(true);
@@ -1902,7 +1907,7 @@ bool PresenterPanel::EnsureCaptureSource(CaptureEntry *entry)
 
 void PresenterPanel::LoadCaptureThumbnail(CaptureEntry *entry)
 {
-	if (!entry || !entry->item || entry->thumbnailView || !EnsureCaptureSource(entry))
+	if (adaptiveUiConstrained || !entry || !entry->item || entry->thumbnailView || !EnsureCaptureSource(entry))
 		return;
 	entry->thumbnailView = App()->thumbnails()->createView(captureList, entry->source);
 	connect(entry->thumbnailView, &ThumbnailView::updated, captureList, [entry](const QPixmap &pixmap) {
@@ -1934,7 +1939,7 @@ void PresenterPanel::RefreshCaptureList()
 		item->setData(Qt::UserRole + 1, true);
 		item->setTextAlignment(Qt::AlignHCenter | Qt::AlignBottom);
 		item->setToolTip(tr("Cámara configurada en Transmisión"));
-		if (cameraSource) {
+		if (cameraSource && !adaptiveUiConstrained) {
 			configuredCameraThumbnailView = App()->thumbnails()->createView(captureList, cameraSource);
 			connect(configuredCameraThumbnailView, &ThumbnailView::updated, captureList,
 				[item](const QPixmap &pixmap) {
@@ -2191,6 +2196,8 @@ void PresenterPanel::Initialize()
 {
 	if (initialized)
 		return;
+	shuttingDown = false;
+	adaptiveCpuUsage = os_cpu_usage_info_start();
 	OBSSceneAutoRelease scene = obs_scene_create_private("Presenter Stage");
 	stageScene = scene.Get();
 	if (!stageScene) {
@@ -2270,14 +2277,41 @@ void PresenterPanel::Initialize()
 	});
 	connect(main, &OBSBasic::StreamingStarted, this, [this]() {
 		streamingStartedAt = QDateTime::currentMSecsSinceEpoch();
+		ResetAdaptivePerformance();
 		StartSecondaryStream();
 		UpdateTransmissionButtons();
 		UpdateTransmissionStatus();
 	});
 	connect(main, &OBSBasic::StreamingStopped, this, [this]() {
 		StopSecondaryStream();
+		ResetAdaptivePerformance();
+		ApplyAdaptiveUiMode(false);
 		UpdateTransmissionButtons();
 		UpdateTransmissionStatus();
+		if (adaptiveResolutionRestartPending) {
+			const uint32_t width = adaptivePendingOutputWidth;
+			const uint32_t height = adaptivePendingOutputHeight;
+			adaptiveResolutionRestartPending = false;
+			config_t *profileConfig = main->Config();
+			config_set_uint(profileConfig, "Video", "OutputCX", width);
+			config_set_uint(profileConfig, "Video", "OutputCY", height);
+			config_save_safe(profileConfig, "tmp", nullptr);
+			const int resetResult = main->ResetVideo();
+			if (resetResult != OBS_VIDEO_SUCCESS) {
+				blog(LOG_ERROR, "OPBS could not apply adaptive resolution %ux%u (error %d)", width,
+				     height, resetResult);
+				return;
+			}
+			blog(LOG_WARNING, "OPBS adaptive resolution changed to %ux%u; reconnecting stream", width,
+			     height);
+			QTimer::singleShot(1200, this, [this]() {
+				if (!main->StreamingActive()) {
+					ApplyPrimaryStreamService();
+					ResetAdaptivePerformance();
+					main->StartStreaming();
+				}
+			});
+		}
 	});
 	connect(main, &OBSBasic::RecordingStarted, this, [this]() {
 		recordingStartedAt = QDateTime::currentMSecsSinceEpoch();
@@ -2299,6 +2333,7 @@ void PresenterPanel::Initialize()
 		obs_volmeter_add_callback(audioMeter, PresenterPanel::AudioMeterUpdated, this);
 	initialized = true;
 	LoadSettings();
+	ResetAdaptivePerformance();
 	// El presentador usa únicamente el monitor de su fuente activa. Las entradas
 	// globales de OBS (escritorio y micrófono) pueden bloquear ese mismo dispositivo.
 	for (uint32_t channel = 1; channel < 6; ++channel)
@@ -2321,8 +2356,14 @@ void PresenterPanel::Initialize()
 
 void PresenterPanel::Shutdown()
 {
-	if (!initialized && !stageScene)
+	if (!initialized && !stageScene) {
+		if (adaptiveCpuUsage) {
+			os_cpu_usage_info_destroy(adaptiveCpuUsage);
+			adaptiveCpuUsage = nullptr;
+		}
 		return;
+	}
+	shuttingDown = true;
 	SaveSettings();
 	if (timelineTimer)
 		timelineTimer->stop();
@@ -2393,6 +2434,10 @@ void PresenterPanel::Shutdown()
 		stageShowing = false;
 	}
 	stageScene = nullptr;
+	if (adaptiveCpuUsage) {
+		os_cpu_usage_info_destroy(adaptiveCpuUsage);
+		adaptiveCpuUsage = nullptr;
+	}
 	initialized = false;
 }
 
@@ -2581,20 +2626,47 @@ void PresenterPanel::SetCardThumbnail(MediaEntry *entry, const QPixmap &pixmap)
 
 void PresenterPanel::LoadThumbnail(MediaEntry *entry)
 {
-	if (!entry || entry->thumbnailLoaded || !entry->isImage)
+	if (!entry || entry->thumbnailLoaded || entry->thumbnailLoading || !entry->isImage || shuttingDown ||
+	    adaptiveUiConstrained || thumbnailLoadsInFlight >= adaptiveHostProfile.thumbnailConcurrency)
 		return;
-	QImageReader reader(entry->path);
-	reader.setAutoTransform(true);
-	reader.setScaledSize(QSize(kThumbnailWidth, kThumbnailHeight));
-	const QPixmap thumbnail = QPixmap::fromImage(reader.read());
-	if (!thumbnail.isNull()) {
-		SetCardThumbnail(entry, thumbnail);
-		entry->thumbnailLoaded = true;
-	}
+	entry->thumbnailLoading = true;
+	++thumbnailLoadsInFlight;
+	const QString path = entry->path;
+	QPointer<PresenterPanel> guard(this);
+	QThreadPool::globalInstance()->start([guard, path]() {
+		QImageReader reader(path);
+		reader.setAutoTransform(true);
+		reader.setScaledSize(QSize(kThumbnailWidth, kThumbnailHeight));
+		const QImage image = reader.read();
+		if (!guard)
+			return;
+		QMetaObject::invokeMethod(
+			guard,
+			[guard, path, image]() {
+				if (!guard || guard->shuttingDown)
+					return;
+				guard->thumbnailLoadsInFlight = std::max(0, guard->thumbnailLoadsInFlight - 1);
+				for (const auto &candidate : guard->entries) {
+					if (candidate->path != path)
+						continue;
+					candidate->thumbnailLoading = false;
+					if (!image.isNull()) {
+						guard->SetCardThumbnail(candidate.get(), QPixmap::fromImage(image));
+					}
+					/* A damaged image must not create an endless background retry loop. */
+					candidate->thumbnailLoaded = true;
+					break;
+				}
+				QTimer::singleShot(0, guard, &PresenterPanel::LoadVisibleThumbnails);
+			},
+			Qt::QueuedConnection);
+	});
 }
 
 void PresenterPanel::LoadVisibleThumbnails()
 {
+	if (adaptiveUiConstrained || shuttingDown)
+		return;
 	int preloadCount = 0;
 	for (const auto &entry : entries) {
 		if (!entry->item || entry->item->isHidden() || entry->thumbnailLoaded || !entry->isImage)
@@ -2604,9 +2676,11 @@ void PresenterPanel::LoadVisibleThumbnails()
 			continue;
 		const QRect visibleArea = owner->viewport()->rect().adjusted(0, -kThumbnailHeight, 0, kThumbnailHeight);
 		const QRect itemRect = owner->visualItemRect(entry->item);
-		if (visibleArea.intersects(itemRect) || preloadCount < 24) {
+		if (visibleArea.intersects(itemRect) || preloadCount < 8) {
 			LoadThumbnail(entry.get());
 			++preloadCount;
+			if (thumbnailLoadsInFlight >= adaptiveHostProfile.thumbnailConcurrency)
+				break;
 		}
 	}
 }
@@ -4421,6 +4495,7 @@ void PresenterPanel::LoadSettings()
 {
 	restoring = true;
 	QSettings settings(SettingsPath(), QSettings::IniFormat);
+	adaptivePerformanceEnabled = settings.value("performance/automatic", true).toBool();
 	mediaVolume = settings.value("audio/mediaVolume", 100).toInt();
 	outputVolume = settings.value("audio/outputVolume", 100).toInt();
 	outputGain = settings.value("audio/gain", 0).toInt();
@@ -4436,7 +4511,8 @@ void PresenterPanel::LoadSettings()
 		std::clamp(settings.value("transmission/audio/inputDb", 0.0).toDouble(), -60.0, 20.0);
 	transmissionPresenterMuted = settings.value("transmission/audio/presenterMuted", false).toBool();
 	transmissionInputMuted = settings.value("transmission/audio/inputMuted", false).toBool();
-	streamVideoBitrate = std::clamp(settings.value("transmission/videoBitrate", 6000).toInt(), 1000, 51000);
+	streamVideoBitrate = std::clamp(
+		settings.value("transmission/videoBitrate", adaptiveHostProfile.recommendedBitrate).toInt(), 1000, 51000);
 	streamAudioBitrate = std::clamp(settings.value("transmission/audioBitrate", 160).toInt(), 64, 320);
 	recordingPath = settings.value("transmission/recordingPath",
 				       QString::fromUtf8(config_get_string(main->Config(), "SimpleOutput", "FilePath")))
@@ -4749,6 +4825,7 @@ void PresenterPanel::SaveSettings()
 	settings.setValue("audio/deviceId", audioDeviceId);
 	settings.setValue("audioPlayer/files", audioPlaylistPaths);
 	settings.setValue("audioPlayer/names", audioPlaylistNames);
+	settings.setValue("performance/automatic", adaptivePerformanceEnabled);
 	settings.setValue("presentations/recentIds", recentPresentationIds);
 	settings.setValue("presentations/recentNames", recentPresentationNames);
 	settings.setValue("presentations/currentId", currentPresentationId);
@@ -5059,8 +5136,15 @@ void PresenterPanel::ApplyPrimaryStreamService()
 	main->SaveService();
 	config_t *profileConfig = main->Config();
 	config_set_string(profileConfig, "Output", "Mode", "Simple");
-	config_set_uint(profileConfig, "SimpleOutput", "VBitrate", streamVideoBitrate);
+	const int effectiveBitrate = adaptiveSessionMaximumBitrate > 0
+				     ? std::min(streamVideoBitrate, adaptiveSessionMaximumBitrate)
+				     : streamVideoBitrate;
+	config_set_uint(profileConfig, "SimpleOutput", "VBitrate", effectiveBitrate);
 	config_set_uint(profileConfig, "SimpleOutput", "ABitrate", streamAudioBitrate);
+	/* OPBS coordinates the shared encoder from one place. The per-output OBS
+	 * controller must remain off or two RTMP destinations could fight over the
+	 * bitrate of that same encoder. */
+	config_set_bool(profileConfig, "Output", "DynamicBitrate", false);
 	if (!recordingPath.isEmpty())
 		config_set_string(profileConfig, "SimpleOutput", "FilePath", recordingPath.toUtf8().constData());
 	config_save_safe(profileConfig, "tmp", nullptr);
@@ -5088,6 +5172,9 @@ void PresenterPanel::StartSecondaryStream()
 	obs_output_set_audio_encoder(secondaryStreamOutput, obs_output_get_audio_encoder(primaryOutput, 0), 0);
 	obs_output_set_service(secondaryStreamOutput, secondaryStreamService);
 	obs_output_set_reconnect_settings(secondaryStreamOutput, 25, 2);
+	OBSDataAutoRelease outputSettings = obs_data_create();
+	obs_data_set_bool(outputSettings, "dyn_bitrate", false);
+	obs_output_update(secondaryStreamOutput, outputSettings);
 	if (!obs_output_start(secondaryStreamOutput)) {
 		const char *error = obs_output_get_last_error(secondaryStreamOutput);
 		QMessageBox::warning(main, tr("Segundo destino"),
@@ -5127,7 +5214,9 @@ void PresenterPanel::ToggleStreaming()
 					"Transmisión > Audio antes de emitir."));
 		return;
 	}
+	adaptiveSessionMaximumBitrate = streamVideoBitrate;
 	ApplyPrimaryStreamService();
+	ResetAdaptivePerformance();
 	main->StartStreaming();
 }
 
@@ -5142,6 +5231,7 @@ void PresenterPanel::ToggleRecording()
 					     tr("No fue posible preparar una de las entradas de audio configuradas."));
 			return;
 		}
+		adaptiveSessionMaximumBitrate = streamVideoBitrate;
 		ApplyPrimaryStreamService();
 		main->StartRecording();
 	}
@@ -5213,4 +5303,197 @@ void PresenterPanel::UpdateTransmissionStatus()
 	const auto secondary = signalText(streamDestinations[1].service, secondaryStreamOutput,
 					  streaming && streamDestinations[1].enabled);
 	applyState(secondarySignalLabel, secondary.first, secondary.second.toUtf8().constData());
+	UpdateAdaptivePerformance(primaryOutput, secondaryStreamOutput);
+}
+
+void PresenterPanel::ResetAdaptivePerformance()
+{
+	obs_video_info videoInfo = {};
+	obs_get_video_info(&videoInfo);
+	const int minimumBitrate = videoInfo.output_height <= 480 ? 1000 : videoInfo.output_height <= 720 ? 1800 : 2500;
+	const int maximumBitrate = adaptiveSessionMaximumBitrate > 0
+				   ? std::min(streamVideoBitrate, adaptiveSessionMaximumBitrate)
+				   : streamVideoBitrate;
+	adaptivePerformance.Reset(maximumBitrate, minimumBitrate);
+	adaptivePrimaryCounters = {};
+	adaptiveSecondaryCounters = {};
+	adaptiveRenderedFrames = obs_get_total_frames();
+	adaptiveLaggedFrames = obs_get_lagged_frames();
+	video_t *video = obs_get_video();
+	adaptiveEncodedFrames = video ? video_output_get_total_frames(video) : 0;
+	adaptiveSkippedFrames = video ? video_output_get_skipped_frames(video) : 0;
+	adaptiveSevereNetworkSamples = 0;
+}
+
+void PresenterPanel::UpdateAdaptivePerformance(obs_output_t *primaryOutput, obs_output_t *secondaryOutput)
+{
+	if (!adaptivePerformanceEnabled || !initialized)
+		return;
+
+	auto outputMetrics = [](obs_output_t *output, AdaptiveOutputCounters &previous) {
+		double congestion = 0.0;
+		double droppedRatio = 0.0;
+		if (!output || !obs_output_active(output)) {
+			previous = {};
+			return qMakePair(congestion, droppedRatio);
+		}
+		congestion = std::clamp(double(obs_output_get_congestion(output)), 0.0, 1.0);
+		const int total = obs_output_get_total_frames(output);
+		const int dropped = obs_output_get_frames_dropped(output);
+		if (total >= previous.totalFrames && dropped >= previous.droppedFrames) {
+			const int deltaTotal = total - previous.totalFrames;
+			const int deltaDropped = dropped - previous.droppedFrames;
+			if (deltaTotal > 0)
+				droppedRatio = std::clamp(double(deltaDropped) / double(deltaTotal), 0.0, 1.0);
+		}
+		previous.totalFrames = total;
+		previous.droppedFrames = dropped;
+		return qMakePair(congestion, droppedRatio);
+	};
+
+	const auto primaryMetrics = outputMetrics(primaryOutput, adaptivePrimaryCounters);
+	const auto secondaryMetrics = outputMetrics(secondaryOutput, adaptiveSecondaryCounters);
+	const uint32_t rendered = obs_get_total_frames();
+	const uint32_t lagged = obs_get_lagged_frames();
+	double renderLagRatio = 0.0;
+	if (rendered >= adaptiveRenderedFrames && lagged >= adaptiveLaggedFrames) {
+		const uint32_t deltaRendered = rendered - adaptiveRenderedFrames;
+		if (deltaRendered)
+			renderLagRatio = double(lagged - adaptiveLaggedFrames) / double(deltaRendered);
+	}
+	adaptiveRenderedFrames = rendered;
+	adaptiveLaggedFrames = lagged;
+
+	video_t *video = obs_get_video();
+	const uint32_t encoded = video ? video_output_get_total_frames(video) : 0;
+	const uint32_t skipped = video ? video_output_get_skipped_frames(video) : 0;
+	double encodingLagRatio = 0.0;
+	if (encoded >= adaptiveEncodedFrames && skipped >= adaptiveSkippedFrames) {
+		const uint32_t deltaEncoded = encoded - adaptiveEncodedFrames;
+		if (deltaEncoded)
+			encodingLagRatio = double(skipped - adaptiveSkippedFrames) / double(deltaEncoded);
+	}
+	adaptiveEncodedFrames = encoded;
+	adaptiveSkippedFrames = skipped;
+
+	const uint64_t totalMemory = os_get_sys_total_size();
+	const uint64_t freeMemory = os_get_sys_free_size();
+	OpbsAdaptivePerformanceController::Sample sample;
+	sample.streaming = main && main->StreamingActive();
+	sample.cpuPercent = adaptiveCpuUsage ? os_cpu_usage_info_query(adaptiveCpuUsage) : 0.0;
+	sample.memoryPressure = totalMemory ? 1.0 - std::clamp(double(freeMemory) / double(totalMemory), 0.0, 1.0) : 0.0;
+	const uint64_t frameInterval = obs_get_frame_interval_ns();
+	sample.renderUtilization = frameInterval ? double(obs_get_average_frame_time_ns()) / double(frameInterval) : 0.0;
+	sample.renderLagRatio = renderLagRatio;
+	sample.encodingLagRatio = encodingLagRatio;
+	sample.worstCongestion = std::max(primaryMetrics.first, secondaryMetrics.first);
+	sample.worstDroppedRatio = std::max(primaryMetrics.second, secondaryMetrics.second);
+
+	const auto decision = adaptivePerformance.Update(sample);
+	obs_video_info adaptiveVideoInfo = {};
+	obs_get_video_info(&adaptiveVideoInfo);
+	const int adaptiveMinimumBitrate = adaptiveVideoInfo.output_height <= 480
+					       ? 1000
+					       : adaptiveVideoInfo.output_height <= 720 ? 1800 : 2500;
+	if (decision.constrainedModeChanged)
+		ApplyAdaptiveUiMode(decision.constrainedMode);
+	if (decision.bitrateChanged && sample.streaming && ApplyAdaptiveBitrate(primaryOutput, decision.bitrate)) {
+		blog(LOG_INFO,
+		     "OPBS adaptive bitrate: %d Kbps (congestion %.1f%%, dropped %.2f%%, CPU %.1f%%)",
+		     decision.bitrate, sample.worstCongestion * 100.0, sample.worstDroppedRatio * 100.0,
+		     sample.cpuPercent);
+	}
+	if (decision.severeNetworkPressure && adaptivePerformance.CurrentBitrate() <= adaptiveMinimumBitrate + 50)
+		++adaptiveSevereNetworkSamples;
+	else
+		adaptiveSevereNetworkSamples = 0;
+	if (adaptiveSevereNetworkSamples >= 60)
+		ScheduleAdaptiveResolutionFallback();
+	const QString details =
+		tr("Optimización automática\nBitrate actual: %1 Kbps\nCPU: %2%\nMemoria usada: %3%\nCarga de render: %4%")
+			.arg(adaptivePerformance.CurrentBitrate())
+			.arg(sample.cpuPercent, 0, 'f', 1)
+			.arg(sample.memoryPressure * 100.0, 0, 'f', 1)
+			.arg(sample.renderUtilization * 100.0, 0, 'f', 1);
+	if (primarySignalLabel)
+		primarySignalLabel->setToolTip(details);
+	if (secondarySignalLabel)
+		secondarySignalLabel->setToolTip(details);
+}
+
+void PresenterPanel::ApplyAdaptiveUiMode(bool constrained)
+{
+	adaptiveUiConstrained = constrained;
+	const int interval = constrained ? 750 : adaptiveHostProfile.idleUiIntervalMs;
+	if (timelineTimer)
+		timelineTimer->setInterval(interval);
+	if (audioPlayerTimer)
+		audioPlayerTimer->setInterval(interval);
+
+	/* A local preview can be paused without affecting its OBS scene, the
+	 * projector, recording or outgoing encoder. Preserve the stage preview and
+	 * shed the duplicate transmission preview first. */
+	if (transmissionPreview && transmissionPreview->GetDisplay())
+		obs_display_set_enabled(transmissionPreview->GetDisplay(), !constrained);
+	if (constrained) {
+		if (configuredCameraThumbnailView)
+			delete configuredCameraThumbnailView.data();
+		configuredCameraThumbnailView = nullptr;
+		for (auto &entry : captureEntries) {
+			if (entry->thumbnailView)
+				delete entry->thumbnailView.data();
+			entry->thumbnailView = nullptr;
+		}
+		blog(LOG_WARNING, "OPBS adaptive UI entered constrained mode");
+	} else {
+		RefreshCaptureList();
+		LoadVisibleThumbnails();
+		blog(LOG_INFO, "OPBS adaptive UI returned to normal mode");
+	}
+}
+
+bool PresenterPanel::ApplyAdaptiveBitrate(obs_output_t *primaryOutput, int bitrate)
+{
+	if (!primaryOutput)
+		return false;
+	obs_encoder_t *encoder = obs_output_get_video_encoder(primaryOutput);
+	if (!encoder || !(obs_encoder_get_caps(encoder) & OBS_ENCODER_CAP_DYN_BITRATE)) {
+		blog(LOG_WARNING, "OPBS encoder does not support live bitrate updates");
+		return false;
+	}
+	OBSDataAutoRelease settings = obs_encoder_get_settings(encoder);
+	if (!settings)
+		return false;
+	obs_data_set_int(settings, "bitrate", bitrate);
+	obs_encoder_update(encoder, settings);
+	return true;
+}
+
+void PresenterPanel::ScheduleAdaptiveResolutionFallback()
+{
+	if (adaptiveResolutionRestartPending || adaptiveResolutionRestarts >= 2 || !main || !main->StreamingActive() ||
+	    main->RecordingActive())
+		return;
+	config_t *profileConfig = main->Config();
+	const uint32_t currentWidth = uint32_t(config_get_uint(profileConfig, "Video", "OutputCX"));
+	const uint32_t currentHeight = uint32_t(config_get_uint(profileConfig, "Video", "OutputCY"));
+	if (currentHeight > 720) {
+		adaptivePendingOutputWidth = 1280;
+		adaptivePendingOutputHeight = 720;
+		adaptiveSessionMaximumBitrate = std::min(streamVideoBitrate, 4000);
+	} else if (currentHeight > 480) {
+		adaptivePendingOutputWidth = 854;
+		adaptivePendingOutputHeight = 480;
+		adaptiveSessionMaximumBitrate = std::min(streamVideoBitrate, 2500);
+	} else {
+		return;
+	}
+	adaptiveResolutionRestartPending = true;
+	++adaptiveResolutionRestarts;
+	adaptiveSevereNetworkSamples = 0;
+	blog(LOG_WARNING,
+	     "OPBS sustained network loss at minimum bitrate; scheduling controlled resolution fallback from %ux%u to %ux%u",
+	     currentWidth, currentHeight, adaptivePendingOutputWidth, adaptivePendingOutputHeight);
+	StopSecondaryStream();
+	main->StopStreaming();
 }

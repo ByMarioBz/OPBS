@@ -1,6 +1,6 @@
 # Historial y estado de ingeniería
 
-Última actualización: 12 de agosto de 2026.
+Última actualización: 21 de agosto de 2026.
 
 ## Base
 
@@ -300,6 +300,26 @@ build_x64/rundir/RelWithDebInfo/obs-plugins/64bit/obs-ffmpeg.dll
 
 La línea de tiempo de música quedó verificada. Sigue pendiente comprobar el audio físico con una salida conectada:
 elegirla una vez, cambiar entre video y dos canciones sin volver a abrir `Sonido`, y confirmar sonido en cada cambio.
+
+## 2026-08-21 - Rendimiento adaptativo
+
+- Se retiró el coste fijo de 1920 × 1080 a 60 FPS. El lienzo del escenario permanece en 1080p, pero la salida se
+  configura como 480p30, 720p30, 1080p30 o 1080p60 según memoria y procesadores lógicos.
+- OPBS elige automáticamente NVENC, Quick Sync o AMF H.264 cuando están disponibles; x264 conserva presets ligeros como
+  respaldo.
+- Se creó un controlador reutilizable que mide CPU, presión de memoria, tiempo de render, pérdida de render/codificación
+  y congestión/pérdida de cada RTMP. En presión local sostenida pausa tareas visuales duplicadas sin tocar escenario,
+  audio, grabación o transmisión.
+- Las imágenes visibles se decodifican en el grupo de trabajo de Qt y regresan al hilo de interfaz como miniaturas; la
+  concurrencia y la precarga dependen del perfil para evitar bloqueos al abrir carpetas grandes.
+- La doble transmisión desactiva los controladores RTMP independientes y usa un solo coordinador sobre el codificador
+  compartido. El bitrate baja rápido, sube con histéresis y considera el peor destino.
+- Después de 60 segundos de pérdida grave en el bitrate mínimo, una emisión sin grabación baja 1080p → 720p → 480p con
+  reconexión automática y máximo de dos descensos por sesión.
+- `Build-Presenter.cmd` y `Package-Presenter.cmd` terminaron correctamente. El arranque seguro detectó el perfil
+  `balanced`, configuró 1920 × 1080 a 30 FPS, eligió NVENC, alcanzó `Startup complete`, permaneció respondiendo y usó
+  aproximadamente 206 MB de memoria residente. La prueba real de adaptación RTMP sigue pendiente porque requiere
+  claves privadas y condiciones de red controladas.
 
 ## Próximos límites conocidos
 

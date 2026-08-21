@@ -57,6 +57,8 @@ target_sources(
     widgets/OBSProjector.hpp
     widgets/OBSQTDisplay.cpp
     widgets/OBSQTDisplay.hpp
+    widgets/OpbsAdaptivePerformance.cpp
+    widgets/OpbsAdaptivePerformance.hpp
     widgets/OpbsDesignSystem.cpp
     widgets/OpbsDesignSystem.hpp
     widgets/PresenterPanel.cpp

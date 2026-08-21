@@ -11,6 +11,8 @@
 
 #include <obs.hpp>
 
+#include "OpbsAdaptivePerformance.hpp"
+
 #include <QPointer>
 #include <QWidget>
 
@@ -38,6 +40,7 @@ class OBSProjector;
 class OBSQTDisplay;
 class ThumbnailView;
 typedef struct obs_volmeter obs_volmeter_t;
+typedef struct os_cpu_usage_info os_cpu_usage_info_t;
 
 class PresenterPanel : public QWidget {
 	Q_OBJECT
@@ -52,6 +55,7 @@ class PresenterPanel : public QWidget {
 		bool isImage = false;
 		bool loop = false;
 		bool thumbnailLoaded = false;
+		bool thumbnailLoading = false;
 	};
 	struct FolderEntry {
 		QString id;
@@ -77,6 +81,10 @@ class PresenterPanel : public QWidget {
 		QString server;
 		QString key;
 		bool enabled = true;
+	};
+	struct AdaptiveOutputCounters {
+		int totalFrames = 0;
+		int droppedFrames = 0;
 	};
 	enum class TransmissionView { Cameras, Presenter, CamerasAndPresenter };
 
@@ -170,6 +178,25 @@ class PresenterPanel : public QWidget {
 	QPointer<QTimer> seekTimer;
 	QPointer<QTimer> audioPlayerTimer;
 	QPointer<QTimer> transmissionStatusTimer;
+	OpbsAdaptiveHostProfile adaptiveHostProfile;
+	OpbsAdaptivePerformanceController adaptivePerformance;
+	os_cpu_usage_info_t *adaptiveCpuUsage = nullptr;
+	AdaptiveOutputCounters adaptivePrimaryCounters;
+	AdaptiveOutputCounters adaptiveSecondaryCounters;
+	uint32_t adaptiveRenderedFrames = 0;
+	uint32_t adaptiveLaggedFrames = 0;
+	uint32_t adaptiveEncodedFrames = 0;
+	uint32_t adaptiveSkippedFrames = 0;
+	uint32_t adaptivePendingOutputWidth = 0;
+	uint32_t adaptivePendingOutputHeight = 0;
+	int thumbnailLoadsInFlight = 0;
+	int adaptiveSevereNetworkSamples = 0;
+	int adaptiveResolutionRestarts = 0;
+	int adaptiveSessionMaximumBitrate = 0;
+	bool adaptivePerformanceEnabled = true;
+	bool adaptiveUiConstrained = false;
+	bool adaptiveResolutionRestartPending = false;
+	bool shuttingDown = false;
 	std::vector<std::unique_ptr<MediaEntry>> entries;
 	std::vector<FolderEntry> folders;
 	std::vector<BibleVerse> bibleVerses;
@@ -302,6 +329,11 @@ class PresenterPanel : public QWidget {
 	void ApplyPrimaryStreamService();
 	void UpdateTransmissionButtons();
 	void UpdateTransmissionStatus();
+	void ResetAdaptivePerformance();
+	void UpdateAdaptivePerformance(obs_output_t *primaryOutput, obs_output_t *secondaryOutput);
+	void ApplyAdaptiveUiMode(bool constrained);
+	bool ApplyAdaptiveBitrate(obs_output_t *primaryOutput, int bitrate);
+	void ScheduleAdaptiveResolutionFallback();
 	void LaunchOpbsUpdater(bool silent = false);
 	void ImportPresentation(bool pdf);
 	void ReplacePresentationSlides(const QString &temporaryDirectory, int slideCount, const QString &displayName);

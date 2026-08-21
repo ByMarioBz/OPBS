@@ -18,6 +18,7 @@
 ******************************************************************************/
 
 #include "OBSBasic.hpp"
+#include "OpbsAdaptivePerformance.hpp"
 #include "PresenterPanel.hpp"
 #include "ui-config.h"
 
@@ -865,14 +866,26 @@ bool OBSBasic::InitBasicConfigDefaults()
 	config_set_default_uint(activeConfiguration, "Video", "SdrWhiteLevel", 300);
 	config_set_default_uint(activeConfiguration, "Video", "HdrNominalPeakLevel", 1000);
 
-	/* OPBS keeps its transmission canvas intentionally fixed and hides the
-	 * original video settings page from the presenter interface. */
+	/* The stage composition remains 1080p. The encoded output and frame rate
+	 * are selected from a conservative host profile so low-resource systems do
+	 * not pay the cost of 1080p60 merely by opening OPBS. */
+	config_set_default_bool(activeConfiguration, "OpbsPerformance", "AutoTune", true);
+	const bool autoTune = config_get_bool(activeConfiguration, "OpbsPerformance", "AutoTune");
+	const OpbsAdaptiveHostProfile opbsProfile = OpbsAdaptivePerformanceController::DetectHostProfile();
 	config_set_uint(activeConfiguration, "Video", "BaseCX", 1920);
 	config_set_uint(activeConfiguration, "Video", "BaseCY", 1080);
-	config_set_uint(activeConfiguration, "Video", "OutputCX", 1920);
-	config_set_uint(activeConfiguration, "Video", "OutputCY", 1080);
-	config_set_uint(activeConfiguration, "Video", "FPSType", 0);
-	config_set_string(activeConfiguration, "Video", "FPSCommon", "60");
+	if (autoTune) {
+		config_set_uint(activeConfiguration, "Video", "OutputCX", opbsProfile.outputWidth);
+		config_set_uint(activeConfiguration, "Video", "OutputCY", opbsProfile.outputHeight);
+		config_set_uint(activeConfiguration, "Video", "FPSType", 0);
+		config_set_string(activeConfiguration, "Video", "FPSCommon",
+				  opbsProfile.fps == 60 ? "60" : "30");
+		blog(LOG_INFO,
+		     "OPBS adaptive host profile: %s, %dx%d@%d, %d logical cores, %llu MiB RAM",
+		     OpbsAdaptivePerformanceController::TierName(opbsProfile.tier), opbsProfile.outputWidth,
+		     opbsProfile.outputHeight, opbsProfile.fps, opbsProfile.logicalCores,
+		     (unsigned long long)(opbsProfile.totalMemoryBytes / (1024ULL * 1024ULL)));
+	}
 	config_set_string(activeConfiguration, "Output", "Mode", "Simple");
 
 	config_set_default_string(activeConfiguration, "Audio", "MonitoringDeviceId", "default");
@@ -892,12 +905,27 @@ bool OBSBasic::InitBasicConfigDefaults()
 void OBSBasic::InitBasicConfigDefaults2()
 {
 	bool oldEncDefaults = config_get_bool(App()->GetUserConfig(), "General", "Pre23Defaults");
-	bool useNV = EncoderAvailable("ffmpeg_nvenc") && !oldEncDefaults;
+	const bool autoTune = config_get_bool(activeConfiguration, "OpbsPerformance", "AutoTune");
+	const OpbsAdaptiveHostProfile opbsProfile = OpbsAdaptivePerformanceController::DetectHostProfile();
+	const char *preferredEncoder = SIMPLE_ENCODER_X264;
+	if (!oldEncDefaults) {
+		if (EncoderAvailable("ffmpeg_nvenc") || EncoderAvailable("obs_nvenc_h264_tex"))
+			preferredEncoder = SIMPLE_ENCODER_NVENC;
+		else if (EncoderAvailable("obs_qsv11"))
+			preferredEncoder = SIMPLE_ENCODER_QSV;
+		else if (EncoderAvailable("h264_texture_amf"))
+			preferredEncoder = SIMPLE_ENCODER_AMD;
+	}
 
-	config_set_default_string(activeConfiguration, "SimpleOutput", "StreamEncoder",
-				  useNV ? SIMPLE_ENCODER_NVENC : SIMPLE_ENCODER_X264);
-	config_set_default_string(activeConfiguration, "SimpleOutput", "RecEncoder",
-				  useNV ? SIMPLE_ENCODER_NVENC : SIMPLE_ENCODER_X264);
+	config_set_default_string(activeConfiguration, "SimpleOutput", "StreamEncoder", preferredEncoder);
+	config_set_default_string(activeConfiguration, "SimpleOutput", "RecEncoder", preferredEncoder);
+	if (autoTune) {
+		config_set_string(activeConfiguration, "SimpleOutput", "StreamEncoder", preferredEncoder);
+		config_set_string(activeConfiguration, "SimpleOutput", "RecEncoder", preferredEncoder);
+		config_set_string(activeConfiguration, "SimpleOutput", "Preset",
+				  opbsProfile.tier == OpbsAdaptiveHostProfile::Tier::VeryLow ? "superfast" : "veryfast");
+		blog(LOG_INFO, "OPBS adaptive encoder: %s", preferredEncoder);
+	}
 
 	const char *aac_default = "ffmpeg_aac";
 	if (EncoderAvailable("CoreAudio_AAC")) {
