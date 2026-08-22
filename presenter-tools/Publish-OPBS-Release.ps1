@@ -47,7 +47,14 @@ if (-not (Test-Path -LiteralPath $ReleaseNotesPath)) {
     throw "Faltan las notas de la versión en $ReleaseNotesPath."
 }
 $ReleaseNotes = [IO.File]::ReadAllText($ReleaseNotesPath, [Text.Encoding]::UTF8)
-$InstallerHash = (Get-FileHash -LiteralPath $Assets[0] -Algorithm SHA256).Hash.ToLowerInvariant()
+$Sha256 = [System.Security.Cryptography.SHA256]::Create()
+$InstallerStream = [System.IO.File]::OpenRead($Assets[0])
+try {
+    $InstallerHash = ([System.BitConverter]::ToString($Sha256.ComputeHash($InstallerStream))).Replace('-', '').ToLowerInvariant()
+} finally {
+    $InstallerStream.Dispose()
+    $Sha256.Dispose()
+}
 $PublishedNotesPath = Join-Path $ReleaseDirectory 'release-notes.md'
 $PublishedNotes = @"
 $($ReleaseNotes.Trim())

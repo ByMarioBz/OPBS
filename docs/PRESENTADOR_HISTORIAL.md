@@ -346,6 +346,19 @@ elegirla una vez, cambiar entre video y dos canciones sin volver a abrir `Sonido
 - `Build-Presenter.cmd` y `Package-Presenter.cmd` terminaron correctamente. OPBS 0.1.6 inició en modo seguro, permaneció
   respondiendo y alcanzó `Startup complete` sin errores de compilación ni análisis de estilos.
 
+## 2026-08-22 - Preparación final de OPBS 0.1.6
+
+- Se completó la compilación de entrega, el empaquetado y la generación del instalador público de OPBS 0.1.6. Las
+  validaciones del instalador confirmaron que no contiene configuración personal, medios, símbolos de depuración ni
+  módulos de scripting desactivados.
+- El cálculo SHA-256 de compilación, publicación y actualización deja de depender de `Get-FileHash` y usa directamente
+  la implementación criptográfica de .NET. Esto permite crear y verificar actualizaciones incluso en entornos de
+  PowerShell donde ese comando no está registrado.
+- El SHA-256 calculado directamente sobre `OPBS-Setup-x64.exe` resultó idéntico al archivo de checksum generado.
+- El paquete final inició como OPBS 0.1.6 en modo seguro, permaneció respondiendo y alcanzó `Startup complete`. Los avisos
+  de AJA/DeckLink sin hardware y una ruta multimedia antigua inexistente son opcionales o datos del perfil de prueba y
+  no impidieron el arranque.
+
 ## Próximos límites conocidos
 
 - La monitorización depende de que Windows mantenga válido el identificador del dispositivo elegido.

@@ -72,7 +72,14 @@ if ($LASTEXITCODE -ne 0) {
     throw "NSIS no pudo crear el instalador (código $LASTEXITCODE)."
 }
 
-$InstallerHash = (Get-FileHash -LiteralPath $InstallerPath -Algorithm SHA256).Hash.ToLowerInvariant()
+$Sha256 = [System.Security.Cryptography.SHA256]::Create()
+$InstallerStream = [System.IO.File]::OpenRead($InstallerPath)
+try {
+    $InstallerHash = ([System.BitConverter]::ToString($Sha256.ComputeHash($InstallerStream))).Replace('-', '').ToLowerInvariant()
+} finally {
+    $InstallerStream.Dispose()
+    $Sha256.Dispose()
+}
 Set-Content -LiteralPath $ChecksumPath -Value "$InstallerHash  $($ConfigurationData.installerAsset)" -Encoding ASCII
 
 Write-Host "Instalador: $InstallerPath"

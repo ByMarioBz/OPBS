@@ -177,7 +177,14 @@ try {
     }
 
     $ExpectedHash = [regex]::Match((Get-Content -Raw -LiteralPath $ChecksumPath), '(?i)\b[0-9a-f]{64}\b').Value
-    $ActualHash = (Get-FileHash -LiteralPath $InstallerPath -Algorithm SHA256).Hash
+    $Sha256 = [System.Security.Cryptography.SHA256]::Create()
+    $InstallerStream = [System.IO.File]::OpenRead($InstallerPath)
+    try {
+        $ActualHash = ([System.BitConverter]::ToString($Sha256.ComputeHash($InstallerStream))).Replace('-', '')
+    } finally {
+        $InstallerStream.Dispose()
+        $Sha256.Dispose()
+    }
     if (-not $ExpectedHash -or $ActualHash -ne $ExpectedHash) {
         Remove-Item -LiteralPath $InstallerPath -Force -ErrorAction SilentlyContinue
         throw 'El instalador descargado no coincide con el SHA-256 publicado. La actualización fue cancelada.'
