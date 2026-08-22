@@ -339,6 +339,8 @@ elegirla una vez, cambiar entre video y dos canciones sin volver a abrir `Sonido
   observador de previsualización. La tarjeta ya no cambia durante la reproducción ni mantiene renderizado periódico.
 - Captura deja de generar miniaturas de cámara o ventana. La cámara configurada y las fuentes añadidas aparecen como
   filas compactas con su nombre, conservando selección, menú contextual y activación al hacer clic.
+- Se corrigió una regresión de esa conversión: `QListView::ListMode` no acepta una cuadrícula de ancho cero como forma
+  de expresar «usar todo el ancho». Al retirar ese tamaño, Qt vuelve a calcular filas visibles que ocupan el panel.
 - Los buscadores de Multimedia y Biblia usan la misma altura fija, alineación vertical y geometría real del glifo. Se
   redujo el margen duplicado entre lupa y texto y se evitó el desplazamiento al recibir foco.
 - `Build-Presenter.cmd` y `Package-Presenter.cmd` terminaron correctamente. OPBS 0.1.6 inició en modo seguro, permaneció

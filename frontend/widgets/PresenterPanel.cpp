@@ -1417,7 +1417,6 @@ void PresenterPanel::BuildInterface()
 	captureList->setMovement(QListView::Static);
 	captureList->setWrapping(false);
 	captureList->setUniformItemSizes(true);
-	captureList->setGridSize(QSize(0, 44));
 	captureList->setSpacing(4);
 	captureList->setSelectionMode(QAbstractItemView::SingleSelection);
 	captureList->setContextMenuPolicy(Qt::CustomContextMenu);
