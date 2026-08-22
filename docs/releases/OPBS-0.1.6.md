@@ -46,11 +46,38 @@ de OBS Studio.
   pueden aparecer dentro de Presentación, Captura o NDI.
 - Buscador multimedia independiente y buscador de Herramientas visible únicamente al seleccionar Biblia.
 - Captura muestra la cámara configurada en Transmisión y permite agregar cámaras o ventanas del equipo desde su botón
-  inferior derecho.
+  inferior derecho. Las fuentes aparecen como filas ligeras con el nombre del dispositivo, sin miniaturas de video
+  duplicadas.
+- Las miniaturas de videos y canciones en Multimedia conservan una captura estática; ya no cambian continuamente
+  durante la reproducción.
+- Los buscadores de Multimedia y Biblia comparten altura, alineación vertical y separación estable entre lupa y texto.
 - La cabecera principal adopta el diseño compacto: menú superior, franja negra y control de Escenario a la derecha.
   La importación multimedia continúa disponible desde `Archivo > Importar > Multimedia`.
 - Primer sistema visual propio de OPBS: estilos unificados para menús, diálogos, listas, tarjetas y controles, foco de
   teclado visible y una paleta semántica preparada para heredarse en Broadcast Presenter.
+
+## Rendimiento adaptativo
+
+- OPBS selecciona resolución, FPS y codificador H.264 según los recursos disponibles; prioriza NVENC, Quick Sync o
+  AMF y conserva x264 ligero como respaldo.
+- El controlador de rendimiento vigila CPU, memoria, renderizado y codificación sin bloquear la interfaz. Bajo presión
+  reduce primero trabajo visual duplicado y mantiene activos el escenario, el audio, la grabación y la transmisión.
+- Las imágenes visibles se decodifican fuera del hilo principal y la biblioteca limita concurrencia y precarga para
+  conservar fluidez con muchas tarjetas.
+- La transmisión doble comparte el codificador y adapta el bitrate considerando el peor de los dos destinos. Una
+  pérdida grave sostenida puede bajar progresivamente la salida de 1080p a 720p o 480p mediante reconexión controlada.
+
+## Transmisión y grabación
+
+- La misma composición puede enviarse a dos destinos nativos entre YouTube, Facebook y servidor personalizado.
+- La mezcla de transmisión conserva dos entradas independientes: audio del Presentador y una entrada física elegida,
+  sin modificar el volumen de monitorización del escenario.
+- Cámara y entrada de audio pueden usar dispositivos USB con el mismo nombre sin confundirse, porque video y audio se
+  identifican como subsistemas diferentes.
+- Los estados LIVE, REC, YouTube y Facebook tienen dimensiones reservadas; contadores y cambios de señal ya no mueven
+  los docks ni las vistas previas.
+- Los botones Transmitir y Grabar se sincronizan periódicamente con el estado real de las salidas. Si una sesión termina
+  por desconexión o error, recuperan automáticamente su estado inactivo.
 
 ## Actualizaciones y datos
 
