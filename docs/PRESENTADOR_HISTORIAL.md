@@ -333,6 +333,17 @@ elegirla una vez, cambiar entre video y dos canciones sin volver a abrir `Sonido
   marcadores temporales dejados por cierres forzados de pruebas anteriores, OPBS 0.1.6 inició en modo seguro y alcanzó
   `Startup complete`. La finalización real de RTMP/REC sigue requiriendo una prueba con credenciales y destino válidos.
 
+## 2026-08-21 - Miniaturas estáticas y listas ligeras
+
+- Los videos de Multimedia conservan el primer fotograma válido como miniatura y desconectan inmediatamente el
+  observador de previsualización. La tarjeta ya no cambia durante la reproducción ni mantiene renderizado periódico.
+- Captura deja de generar miniaturas de cámara o ventana. La cámara configurada y las fuentes añadidas aparecen como
+  filas compactas con su nombre, conservando selección, menú contextual y activación al hacer clic.
+- Los buscadores de Multimedia y Biblia usan la misma altura fija, alineación vertical y geometría real del glifo. Se
+  redujo el margen duplicado entre lupa y texto y se evitó el desplazamiento al recibir foco.
+- `Build-Presenter.cmd` y `Package-Presenter.cmd` terminaron correctamente. OPBS 0.1.6 inició en modo seguro, permaneció
+  respondiendo y alcanzó `Startup complete` sin errores de compilación ni análisis de estilos.
+
 ## Próximos límites conocidos
 
 - La monitorización depende de que Windows mantenga válido el identificador del dispositivo elegido.

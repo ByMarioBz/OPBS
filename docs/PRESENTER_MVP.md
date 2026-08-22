@@ -13,9 +13,10 @@ integrar funciones de forma gradual.
   arriba y Multimedia junto al reproductor de audio abajo en el área derecha.
 - Biblioteca persistente dividida en `Multimedia` y `Presentación`; esta última incluye las bibliotecas independientes
   `Biblia` y `Presentaciones`.
-- `Presentación` pasa al panel `Herramientas`, junto con `Captura` y la entrada reservada `NDI`. Captura muestra la
-  cámara configurada en transmisión y permite agregar dispositivos de video o ventanas del equipo. El panel mantiene
-  un historial local de las cuatro presentaciones importadas más recientes y permite volver a activarlas.
+- `Presentación` pasa al panel `Herramientas`, junto con `Captura` y la entrada reservada `NDI`. Captura muestra por
+  nombre la cámara configurada en transmisión y permite agregar dispositivos de video o ventanas del equipo sin crear
+  vistas previas duplicadas. El panel mantiene un historial local de las cuatro presentaciones importadas más recientes
+  y permite volver a activarlas.
 - Multimedia y Herramientas mantienen cuadrículas y selecciones independientes. Multimedia conserva su propio buscador;
   en Herramientas el buscador aparece exclusivamente dentro de Biblia.
 - Identidad visual oscura propia de OPBS, basada en negro, grafito, blanco y azul brillante. Esta paleta será también la
@@ -38,7 +39,7 @@ integrar funciones de forma gradual.
   compatibles con cada área, cambiar su nombre interno y eliminarlas de OPBS sin borrar archivos del equipo.
 - Cada video o audio de Multimedia conserva su propio estado de repetición; el menú muestra una marca junto al archivo
   activado y el ajuste no se propaga al resto de la biblioteca.
-- Tarjetas con nombre y miniatura; una selección sustituye inmediatamente al contenido anterior.
+- Tarjetas multimedia con nombre y miniatura estática; una selección sustituye inmediatamente al contenido anterior.
 - Vista previa local y escenario a pantalla completa sobre un monitor elegido.
 - Interruptor rápido para activar o apagar la salida de escenario.
 - Controles anterior, reproducir/pausar, detener, siguiente y repetición continua del archivo actual, más teclas

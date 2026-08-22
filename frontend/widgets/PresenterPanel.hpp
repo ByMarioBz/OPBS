@@ -74,7 +74,6 @@ class PresenterPanel : public QWidget {
 		QString propertyValue;
 		OBSSource source;
 		QListWidgetItem *item = nullptr;
-		QPointer<ThumbnailView> thumbnailView;
 	};
 	struct StreamDestination {
 		QString service = "YouTube";
@@ -162,7 +161,6 @@ class PresenterPanel : public QWidget {
 	QPointer<QToolButton> camerasViewButton;
 	QPointer<QToolButton> presenterViewButton;
 	QPointer<QToolButton> combinedViewButton;
-	QPointer<ThumbnailView> configuredCameraThumbnailView;
 	QPointer<QCheckBox> stageToggle;
 	QPointer<QAction> editMenuAction;
 	QPointer<QAction> fileMenuAction;
@@ -292,7 +290,6 @@ class PresenterPanel : public QWidget {
 	void AddNdiSource();
 	bool EnsureCaptureSource(CaptureEntry *entry);
 	void ActivateCaptureSource(obs_source_t *source, const QString &name, QListWidgetItem *item = nullptr);
-	void LoadCaptureThumbnail(CaptureEntry *entry);
 	void ActivateRecentPresentation(int row);
 	void AddMediaFile(const QString &path, const QString &folderId = QString(), bool save = true,
 			  const QString &displayName = QString(), bool loop = false);

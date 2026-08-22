@@ -208,8 +208,9 @@ class OpbsSearchEdit : public QLineEdit {
 public:
 	explicit OpbsSearchEdit(QWidget *parent = nullptr) : QLineEdit(parent)
 	{
-		setTextMargins(30, 0, 6, 0);
-		setMinimumHeight(38);
+		setTextMargins(20, 0, 6, 0);
+		setFixedHeight(42);
+		setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
 		setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
 	}
 
@@ -221,7 +222,10 @@ protected:
 		painter.setRenderHint(QPainter::Antialiasing);
 		painter.setPen(QPen(QColor("#A6A6B0"), 1.4, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
 		painter.setBrush(Qt::NoBrush);
-		const qreal top = std::round((height() - 14.0) / 2.0);
+		/* The painted glyph is 12 px tall including its handle. Centre that
+		 * actual geometry instead of a larger notional box, which shifted the
+		 * icon upward at common Windows scale factors. */
+		const qreal top = std::round((height() - 12.0) / 2.0);
 		painter.drawEllipse(QRectF(12.0, top, 8.5, 8.5));
 		painter.drawLine(QPointF(18.8, top + 6.8), QPointF(23.0, top + 11.0));
 	}
@@ -1406,15 +1410,15 @@ void PresenterPanel::BuildInterface()
 	toolsEmptyState->setAlignment(Qt::AlignCenter);
 	toolsContentLayout->addWidget(toolsEmptyState, 1);
 	captureList = new QListWidget(toolsContentTarget);
-	captureList->setObjectName("presenterMediaList");
+	captureList->setObjectName("presenterCaptureList");
 	captureList->setAccessibleName(tr("Fuentes de captura"));
-	captureList->setViewMode(QListView::IconMode);
+	captureList->setViewMode(QListView::ListMode);
 	captureList->setResizeMode(QListView::Adjust);
 	captureList->setMovement(QListView::Static);
-	captureList->setWrapping(true);
-	captureList->setIconSize(QSize(kThumbnailWidth, kThumbnailHeight));
-	captureList->setGridSize(QSize(kThumbnailWidth + 24, kThumbnailHeight + 58));
-	captureList->setSpacing(8);
+	captureList->setWrapping(false);
+	captureList->setUniformItemSizes(true);
+	captureList->setGridSize(QSize(0, 44));
+	captureList->setSpacing(4);
 	captureList->setSelectionMode(QAbstractItemView::SingleSelection);
 	captureList->setContextMenuPolicy(Qt::CustomContextMenu);
 	captureList->hide();
@@ -1430,7 +1434,6 @@ void PresenterPanel::BuildInterface()
 		for (const auto &entry : captureEntries) {
 			if (entry->id == id && EnsureCaptureSource(entry.get())) {
 				ActivateCaptureSource(entry->source, entry->name, item);
-				LoadCaptureThumbnail(entry.get());
 				break;
 			}
 		}
@@ -1912,58 +1915,27 @@ bool PresenterPanel::EnsureCaptureSource(CaptureEntry *entry)
 	return entry->source != nullptr;
 }
 
-void PresenterPanel::LoadCaptureThumbnail(CaptureEntry *entry)
-{
-	if (adaptiveUiConstrained || !entry || !entry->item || entry->thumbnailView || !EnsureCaptureSource(entry))
-		return;
-	entry->thumbnailView = App()->thumbnails()->createView(captureList, entry->source);
-	connect(entry->thumbnailView, &ThumbnailView::updated, captureList, [entry](const QPixmap &pixmap) {
-		if (entry->item && !pixmap.isNull())
-			entry->item->setIcon(QIcon(pixmap.scaled(kThumbnailWidth, kThumbnailHeight, Qt::KeepAspectRatio,
-							 Qt::SmoothTransformation)));
-	});
-	entry->thumbnailView->requestUpdate();
-}
-
 void PresenterPanel::RefreshCaptureList()
 {
 	if (!captureList)
 		return;
-	if (configuredCameraThumbnailView)
-		delete configuredCameraThumbnailView.data();
-	configuredCameraThumbnailView = nullptr;
 	for (auto &entry : captureEntries) {
-		if (entry->thumbnailView)
-			delete entry->thumbnailView.data();
-		entry->thumbnailView = nullptr;
 		entry->item = nullptr;
 	}
 	captureList->clear();
 	if (!selectedCameraId.isEmpty()) {
 		const QString name = selectedCameraName.isEmpty() ? tr("Cámara configurada en transmisión")
-								 : tr("Cámara: %1").arg(selectedCameraName);
-		auto *item = new QListWidgetItem(QIcon(PlaceholderForType("dshow_input")), name, captureList);
+								 : selectedCameraName;
+		auto *item = new QListWidgetItem(name, captureList);
 		item->setData(Qt::UserRole + 1, true);
-		item->setTextAlignment(Qt::AlignHCenter | Qt::AlignBottom);
+		item->setTextAlignment(Qt::AlignLeft | Qt::AlignVCenter);
 		item->setToolTip(tr("Cámara configurada en Transmisión"));
-		if (cameraSource && !adaptiveUiConstrained) {
-			configuredCameraThumbnailView = App()->thumbnails()->createView(captureList, cameraSource);
-			connect(configuredCameraThumbnailView, &ThumbnailView::updated, captureList,
-				[item](const QPixmap &pixmap) {
-					if (item && !pixmap.isNull())
-						item->setIcon(QIcon(pixmap.scaled(kThumbnailWidth, kThumbnailHeight,
-									 Qt::KeepAspectRatio, Qt::SmoothTransformation)));
-				});
-			configuredCameraThumbnailView->requestUpdate();
-		}
 	}
 	for (auto &entry : captureEntries) {
-		entry->item = new QListWidgetItem(QIcon(PlaceholderForType(entry->sourceType.toUtf8().constData())),
-						      entry->name, captureList);
+		entry->item = new QListWidgetItem(entry->name, captureList);
 		entry->item->setData(Qt::UserRole, entry->id);
-		entry->item->setTextAlignment(Qt::AlignHCenter | Qt::AlignBottom);
+		entry->item->setTextAlignment(Qt::AlignLeft | Qt::AlignVCenter);
 		entry->item->setToolTip(entry->name);
-		LoadCaptureThumbnail(entry.get());
 	}
 }
 
@@ -2401,13 +2373,7 @@ void PresenterPanel::Shutdown()
 	DetachTransmissionPresenterAudio();
 	ClearActiveMedia();
 	ClearBiblePresentation();
-	if (configuredCameraThumbnailView)
-		delete configuredCameraThumbnailView.data();
-	configuredCameraThumbnailView = nullptr;
 	for (auto &entry : captureEntries) {
-		if (entry->thumbnailView)
-			delete entry->thumbnailView.data();
-		entry->thumbnailView = nullptr;
 		entry->source = nullptr;
 	}
 	captureEntries.clear();
@@ -2957,15 +2923,24 @@ void PresenterPanel::ActivateMedia(MediaEntry *entry)
 		if (activeSource.Get() == monitoredSource.Get())
 			RebuildAudioMonitor();
 	});
-	if (!entry->isImage && !entry->thumbnailView) {
+	if (!entry->isImage && !entry->thumbnailLoaded && !entry->thumbnailView) {
 		QListWidget *owner = entry->item ? entry->item->listWidget() : mediaList.data();
 		entry->thumbnailView = App()->thumbnails()->createView(owner, entry->source);
+		QPointer<ThumbnailView> thumbnailView = entry->thumbnailView;
 		connect(entry->thumbnailView, &ThumbnailView::updated, owner,
-			[this, entry](const QPixmap &pixmap) {
+			[this, entry, thumbnailView](const QPixmap &pixmap) {
+				if (pixmap.isNull() || entry->thumbnailLoaded)
+					return;
 				SetCardThumbnail(entry, pixmap);
 				entry->thumbnailLoaded = true;
+				/* A media card is a library identity, not a live monitor. Keep
+				 * the first valid frame and release the observer immediately. */
+				entry->thumbnailView = nullptr;
+				if (thumbnailView)
+					thumbnailView->deleteLater();
 			});
-		entry->thumbnailView->requestUpdate();
+		if (thumbnailView)
+			thumbnailView->requestUpdate();
 	}
 	if (entry->item && entry->item->listWidget())
 		entry->item->listWidget()->setCurrentItem(entry->item);
@@ -5447,14 +5422,6 @@ void PresenterPanel::ApplyAdaptiveUiMode(bool constrained)
 	if (transmissionPreview && transmissionPreview->GetDisplay())
 		obs_display_set_enabled(transmissionPreview->GetDisplay(), !constrained);
 	if (constrained) {
-		if (configuredCameraThumbnailView)
-			delete configuredCameraThumbnailView.data();
-		configuredCameraThumbnailView = nullptr;
-		for (auto &entry : captureEntries) {
-			if (entry->thumbnailView)
-				delete entry->thumbnailView.data();
-			entry->thumbnailView = nullptr;
-		}
 		blog(LOG_WARNING, "OPBS adaptive UI entered constrained mode");
 	} else {
 		RefreshCaptureList();

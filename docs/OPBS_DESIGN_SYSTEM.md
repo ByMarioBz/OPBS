@@ -82,7 +82,8 @@ resalta únicamente mientras el archivo está encima; un destino inválido conse
   tamaño mínimo se declara al sistema de acoplamiento para impedir que el contenido invada o recorte el título.
 - **Iconografía de panel:** Escenario, Multimedia, En vivo, Herramientas y Audio usan glifos originales de OPBS,
   monocromos, geométricos y de 16 px. Los símbolos describen la función y no son decoración de marca.
-- **Tarjetas:** miniatura 16:9, nombre legible, borde de selección y tooltip para rutas largas.
+- **Tarjetas multimedia:** miniatura estática 16:9, nombre legible, borde de selección y tooltip para rutas largas.
+  Las fuentes de Captura se muestran como filas de nombre, sin miniatura, para no duplicar decodificación de video.
 - **Buscadores:** campo local a su panel, glifo original de búsqueda, botón de limpiar y foco azul; el placeholder
   explica el alcance. El glifo se dibuja dentro del propio campo y se centra con su altura real, evitando recortes o
   desplazamientos al cambiar el escalado de Windows. El campo se expande con el panel y solo cede espacio a controles

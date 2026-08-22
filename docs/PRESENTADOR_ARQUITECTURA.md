@@ -177,13 +177,14 @@ sin competir: se identifican por IDs de subsistemas distintos y usan nombres int
 
 - Las fuentes de audio/video se crean al reproducir y no para todas las tarjetas.
 - Las miniaturas se solicitan de forma diferida y las imágenes se decodifican fuera del hilo de interfaz con una
-  concurrencia limitada por el perfil del equipo.
+  concurrencia limitada por el perfil del equipo. En video, la biblioteca conserva el primer fotograma válido recibido
+  y libera inmediatamente el observador para que la tarjeta permanezca estática.
 - La biblioteca filtra por carpeta y nombre sin cargar medios completos.
 - La escena contiene un único elemento activo.
 - Los PDF se rasterizan en un flujo de trabajo explícito; no se crean fuentes OBS por cada página hasta seleccionarla.
 - `OpbsAdaptivePerformanceController` clasifica el equipo al iniciar y evalúa cada segundo CPU, RAM, render,
-  codificación y, durante LIVE, las dos salidas RTMP. El modo restringido pausa primero la vista previa duplicada y las
-  miniaturas de captura; nunca pausa el escenario ni la salida activa.
+  codificación y, durante LIVE, las dos salidas RTMP. El modo restringido pausa primero la vista previa duplicada;
+  nunca pausa el escenario ni la salida activa. Captura enumera nombres y no mantiene renderizados de miniatura.
 - El controlador de red es único porque las dos salidas comparten codificador. Reduce bitrate rápidamente, lo recupera
   lentamente y solo baja resolución después de pérdida grave sostenida y una reconexión controlada. No cambia
   resolución durante una grabación.

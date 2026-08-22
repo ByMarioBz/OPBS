@@ -143,6 +143,13 @@ QString PresenterStyleSheet()
 		QListWidget#presenterMediaList::item:hover { border-color: #5A5A65; background: #28282E; }
 		QListWidget#presenterMediaList::item:selected { border: 2px solid #64B5FF; background: #203447; }
 		QListWidget#presenterMediaList:focus { border: 0; }
+		QListWidget#presenterCaptureList { background: transparent; border: 0; outline: 0; }
+		QListWidget#presenterCaptureList::item { min-height: 40px; background: #1E1E23; color: #EEEEF2;
+			border: 1px solid #34343C; border-radius: 10px; padding: 0 12px; margin: 2px 0; }
+		QListWidget#presenterCaptureList::item:hover { border-color: #5A5A65; background: #28282E; }
+		QListWidget#presenterCaptureList::item:selected { border: 2px solid #64B5FF; background: #303036;
+			border-left: 3px solid #64B5FF; }
+		QListWidget#presenterCaptureList:focus { border: 0; }
 		#presenterFolderPanel { background: #19191D; border: 1px solid #34343C; border-radius: 14px; }
 		QListWidget#presenterFolderList, QListWidget#presenterPresentationList {
 			background: transparent; border: 0; outline: 0; }
@@ -156,7 +163,7 @@ QString PresenterStyleSheet()
 		QListWidget#presenterFolderList:focus, QListWidget#presenterPresentationList:focus {
 			border: 0; }
 		QLineEdit#presenterSearch { min-height: 40px; max-height: 40px; background: #202025; color: #EEEEF2;
-			border: 1px solid #414149; border-radius: 13px; padding: 0 12px; }
+			border: 1px solid #414149; border-radius: 13px; padding: 0 10px; }
 		QLineEdit#presenterSearch:hover { border-color: #62626D; }
 		QLineEdit#presenterSearch:focus { border: 2px solid #5AAEFF; padding: 0 9px; }
 		#presenterBibleControls { background: #1A1A1E; border: 1px solid #36363E; border-radius: 13px; }
