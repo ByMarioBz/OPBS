@@ -215,6 +215,7 @@ class PresenterPanel : public QWidget {
 	QString selectedEffect;
 	QString selectedCameraId;
 	QString selectedCameraName;
+	QString activeCameraSourceId;
 	QString selectedTransmissionInputId;
 	QString selectedTransmissionInputName;
 	QString combinedBackgroundType = "color";

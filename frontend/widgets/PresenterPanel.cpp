@@ -1431,10 +1431,21 @@ void PresenterPanel::BuildInterface()
 		}
 		const QString id = item->data(Qt::UserRole).toString();
 		for (const auto &entry : captureEntries) {
-			if (entry->id == id && EnsureCaptureSource(entry.get())) {
+			if (entry->id != id)
+				continue;
+			/* La cámara configurada para transmisión también aparece en Herramientas.
+			 * Reutilizar exactamente la misma fuente evita que DirectShow abra dos
+			 * veces capturadoras que solo admiten un consumidor. */
+			if (entry->sourceType == QStringLiteral("dshow_input") &&
+			    entry->propertyValue == selectedCameraId) {
+				if (!cameraSource)
+					RefreshCameraSource();
+				if (cameraSource)
+					ActivateCaptureSource(cameraSource, entry->name, item);
+			} else if (EnsureCaptureSource(entry.get())) {
 				ActivateCaptureSource(entry->source, entry->name, item);
-				break;
 			}
+			break;
 		}
 	});
 	connect(captureList, &QWidget::customContextMenuRequested, this, [this](const QPoint &position) {
@@ -1931,6 +1942,9 @@ void PresenterPanel::RefreshCaptureList()
 		item->setToolTip(tr("Cámara configurada en Transmisión"));
 	}
 	for (auto &entry : captureEntries) {
+		if (entry->sourceType == QStringLiteral("dshow_input") &&
+		    entry->propertyValue == selectedCameraId)
+			continue;
 		entry->item = new QListWidgetItem(entry->name, captureList);
 		entry->item->setData(Qt::UserRole, entry->id);
 		entry->item->setTextAlignment(Qt::AlignLeft | Qt::AlignVCenter);
@@ -2041,6 +2055,17 @@ void PresenterPanel::AddCaptureSource(bool camera)
 	const int selectedIndex = names.indexOf(selectedName);
 	if (selectedIndex < 0)
 		return;
+	if (camera && values[selectedIndex] == selectedCameraId) {
+		/* Esta fuente ya está expuesta como la cámara configurada. Mantener una
+		 * sola instancia es obligatorio para ATEM, capturadoras USB y varias
+		 * cámaras virtuales que bloquean el dispositivo al primer consumidor. */
+		if (!cameraSource)
+			RefreshCameraSource();
+		RefreshCaptureList();
+		if (cameraSource && captureList && captureList->count() > 0)
+			ActivateCaptureSource(cameraSource, selectedName, captureList->item(0));
+		return;
+	}
 	auto entry = std::make_unique<CaptureEntry>();
 	entry->id = QUuid::createUuid().toString(QUuid::WithoutBraces);
 	entry->name = selectedName;
@@ -5037,6 +5062,18 @@ void PresenterPanel::RefreshCameraSource()
 {
 	if (!transmissionScene || !transmissionCameraScene)
 		return;
+	/* Guardar el diálogo no debe reiniciar una cámara que ya está capturando.
+	 * DirectShow puede liberar una ATEM/capturadora de forma diferida y una
+	 * recreación inmediata produce una fuente negra o congelada. */
+	if (cameraSource && activeCameraSourceId == selectedCameraId) {
+		RefreshCaptureList();
+		ApplyTransmissionView(transmissionView, false);
+		return;
+	}
+
+	bool cameraWasOnStage = cameraSource && activeSource.Get() == cameraSource.Get();
+	if (cameraWasOnStage)
+		ClearActiveMedia();
 	if (transmissionCameraItem) {
 		obs_sceneitem_remove(transmissionCameraItem);
 		transmissionCameraItem = nullptr;
@@ -5046,10 +5083,25 @@ void PresenterPanel::RefreshCameraSource()
 		transmissionCameraOnlyItem = nullptr;
 	}
 	cameraSource = nullptr;
+	activeCameraSourceId.clear();
 	if (selectedCameraId.isEmpty()) {
 		RefreshCaptureList();
 		ApplyTransmissionView(transmissionView, false);
 		return;
+	}
+
+	/* Una captura añadida previamente puede apuntar al mismo dispositivo.
+	 * Soltarla antes de abrir la fuente compartida evita dos grafos DirectShow
+	 * concurrentes para hardware que solo permite una conexión. */
+	for (auto &entry : captureEntries) {
+		if (entry->sourceType != QStringLiteral("dshow_input") ||
+		    entry->propertyValue != selectedCameraId || !entry->source)
+			continue;
+		if (activeSource.Get() == entry->source.Get()) {
+			cameraWasOnStage = true;
+			ClearActiveMedia();
+		}
+		entry->source = nullptr;
 	}
 	OBSDataAutoRelease settings = obs_data_create();
 	obs_data_set_string(settings, "video_device_id", selectedCameraId.toUtf8().constData());
@@ -5064,6 +5116,7 @@ void PresenterPanel::RefreshCameraSource()
 		blog(LOG_WARNING, "OPBS could not create camera source '%s'", selectedCameraId.toUtf8().constData());
 		return;
 	}
+	activeCameraSourceId = selectedCameraId;
 	/* El audio de la cámara no forma parte de la mezcla OPBS. Solo se usan
 	 * el puente del presentador y la entrada elegida en Transmisión > Audio. */
 	obs_source_set_audio_mixers(cameraSource, 0u);
@@ -5073,6 +5126,8 @@ void PresenterPanel::RefreshCameraSource()
 	if (transmissionPresenterItem)
 		obs_sceneitem_set_order(transmissionPresenterItem, OBS_ORDER_MOVE_TOP);
 	RefreshCaptureList();
+	if (cameraWasOnStage && captureList && captureList->count() > 0)
+		ActivateCaptureSource(cameraSource, selectedCameraName, captureList->item(0));
 	ApplyTransmissionView(transmissionView, false);
 }
 
@@ -5089,8 +5144,10 @@ void PresenterPanel::SetCameraEnabled(bool enabled)
 	proc_handler_t *handler = obs_source_get_proc_handler(cameraSource);
 	const bool called = handler && proc_handler_call(handler, "activate", &data);
 	calldata_free(&data);
-	if (!called && cameraEnabled)
+	if (!called && cameraEnabled) {
+		activeCameraSourceId.clear();
 		RefreshCameraSource();
+	}
 	blog(LOG_INFO, "OPBS camera source %s: '%s'", cameraEnabled ? "activated" : "deactivated",
 	     selectedCameraName.toUtf8().constData());
 }

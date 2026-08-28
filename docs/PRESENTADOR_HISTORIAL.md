@@ -380,6 +380,14 @@ elegirla una vez, cambiar entre video y dos canciones sin volver a abrir `Sonido
   como `OPBS`. La aplicación abrió como `Versión 0.1.7 - Presenter Broadcast Studio` y permaneció respondiendo.
 - La prueba local del actualizador reconoció una instalación `0.1.6`, encontró `0.1.7` y resolvió correctamente el
   instalador `OPBS-Setup-x64.exe`. El payload no contiene el antiguo `OPBS.exe`; no se creó etiqueta ni Release público.
+- Se corrigió la cámara que quedaba negra o congelada después de guardar Transmisión. Guardar con el mismo dispositivo
+  ya no destruye ni vuelve a activar la fuente DirectShow que estaba entregando imagen.
+- Transmisión y Herramientas comparten una sola instancia cuando apuntan al mismo identificador de cámara. Las entradas
+  duplicadas guardadas por versiones anteriores se liberan antes de abrir la fuente compartida y, si esa cámara estaba
+  en el escenario del presentador, se vuelve a conectar a la nueva instancia sin exigir reiniciar la aplicación.
+- La corrección compiló y se empaquetó correctamente; Presenter Broadcast Studio 0.1.7 alcanzó `Startup complete` y
+  permaneció respondiendo. La validación definitiva de negociación DirectShow queda pendiente en la ATEM Mini del
+  entorno de producción, ya que el equipo de desarrollo no reproduce sus restricciones exclusivas de hardware.
 
 ## Próximos límites conocidos
 

@@ -79,7 +79,9 @@ reproducción del contenido.
 La fuente DirectShow de cámara conserva un estado `cameraEnabled` y expone en el diálogo el mismo procedimiento nativo
 `activate(bool)` que usa OBS. Desactivar libera el grafo de captura; volver a activar lo construye otra vez, permitiendo
 recuperar una capturadora USB después de desconectarla y conectarla. La selección se aplica en vivo y Cancelar restaura
-la cámara y el estado anteriores.
+la cámara y el estado anteriores. Guardar sin cambiar de dispositivo conserva la misma instancia: no debe destruir ni
+reactivar el grafo DirectShow. Al cambiar de dispositivo se libera primero cualquier fuente de Herramientas que use el
+mismo identificador, porque varias capturadoras físicas y virtuales solo admiten un consumidor.
 
 El modo `Ambos` guarda en porcentajes independientes X, Y, ancho y alto para cámara y presentador. Su fondo puede ser
 un `color_source`, `image_source` o `ffmpeg_source`; el valor predeterminado es negro. La transición entre `Cámaras`,
@@ -134,7 +136,9 @@ y al exceder el límite se retira solamente el directorio generado más antiguo.
 Captura reutiliza directamente `cameraSource` para la tarjeta de la cámara configurada en Transmisión. Las cámaras
 adicionales usan `dshow_input` sin abrir su pin de audio y las ventanas usan `window_capture`; ambas se guardan como
 identificador de tipo, propiedad y valor en `captures`. Al seleccionar una tarjeta, su fuente se incorpora a
-`Presenter Stage`, conservando esa escena como única fuente de verdad para vista previa y escenario.
+`Presenter Stage`, conservando esa escena como única fuente de verdad para vista previa y escenario. Si una entrada
+antigua de Captura apunta al mismo dispositivo configurado para Transmisión, también se redirige a `cameraSource` en vez
+de abrir un segundo grafo DirectShow.
 
 No versionar esa configuración: contiene rutas locales y preferencias del usuario.
 
