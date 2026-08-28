@@ -388,6 +388,12 @@ elegirla una vez, cambiar entre video y dos canciones sin volver a abrir `Sonido
 - La corrección compiló y se empaquetó correctamente; Presenter Broadcast Studio 0.1.7 alcanzó `Startup complete` y
   permaneció respondiendo. La validación definitiva de negociación DirectShow queda pendiente en la ATEM Mini del
   entorno de producción, ya que el equipo de desarrollo no reproduce sus restricciones exclusivas de hardware.
+- La importación de PDF o PowerPoint pasa a ser no invasiva: agrega el archivo convertido a `Presentaciones recientes`
+  sin seleccionar la presentación nueva, reconstruir las diapositivas visibles, cambiar de herramienta ni alterar el
+  medio activo. Al aplicar el límite de cuatro recientes se protege el directorio de la presentación actualmente
+  cargada para que sus diapositivas sigan disponibles durante una presentación en vivo.
+- `Build-Presenter.cmd` y `Package-Presenter.cmd` terminaron correctamente con esta corrección. La copia empaquetada de
+  Presenter Broadcast Studio 0.1.7 inició en modo seguro, permaneció respondiendo y registró `Startup complete`.
 
 ## Próximos límites conocidos
 

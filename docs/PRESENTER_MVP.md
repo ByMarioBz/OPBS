@@ -35,7 +35,8 @@ integrar funciones de forma gradual.
 - Proyección bíblica 16:9 con fondo negro predeterminado, versículo blanco y referencia blanca de menor tamaño. Los
   fondos de video pueden repetirse; sin repetición conservan el último fotograma al terminar.
 - Menú `Archivo > Importar` con opciones `PowerPoint` y `PDF`. Cada página o diapositiva se convierte en una imagen
-  numerada y reemplaza la presentación importada anteriormente.
+  numerada y la presentación se agrega al historial reciente sin cambiar la presentación, diapositiva o herramienta
+  que el usuario tenga activa.
 - Menús contextuales propios en Multimedia, Reproductor de audio, Captura y NDI. Permiten agregar únicamente fuentes
   compatibles con cada área, cambiar su nombre interno y eliminarlas de OPBS sin borrar archivos del equipo.
 - Cada video o audio de Multimedia conserva su propio estado de repetición; el menú muestra una marca junto al archivo
@@ -83,7 +84,7 @@ git diff obs-original...feature/media-presenter
 - Preparar otro equipo y transferir el historial: `PRESENTADOR_CONTINUIDAD.md`.
 - Entender componentes, datos y flujo de reproducción: `PRESENTADOR_ARQUITECTURA.md`.
 - Cargar traducciones y revisar el formato de versículos: `BIBLIAS.md`.
-- Importar y sustituir presentaciones: `PRESENTACIONES.md`.
+- Importar, conservar y activar presentaciones: `PRESENTACIONES.md`.
 - Revisar decisiones, commits, pruebas y trabajo pendiente: `PRESENTADOR_HISTORIAL.md`.
 - Entender perfiles, umbrales y recuperación automática: `OPBS_RENDIMIENTO_ADAPTATIVO.md`.
 - Revisar o incorporar versiones nuevas de OBS: `OBS_ACTUALIZACIONES.md`.

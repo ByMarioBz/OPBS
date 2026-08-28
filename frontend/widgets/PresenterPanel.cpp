@@ -2479,7 +2479,8 @@ void PresenterPanel::ImportPresentation(bool pdf)
 				      result.error.isEmpty() ? tr("No se generaron diapositivas.") : result.error);
 		return;
 	}
-	ReplacePresentationSlides(temporaryPath, result.slidePaths.size(), QFileInfo(path).completeBaseName());
+	RegisterImportedPresentation(temporaryPath, result.slidePaths.size(),
+				     QFileInfo(path).completeBaseName());
 }
 
 void PresenterPanel::ClearPresentationEntries()
@@ -2503,48 +2504,45 @@ void PresenterPanel::ClearPresentationEntries()
 	}
 }
 
-void PresenterPanel::ReplacePresentationSlides(const QString &temporaryDirectory, int slideCount,
-						const QString &displayName)
+void PresenterPanel::RegisterImportedPresentation(const QString &temporaryDirectory, int slideCount,
+						  const QString &displayName)
 {
 	const QString basePath = PresentationsDirectoryPath();
 	QDir base(basePath);
 	const QString temporaryName = QFileInfo(temporaryDirectory).fileName();
 	const QString presentationId =
 		QStringLiteral("presentation-") + QUuid::createUuid().toString(QUuid::WithoutBraces);
-	ClearPresentationEntries();
 	if (!base.rename(temporaryName, presentationId)) {
 		QMessageBox::critical(main, tr("Importar presentación"),
 				      tr("No se pudo guardar la nueva presentación."));
 		return;
 	}
-	currentPresentationId = presentationId;
-	recentPresentationIds.removeAll(presentationId);
+
+	// Importar debe ser una operación de biblioteca. No reemplaza la presentación
+	// cargada, no cambia la herramienta visible y no altera la diapositiva activa.
 	recentPresentationIds.prepend(presentationId);
 	recentPresentationNames.prepend(displayName.isEmpty() ? tr("Presentación") : displayName);
 	while (recentPresentationIds.size() > 4) {
-		const QString removedId = recentPresentationIds.takeLast();
-		if (recentPresentationNames.size() > recentPresentationIds.size())
-			recentPresentationNames.removeLast();
-		QDir(base.filePath(removedId)).removeRecursively();
-	}
-	const QString currentPath = base.filePath(presentationId);
-	for (int index = 1; index <= slideCount; ++index)
-		AddMediaFile(QDir(currentPath).filePath(QString::number(index) + ".png"),
-			     QString::fromLatin1(kPresentationsFolderId), false);
-	if (presentationFolderList) {
-		for (int row = 0; row < presentationFolderList->count(); ++row) {
-			if (presentationFolderList->item(row)->data(Qt::UserRole).toString() ==
-			    QString::fromLatin1(kPresentationsFolderId)) {
-				presentationFolderList->setCurrentRow(row);
-				break;
+		int removeIndex = recentPresentationIds.size() - 1;
+		if (recentPresentationIds[removeIndex] == currentPresentationId) {
+			for (int index = removeIndex - 1; index >= 0; --index) {
+				if (recentPresentationIds[index] != currentPresentationId) {
+					removeIndex = index;
+					break;
+				}
 			}
 		}
+		const QString removedId = recentPresentationIds.takeAt(removeIndex);
+		if (removeIndex < recentPresentationNames.size())
+			recentPresentationNames.removeAt(removeIndex);
+		QDir(base.filePath(removedId)).removeRecursively();
 	}
 	RefreshRecentPresentations();
-	ApplyLibraryFilter();
 	SaveSettings();
 	QMessageBox::information(main, tr("Presentación importada"),
-				 tr("Se importaron %1 diapositivas.").arg(slideCount));
+				 tr("Se importaron %1 diapositivas y se añadieron a Presentaciones recientes. "
+				    "La presentación actual no cambió.")
+					 .arg(slideCount));
 }
 
 void PresenterPanel::ImportPaths(const QStringList &paths, const QString &folderId)

@@ -334,7 +334,8 @@ class PresenterPanel : public QWidget {
 	void ScheduleAdaptiveResolutionFallback();
 	void LaunchOpbsUpdater(bool silent = false);
 	void ImportPresentation(bool pdf);
-	void ReplacePresentationSlides(const QString &temporaryDirectory, int slideCount, const QString &displayName);
+	void RegisterImportedPresentation(const QString &temporaryDirectory, int slideCount,
+				 const QString &displayName);
 	void ClearPresentationEntries();
 	void ApplyAudioSettings();
 	void ApplyLoopSetting();

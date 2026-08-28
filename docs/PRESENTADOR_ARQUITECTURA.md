@@ -101,9 +101,10 @@ dist/OPBS/config/obs-studio
 
 Se recuerdan biblioteca, carpetas, orden, carpeta activa, monitor, estado de salida, ajustes de sonido y geometría de
 ventana. También se conservan la Biblia seleccionada, su tipografía, tamaño, alineación, posición de referencia, fondo
-personalizado y repetición del fondo. Las diapositivas convertidas viven bajo la configuración portátil y sustituyen
-atómicamente la importación anterior. Los registros de ejecución están bajo `config/obs-studio/logs` y son la primera
-fuente para diagnosticar fallos.
+personalizado y repetición del fondo. Las diapositivas convertidas viven bajo la configuración portátil en directorios
+independientes. Importar una presentación solo la registra entre las recientes: no activa sus diapositivas, no cambia
+la herramienta visible ni reemplaza la presentación o diapositiva que esté en uso. Los registros de ejecución están
+bajo `config/obs-studio/logs` y son la primera fuente para diagnosticar fallos.
 
 Al restaurar la biblioteca, las rutas que ya no sean archivos válidos se descartan antes de reconstruir las tarjetas y
 se vuelve a guardar la lista limpia. OPBS informa una sola vez los nombres eliminados; el aviso no se repite porque las
@@ -131,7 +132,7 @@ Multimedia y Herramientas tienen vistas independientes: `mediaList` nunca abando
 soltados sobre una herramienta se redirigen a la carpeta multimedia activa y las rutas antiguas asignadas por error a
 Biblia, Captura, NDI o Presentación se migran a `General`, salvo las diapositivas generadas dentro del directorio propio
 de presentaciones. Las importaciones se guardan en directorios con identificador propio; se recuerdan como máximo cuatro
-y al exceder el límite se retira solamente el directorio generado más antiguo.
+y al exceder el límite se retira el directorio generado más antiguo que no sea la presentación actualmente cargada.
 
 Captura reutiliza directamente `cameraSource` para la tarjeta de la cámara configurada en Transmisión. Las cámaras
 adicionales usan `dshow_input` sin abrir su pin de audio y las ventanas usan `window_capture`; ambas se guardan como
