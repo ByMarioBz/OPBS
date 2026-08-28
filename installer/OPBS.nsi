@@ -70,12 +70,12 @@ preinstall_migration_ok:
   RMDir "$SMPROGRAMS\OPBS"
 
   CreateDirectory "$SMPROGRAMS\Presenter Broadcast Studio"
-  CreateShortcut "$SMPROGRAMS\Presenter Broadcast Studio\Presenter Broadcast Studio.lnk" "$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" '-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "$INSTDIR\bin\64bit\OPBS-Launcher.ps1"' "$INSTDIR\bin\64bit\Presenter Broadcast Studio.exe" 0 SW_SHOWNORMAL
+  CreateShortcut "$SMPROGRAMS\Presenter Broadcast Studio\Presenter Broadcast Studio.lnk" "$SYSDIR\wscript.exe" '"$INSTDIR\bin\64bit\OPBS-Launcher.vbs"' "$INSTDIR\bin\64bit\Presenter Broadcast Studio.exe" 0 SW_SHOWNORMAL
   CreateShortcut "$SMPROGRAMS\Presenter Broadcast Studio\Desinstalar Presenter Broadcast Studio.lnk" "$INSTDIR\Uninstall.exe"
-  CreateShortcut "$DESKTOP\Presenter Broadcast Studio.lnk" "$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" '-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "$INSTDIR\bin\64bit\OPBS-Launcher.ps1"' "$INSTDIR\bin\64bit\Presenter Broadcast Studio.exe" 0 SW_SHOWNORMAL
+  CreateShortcut "$DESKTOP\Presenter Broadcast Studio.lnk" "$SYSDIR\wscript.exe" '"$INSTDIR\bin\64bit\OPBS-Launcher.vbs"' "$INSTDIR\bin\64bit\Presenter Broadcast Studio.exe" 0 SW_SHOWNORMAL
 
   ; Tanto una instalación nueva como una actualización vuelven a abrir Presenter Broadcast Studio.
-  Exec '"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "$INSTDIR\bin\64bit\OPBS-Launcher.ps1"'
+  Exec '"$SYSDIR\wscript.exe" "$INSTDIR\bin\64bit\OPBS-Launcher.vbs"'
 SectionEnd
 
 Section "Uninstall"

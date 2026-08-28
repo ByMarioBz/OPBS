@@ -401,6 +401,15 @@ elegirla una vez, cambiar entre video y dos canciones sin volver a abrir `Sonido
   interferir con buscadores, formularios, Multimedia, Captura o NDI.
 - La compilación, el empaquetado y el arranque seguro terminaron correctamente con el relevo nuevo. Presenter Broadcast
   Studio 0.1.7 permaneció respondiendo y el registro alcanzó `Startup complete`.
+- El inicio instalado deja de ejecutar PowerShell directamente desde los accesos directos. Un envoltorio de Windows
+  Script Host inicia el lanzador sin consola visible, tanto desde Escritorio y menú Inicio como después de instalar.
+- La consulta de metadatos del Release usa un cliente HTTP ligero con un límite estricto de dos segundos y carga los
+  componentes gráficos solo cuando debe mostrar una ventana. La consulta real a GitHub terminó en aproximadamente
+  0.76 segundos; una respuesta local retenida respetó el límite configurado y permitió continuar sin bloquear el inicio.
+- La detección local simulada conservó correctamente el recorrido 0.1.6 -> 0.1.7 y resolvió el instalador y su checksum.
+- `Build-Presenter.cmd`, `Package-Presenter.cmd` y `Build-OPBS-Installer.cmd` terminaron correctamente. El paquete se
+  abrió mediante `wscript.exe` y el nuevo lanzador en aproximadamente 1.14 segundos, permaneció respondiendo y alcanzó
+  `Startup complete`; la prueba final separada con `Run-Presenter.cmd -SafeMode` obtuvo el mismo resultado.
 
 ## Próximos límites conocidos
 

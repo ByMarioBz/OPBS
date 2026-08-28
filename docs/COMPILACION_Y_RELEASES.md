@@ -92,6 +92,9 @@ La carpeta `release` no se versiona.
 - Probar instalación, accesos directos y desinstalación.
 - Confirmar que el instalador no contiene Biblias, configuración, rutas privadas ni símbolos.
 - Probar la comparación de versiones del actualizador.
+- Probar que la consulta previa sin actualización termine normalmente en menos de tres segundos, que una respuesta
+  bloqueada respete el límite de dos segundos y que los accesos directos apunten al lanzador invisible mediante
+  `wscript.exe`, sin abrir una consola.
 - Instalar la versión anterior, crear datos de prueba, actualizar y confirmar que los datos sobreviven y Presenter
   Broadcast Studio se abre con el nuevo nombre visible.
 

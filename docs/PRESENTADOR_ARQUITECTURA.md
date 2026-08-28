@@ -203,10 +203,12 @@ Los umbrales y la escalera completa están en `OPBS_RENDIMIENTO_ADAPTATIVO.md`.
 
 1. Las novedades del código base OBS se revisan desde `obs-public`; nunca se instalan directamente. Consultar
    `OBS_ACTUALIZACIONES.md`.
-2. Las versiones terminadas de OPBS se distribuyen como GitHub Releases propios. Los accesos directos ejecutan primero
-   `OPBS-Launcher.ps1`; este invoca el comprobador antes de abrir la aplicación. Si hay una versión nueva, el usuario
-   puede actualizar o posponer. El comprobador descarga el instalador y su SHA-256, valida la integridad y solo entonces
-   ejecuta el instalador. Al terminar, el instalador vuelve a iniciar OPBS mediante el mismo lanzador.
+2. Las versiones terminadas de OPBS se distribuyen como GitHub Releases propios. Los accesos directos pasan por
+   `OPBS-Launcher.vbs`, que inicia `OPBS-Launcher.ps1` sin consola visible. La consulta previa a GitHub tiene un límite
+   estricto de dos segundos y no carga la interfaz del actualizador mientras no exista una versión nueva; una red lenta
+   o desconectada nunca impide abrir la aplicación. Si hay una versión nueva, el usuario puede actualizar o posponer.
+   El comprobador descarga el instalador y su SHA-256, valida la integridad y solo entonces ejecuta el instalador. Al
+   terminar, el instalador vuelve a iniciar OPBS mediante el mismo lanzador invisible.
 
 La versión y el repositorio de OPBS viven en `presenter-tools/opbs-release.json`. El instalador usa NSIS, instala por
 usuario en `%LOCALAPPDATA%\Programs\OPBS`, crea accesos directos y registra `Uninstall.exe`.

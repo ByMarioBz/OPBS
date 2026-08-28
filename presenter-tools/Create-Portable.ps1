@@ -61,6 +61,7 @@ Set-Content -LiteralPath (Join-Path $PortableBin 'disable_updater.txt') `
     -Value 'OPBS utiliza exclusivamente su actualizador de GitHub Releases.' -Encoding ASCII
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'runtime/OPBS-Updater.ps1') -Destination $PortableBin -Force
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'runtime/OPBS-Launcher.ps1') -Destination $PortableBin -Force
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'runtime/OPBS-Launcher.vbs') -Destination $PortableBin -Force
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'runtime/OPBS-MigrateData.ps1') -Destination $PortableBin -Force
 Copy-Item -LiteralPath $ReleaseConfigurationPath -Destination (Join-Path $PortableBin 'opbs-release.json') -Force
 

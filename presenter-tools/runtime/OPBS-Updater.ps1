@@ -7,12 +7,47 @@ param(
     [switch] $SafeMode,
     [string] $CurrentVersionOverride,
     [string] $LocalReleaseDirectory,
-    [string] $InstallRootOverride
+    [string] $InstallRootOverride,
+    [string] $ReleaseApiUrlOverride,
+    [ValidateRange(500, 10000)]
+    [int] $MetadataTimeoutMilliseconds = 2000
 )
 
 $ErrorActionPreference = 'Stop'
-Add-Type -AssemblyName System.Windows.Forms
-Add-Type -AssemblyName System.Drawing
+
+function Initialize-OPBSUpdaterUi {
+    Add-Type -AssemblyName System.Windows.Forms
+    Add-Type -AssemblyName System.Drawing
+}
+
+function Get-OPBSLatestRelease {
+    param(
+        [Parameter(Mandatory)][string] $Uri,
+        [Parameter(Mandatory)][hashtable] $Headers,
+        [Parameter(Mandatory)][int] $TimeoutMilliseconds
+    )
+
+    Add-Type -AssemblyName System.Net.Http
+    $Handler = New-Object System.Net.Http.HttpClientHandler
+    $Client = New-Object System.Net.Http.HttpClient($Handler)
+    $Client.Timeout = [TimeSpan]::FromMilliseconds($TimeoutMilliseconds)
+    try {
+        foreach ($Header in $Headers.GetEnumerator()) {
+            [void]$Client.DefaultRequestHeaders.TryAddWithoutValidation([string]$Header.Key, [string]$Header.Value)
+        }
+        $Response = $Client.GetAsync($Uri).GetAwaiter().GetResult()
+        try {
+            $Response.EnsureSuccessStatusCode()
+            $Json = $Response.Content.ReadAsStringAsync().GetAwaiter().GetResult()
+        } finally {
+            $Response.Dispose()
+        }
+        return $Json | ConvertFrom-Json
+    } finally {
+        $Client.Dispose()
+        $Handler.Dispose()
+    }
+}
 
 function Start-OPBS {
     if (-not $LaunchApp) { return }
@@ -29,12 +64,14 @@ function Start-OPBS {
 function Show-Information([string] $Text) {
     if ($Silent -or $LaunchApp) { return }
     if ($CheckOnly) { Write-Output $Text; return }
+    Initialize-OPBSUpdaterUi
     [void][Windows.Forms.MessageBox]::Show($Text, 'Actualizaciones de Presenter Broadcast Studio', 'OK', 'Information')
 }
 
 function Show-ErrorMessage([string] $Text) {
     if ($Silent -or $LaunchApp) { return }
     if ($CheckOnly) { Write-Output "ERROR: $Text"; return }
+    Initialize-OPBSUpdaterUi
     [void][Windows.Forms.MessageBox]::Show($Text, 'Actualizaciones de Presenter Broadcast Studio', 'OK', 'Error')
 }
 
@@ -48,6 +85,7 @@ function ConvertTo-OPBSVersion([Parameter(Mandatory)][string] $Value) {
 
 function Show-UpdatePrompt {
     param([version] $AvailableVersion, [string] $ReleaseNotes)
+    Initialize-OPBSUpdaterUi
     $Form = New-Object Windows.Forms.Form
     $Form.Text = "Nueva versión disponible - Presenter Broadcast Studio $AvailableVersion"
     $Form.StartPosition = 'CenterScreen'
@@ -137,7 +175,13 @@ try {
         if ($Repository -notmatch '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$') {
             throw 'El repositorio de actualizaciones de OPBS todavía no está configurado.'
         }
-        $Release = Invoke-RestMethod -Uri "https://api.github.com/repos/$Repository/releases/latest" -Headers $Headers
+        $ReleaseApiUrl = if ($ReleaseApiUrlOverride) {
+            $ReleaseApiUrlOverride
+        } else {
+            "https://api.github.com/repos/$Repository/releases/latest"
+        }
+        $Release = Get-OPBSLatestRelease -Uri $ReleaseApiUrl -Headers $Headers `
+            -TimeoutMilliseconds $MetadataTimeoutMilliseconds
         $AvailableVersion = ConvertTo-OPBSVersion ([string]$Release.tag_name)
         $InstallerAsset = $Release.assets | Where-Object name -eq $Configuration.installerAsset | Select-Object -First 1
         $ChecksumAsset = $Release.assets | Where-Object name -eq $Configuration.checksumAsset | Select-Object -First 1
