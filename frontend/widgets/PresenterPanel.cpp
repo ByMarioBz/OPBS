@@ -954,7 +954,7 @@ void PresenterPanel::BuildInterface()
 	});
 
 	auto *transportRow = new QHBoxLayout();
-	transportRow->addStretch();
+	transportRow->setSpacing(12);
 	auto *transportGroup = new QFrame(previewFrame);
 	transportGroup->setObjectName("presenterTransportGroup");
 	auto *transportGroupLayout = new QHBoxLayout(transportGroup);
@@ -1006,10 +1006,12 @@ void PresenterPanel::BuildInterface()
 	addMediaShortcut(Qt::Key_MediaPrevious, [this]() { PreviousMedia(); });
 	addMediaShortcut(Qt::Key_MediaNext, [this]() { NextMedia(); });
 
-	auto *audioRow = new QHBoxLayout();
-	auto *audioLabel = new QLabel(tr("Audio"), previewFrame);
-	audioLabel->setMinimumWidth(44);
-	auto *meters = new QVBoxLayout();
+	auto *meterContainer = new QWidget(previewFrame);
+	meterContainer->setMinimumWidth(140);
+	meterContainer->setMaximumWidth(240);
+	meterContainer->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
+	auto *meters = new QVBoxLayout(meterContainer);
+	meters->setContentsMargins(0, 0, 0, 0);
 	meters->setSpacing(3);
 	meterLeft = new QProgressBar(previewFrame);
 	meterRight = new QProgressBar(previewFrame);
@@ -1025,9 +1027,7 @@ void PresenterPanel::BuildInterface()
 	mediaVolumeSlider->setValue(100);
 	mediaVolumeSlider->setToolTip(tr("Volumen del contenido"));
 	mediaVolumeSlider->hide();
-	audioRow->addWidget(audioLabel);
-	audioRow->addLayout(meters, 1);
-	previewLayout->addLayout(audioRow);
+	transportRow->addWidget(meterContainer);
 	connect(mediaVolumeSlider, &QSlider::valueChanged, this, [this](int value) {
 		mediaVolume = value;
 		ApplyAudioSettings();

@@ -419,6 +419,10 @@ elegirla una vez, cambiar entre video y dos canciones sin volver a abrir `Sonido
 - `Build-Presenter.cmd` y `Package-Presenter.cmd` terminaron correctamente. La revisión visual confirmó la página
   independiente con Desvanecimiento 250 ms y Move 600 ms, y ejecutó sin bloqueo los recorridos Presentador → Cámaras,
   Cámaras → Ambos y Ambos → Presentador. La aplicación alcanzó `Startup complete` y quedó abierta para prueba manual.
+- Los controles multimedia y los dos medidores estéreo del Presentador comparten ahora una sola fila: el transporte
+  conserva su tamaño a la izquierda y los niveles permanecen activos en un bloque compacto a la derecha, sin la
+  etiqueta redundante `Audio`. El espacio vertical recuperado queda disponible para ampliar la vista previa.
+- `Build-Presenter.cmd` y `Package-Presenter.cmd` finalizaron correctamente después de compactar esta fila.
 
 ## Próximos límites conocidos
 
