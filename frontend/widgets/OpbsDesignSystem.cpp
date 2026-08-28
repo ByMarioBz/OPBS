@@ -154,8 +154,9 @@ QString PresenterStyleSheet()
 		QListWidget#presenterFolderList, QListWidget#presenterPresentationList {
 			background: transparent; border: 0; outline: 0; }
 		QListWidget#presenterFolderList::item, QListWidget#presenterPresentationList::item {
-			padding: 11px 12px; margin: 2px; border: 0; border-left: 3px solid transparent;
-			border-radius: 10px; }
+			padding: 6px 8px; margin: 1px; border: 0; border-left: 3px solid transparent;
+			border-radius: 8px; }
+		#presenterFolderPanel #presenterSectionLabel { font-size: 11px; padding: 1px 2px; }
 		QListWidget#presenterFolderList::item:hover, QListWidget#presenterPresentationList::item:hover {
 			background: #222228; }
 		QListWidget#presenterFolderList::item:selected, QListWidget#presenterPresentationList::item:selected {

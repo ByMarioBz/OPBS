@@ -1111,9 +1111,9 @@ void PresenterPanel::BuildInterface()
 	libraryBody->setSpacing(16);
 	auto *folderPanel = new QFrame(library);
 	folderPanel->setObjectName("presenterFolderPanel");
-	folderPanel->setFixedWidth(172);
+	folderPanel->setFixedWidth(148);
 	auto *folderLayout = new QVBoxLayout(folderPanel);
-	folderLayout->setContentsMargins(10, 10, 10, 10);
+	folderLayout->setContentsMargins(8, 8, 8, 8);
 	auto *folderTitle = new QLabel(tr("Carpetas"), folderPanel);
 	folderTitle->setObjectName("presenterSectionLabel");
 	folderLayout->addWidget(folderTitle);
@@ -1148,7 +1148,7 @@ void PresenterPanel::BuildInterface()
 	presentationsWidget->setAcceptDrops(false);
 	presentationsWidget->setDragEnabled(false);
 	presentationsWidget->setDragDropMode(QAbstractItemView::NoDragDrop);
-	presentationsWidget->setFixedHeight(190);
+	presentationsWidget->setFixedHeight(136);
 	auto addPresentationFolder = [this, presentationsWidget](const QString &id, const QString &name) {
 		auto *item = new QListWidgetItem(name, presentationsWidget);
 		item->setData(Qt::UserRole, id);
@@ -1358,18 +1358,18 @@ void PresenterPanel::BuildInterface()
 	toolsLayout->setSpacing(16);
 	auto *toolsSidebar = new QFrame(toolsFrame);
 	toolsSidebar->setObjectName("presenterFolderPanel");
-	toolsSidebar->setMinimumWidth(165);
-	toolsSidebar->setMaximumWidth(230);
+	toolsSidebar->setFixedWidth(148);
 	auto *toolsSidebarLayout = new QVBoxLayout(toolsSidebar);
-	toolsSidebarLayout->setContentsMargins(10, 10, 10, 10);
+	toolsSidebarLayout->setContentsMargins(8, 8, 8, 8);
 	toolsSidebarLayout->addWidget(presentationsWidget);
-	toolsSidebarLayout->addSpacing(12);
+	toolsSidebarLayout->addSpacing(8);
 	auto *recentTitle = new QLabel(tr("Presentaciones recientes"), toolsSidebar);
 	recentTitle->setObjectName("presenterSectionLabel");
+	recentTitle->setWordWrap(true);
 	toolsSidebarLayout->addWidget(recentTitle);
 	recentPresentationsList = new QListWidget(toolsSidebar);
 	recentPresentationsList->setObjectName("presenterPresentationList");
-	recentPresentationsList->setMaximumHeight(170);
+	recentPresentationsList->setMaximumHeight(132);
 	recentPresentationsList->setToolTip(tr("Se conservan las cuatro presentaciones importadas más recientes"));
 	toolsSidebarLayout->addWidget(recentPresentationsList, 1);
 	connect(recentPresentationsList, &QListWidget::itemClicked, this,
@@ -4578,8 +4578,9 @@ void PresenterPanel::CreateFolder()
 	if (!accepted || name.isEmpty())
 		return;
 	const QString id = QUuid::createUuid().toString(QUuid::WithoutBraces);
-	auto *item = new QListWidgetItem(style()->standardIcon(QStyle::SP_DirIcon), name, folderList);
+	auto *item = new QListWidgetItem(name, folderList);
 	item->setData(Qt::UserRole, id);
+	item->setToolTip(name);
 	item->setFlags(item->flags() | Qt::ItemIsEditable | Qt::ItemIsDragEnabled | Qt::ItemIsDropEnabled);
 	folders.push_back({id, name});
 	folderList->setCurrentItem(item);
@@ -4821,15 +4822,17 @@ void PresenterPanel::LoadSettings()
 		if (id.isEmpty() || name.isEmpty())
 			continue;
 		folders.push_back({id, name});
-		auto *item = new QListWidgetItem(style()->standardIcon(QStyle::SP_DirIcon), name, folderList);
+		auto *item = new QListWidgetItem(name, folderList);
 		item->setData(Qt::UserRole, id);
+		item->setToolTip(name);
 		item->setFlags(item->flags() | Qt::ItemIsEditable | Qt::ItemIsDragEnabled | Qt::ItemIsDropEnabled);
 	}
 	settings.endArray();
 	if (folders.empty()) {
 		folders.push_back({"general", tr("General")});
-		auto *item = new QListWidgetItem(style()->standardIcon(QStyle::SP_DirIcon), tr("General"), folderList);
+		auto *item = new QListWidgetItem(tr("General"), folderList);
 		item->setData(Qt::UserRole, "general");
+		item->setToolTip(tr("General"));
 		item->setFlags(item->flags() | Qt::ItemIsEditable | Qt::ItemIsDragEnabled | Qt::ItemIsDropEnabled);
 	}
 	const QString legacyFolder = settings.value("library/currentFolder", folders.front().id).toString();

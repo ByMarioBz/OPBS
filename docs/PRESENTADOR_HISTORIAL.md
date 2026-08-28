@@ -423,6 +423,11 @@ elegirla una vez, cambiar entre video y dos canciones sin volver a abrir `Sonido
   conserva su tamaño a la izquierda y los niveles permanecen activos en un bloque compacto a la derecha, sin la
   etiqueta redundante `Audio`. El espacio vertical recuperado queda disponible para ampliar la vista previa.
 - `Build-Presenter.cmd` y `Package-Presenter.cmd` finalizaron correctamente después de compactar esta fila.
+- Las barras laterales de Multimedia y Herramientas comparten ahora un ancho fijo de 148 px y filas aproximadamente
+  un 35 % más compactas. Multimedia reserva el ancho al nombre de carpeta sin icono decorativo, conserva edición,
+  orden, arrastre y desplazamiento, y muestra el nombre completo como ayuda. Herramientas conserva Biblia,
+  Presentación, Captura, NDI y las presentaciones recientes sin recortar el encabezado.
+- `Build-Presenter.cmd` y `Package-Presenter.cmd` finalizaron correctamente con la escala lateral compacta.
 
 ## Próximos límites conocidos
 
