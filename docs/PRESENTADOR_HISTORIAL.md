@@ -428,6 +428,12 @@ elegirla una vez, cambiar entre video y dos canciones sin volver a abrir `Sonido
   orden, arrastre y desplazamiento, y muestra el nombre completo como ayuda. Herramientas conserva Biblia,
   Presentación, Captura, NDI y las presentaciones recientes sin recortar el encabezado.
 - `Build-Presenter.cmd` y `Package-Presenter.cmd` finalizaron correctamente con la escala lateral compacta.
+- Los selectores de importación vuelven a usar el explorador de archivos nativo de Windows, conservando los filtros,
+  selección múltiple y directorio inicial de OPBS sin mostrar el diálogo Qt con apariencia interna de OBS.
+- Cada elemento de `Presentaciones recientes` muestra su nombre completo como ayuda y ofrece `Cambiar nombre…` y
+  `Eliminar` mediante el menú contextual de OPBS. La eliminación requiere confirmación; si la presentación está en
+  uso se retira de la lista sin interrumpir el escenario y su caché se limpia al cambiar de presentación o reiniciar.
+- `Build-Presenter.cmd` y `Package-Presenter.cmd` finalizaron correctamente con estas correcciones.
 
 ## Próximos límites conocidos
 

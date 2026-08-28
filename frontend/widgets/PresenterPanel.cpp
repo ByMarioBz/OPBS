@@ -132,14 +132,10 @@ QString OpbsValidDialogDirectory(const QString &initialPath = QString())
 QStringList OpbsOpenFiles(QWidget *parent, const QString &caption, const QString &filter,
 			  const QString &initialPath = QString())
 {
-	QFileDialog dialog(parent, caption, OpbsValidDialogDirectory(initialPath), filter);
-	dialog.setObjectName("opbsFileDialog");
-	dialog.setOption(QFileDialog::DontUseNativeDialog, true);
-	dialog.setAcceptMode(QFileDialog::AcceptOpen);
-	dialog.setFileMode(QFileDialog::ExistingFiles);
-	if (!initialPath.isEmpty() && QFileInfo(initialPath).isFile())
-		dialog.selectFile(initialPath);
-	return dialog.exec() == QDialog::Accepted ? dialog.selectedFiles() : QStringList();
+	const QFileInfo initial(initialPath);
+	const QString selection = !initialPath.isEmpty() && initial.isFile() ? initial.absoluteFilePath()
+									 : OpbsValidDialogDirectory(initialPath);
+	return QFileDialog::getOpenFileNames(parent, caption, selection, filter);
 }
 
 QString OpbsOpenFile(QWidget *parent, const QString &caption, const QString &filter,
@@ -1370,10 +1366,56 @@ void PresenterPanel::BuildInterface()
 	recentPresentationsList = new QListWidget(toolsSidebar);
 	recentPresentationsList->setObjectName("presenterPresentationList");
 	recentPresentationsList->setMaximumHeight(132);
-	recentPresentationsList->setToolTip(tr("Se conservan las cuatro presentaciones importadas más recientes"));
+	recentPresentationsList->setContextMenuPolicy(Qt::CustomContextMenu);
 	toolsSidebarLayout->addWidget(recentPresentationsList, 1);
 	connect(recentPresentationsList, &QListWidget::itemClicked, this,
 		[this](QListWidgetItem *item) { ActivateRecentPresentation(recentPresentationsList->row(item)); });
+	connect(recentPresentationsList, &QWidget::customContextMenuRequested, this, [this](const QPoint &position) {
+		QListWidgetItem *item = recentPresentationsList->itemAt(position);
+		if (!item)
+			return;
+		const int row = recentPresentationsList->row(item);
+		if (row < 0 || row >= recentPresentationIds.size())
+			return;
+		QMenu menu(recentPresentationsList);
+		PrepareOpbsContextMenu(&menu);
+		QAction *renameAction =
+			menu.addAction(OpbsMenuActionIcon(OpbsMenuIcon::Rename), tr("Cambiar nombre…"));
+		menu.addSeparator();
+		QAction *removeAction = menu.addAction(OpbsMenuActionIcon(OpbsMenuIcon::Delete, QColor("#FF7B82")),
+						     tr("Eliminar"));
+		QAction *chosen = menu.exec(recentPresentationsList->viewport()->mapToGlobal(position));
+		if (chosen == renameAction) {
+			bool accepted = false;
+			const QString currentName = row < recentPresentationNames.size() ? recentPresentationNames[row]
+										 : item->text();
+			const QString name = QInputDialog::getText(main, tr("Cambiar nombre"), tr("Nombre de la presentación"),
+							      QLineEdit::Normal, currentName, &accepted)
+						     .trimmed();
+			if (!accepted || name.isEmpty())
+				return;
+			while (recentPresentationNames.size() <= row)
+				recentPresentationNames.append(tr("Presentación %1").arg(recentPresentationNames.size() + 1));
+			recentPresentationNames[row] = name;
+			item->setText(name);
+			item->setToolTip(name);
+			SaveSettings();
+		} else if (chosen == removeAction) {
+			const QString name = item->text();
+			if (QMessageBox::question(main, tr("Eliminar presentación"),
+						  tr("¿Eliminar “%1” de Presentaciones recientes?").arg(name),
+						  QMessageBox::Yes | QMessageBox::No, QMessageBox::No) !=
+			    QMessageBox::Yes)
+				return;
+			const QString removedId = recentPresentationIds.takeAt(row);
+			if (row < recentPresentationNames.size())
+				recentPresentationNames.removeAt(row);
+			if (removedId != currentPresentationId)
+				QDir(QDir(PresentationsDirectoryPath()).filePath(removedId)).removeRecursively();
+			RefreshRecentPresentations();
+			SaveSettings();
+		}
+	});
 	toolsLayout->addWidget(toolsSidebar);
 	toolsContentTarget = new QWidget(toolsFrame);
 	auto *toolsContentLayout = new QVBoxLayout(toolsContentTarget);
@@ -1875,6 +1917,7 @@ void PresenterPanel::RefreshRecentPresentations()
 					 name,
 						 recentPresentationsList);
 		item->setData(Qt::UserRole, recentPresentationIds[index]);
+		item->setToolTip(name);
 	}
 }
 
@@ -1886,8 +1929,12 @@ void PresenterPanel::ActivateRecentPresentation(int row)
 	const QString directoryPath = QDir(PresentationsDirectoryPath()).filePath(id);
 	if (!QDir(directoryPath).exists())
 		return;
+	const QString previousPresentationId = currentPresentationId;
 	ClearPresentationEntries();
 	currentPresentationId = id;
+	if (!previousPresentationId.isEmpty() && previousPresentationId != currentPresentationId &&
+	    !recentPresentationIds.contains(previousPresentationId))
+		QDir(QDir(PresentationsDirectoryPath()).filePath(previousPresentationId)).removeRecursively();
 	QFileInfoList slides = QDir(directoryPath).entryInfoList({"*.png"}, QDir::Files, QDir::NoSort);
 	std::sort(slides.begin(), slides.end(), [](const QFileInfo &left, const QFileInfo &right) {
 		bool leftIsNumber = false;
@@ -4754,6 +4801,10 @@ void PresenterPanel::LoadSettings()
 	recentPresentationIds = settings.value("presentations/recentIds").toStringList();
 	recentPresentationNames = settings.value("presentations/recentNames").toStringList();
 	currentPresentationId = settings.value("presentations/currentId").toString();
+	if (!currentPresentationId.isEmpty() && !recentPresentationIds.contains(currentPresentationId)) {
+		QDir(QDir(PresentationsDirectoryPath()).filePath(currentPresentationId)).removeRecursively();
+		currentPresentationId.clear();
+	}
 	captureEntries.clear();
 	const int captureCount = settings.beginReadArray("captures");
 	for (int index = 0; index < captureCount; ++index) {
