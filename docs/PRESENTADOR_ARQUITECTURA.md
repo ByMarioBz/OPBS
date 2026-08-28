@@ -86,8 +86,10 @@ reactivar el grafo DirectShow. Al cambiar de dispositivo se libera primero cualq
 mismo identificador, porque varias capturadoras físicas y virtuales solo admiten un consumidor.
 
 El modo `Ambos` guarda en porcentajes independientes X, Y, ancho y alto para cámara y presentador. Su fondo puede ser
-un `color_source`, `image_source` o `ffmpeg_source`; el valor predeterminado es negro. La transición entre `Cámaras`,
-`Presentador` y `Ambos` es `move_transition`, con fundido como respaldo si el módulo no pudiera cargarse.
+un `color_source`, `image_source` o `ffmpeg_source`; el valor predeterminado es negro. Todo cambio que entra o sale de
+`Ambos` usa `move_transition`, con fundido como respaldo si el módulo no pudiera cargarse. El cambio directo entre
+`Cámaras` y `Presentador` usa una transición independiente configurable como corte o desvanecimiento rápido. Antes de
+cambiar la fuente de salida, ambas transiciones se sincronizan con la escena visible para evitar un fotograma negro.
 
 Move Transition 3.2.1 está fijado dentro de `plugins/move-transition` desde el commit upstream
 `3be3a85100e4382dc48b1058027ef02b5d1e4fbc`. Su procedencia y licencia GPL-2.0 están documentadas en
@@ -120,8 +122,8 @@ paneles en `window/dockWorkspace`; la versión del estado evita restaurar geomet
 La distribución inicial mantiene aproximadamente 31/69 entre las vistas previas y el espacio de biblioteca/herramientas.
 El árbol predeterminado se crea jerárquicamente: primero las columnas Presentador/Multimedia y después las divisiones
 verticales independientes. Esto evita que Qt agrupe Transmisión dentro de la fila derecha durante el primer inicio.
-La configuración de transmisión recuerda el modo activo, la duración de Move, el fondo de `Ambos` y las ocho medidas de
-la composición.
+La configuración de transmisión recuerda el modo activo, la duración de Move, el tipo y duración del cambio directo,
+el fondo de `Ambos` y las ocho medidas de la composición.
 
 El estado operativo de transmisión se actualiza una vez por segundo. LIVE y REC usan relojes de sesión independientes;
 YouTube/Facebook muestran salud porcentual derivada de `obs_output_get_congestion` y de la proporción real de fotogramas

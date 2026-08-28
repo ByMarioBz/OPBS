@@ -2238,12 +2238,15 @@ void PresenterPanel::Initialize()
 	transmissionPresenterOnlyItem = obs_scene_add(transmissionPresenterScene, obs_scene_get_source(stageScene));
 	obs_sceneitem_set_bounds_alignment(transmissionPresenterItem, OBS_ALIGN_CENTER);
 	obs_sceneitem_set_bounds_alignment(transmissionPresenterOnlyItem, OBS_ALIGN_CENTER);
-	transmissionTransition = obs_source_create_private("move_transition", "OPBS Move Transition", nullptr);
-	if (!transmissionTransition) {
+	transmissionMoveTransition = obs_source_create_private("move_transition", "OPBS Move Transition", nullptr);
+	if (!transmissionMoveTransition) {
 		blog(LOG_WARNING, "OPBS Move Transition is unavailable; using fade transition fallback");
-		transmissionTransition = obs_source_create_private("fade_transition", "OPBS Transmission Transition", nullptr);
+		transmissionMoveTransition =
+			obs_source_create_private("fade_transition", "OPBS Move Transition Fallback", nullptr);
 	}
-	if (!transmissionTransition) {
+	transmissionFadeTransition =
+		obs_source_create_private("fade_transition", "OPBS Camera Presenter Fade", nullptr);
+	if (!transmissionMoveTransition || !transmissionFadeTransition) {
 		QMessageBox::critical(this, tr("Transmisión"), tr("No fue posible crear la transición de transmisión."));
 		stageScene = nullptr;
 		transmissionScene = nullptr;
@@ -2251,10 +2254,13 @@ void PresenterPanel::Initialize()
 		transmissionPresenterScene = nullptr;
 		return;
 	}
-	obs_transition_set_size(transmissionTransition, 1920, 1080);
-	obs_transition_set_alignment(transmissionTransition, OBS_ALIGN_CENTER);
-	obs_transition_set_scale_type(transmissionTransition, OBS_TRANSITION_SCALE_ASPECT);
-	obs_transition_set(transmissionTransition, obs_scene_get_source(transmissionPresenterScene));
+	for (obs_source_t *transition : {transmissionMoveTransition.Get(), transmissionFadeTransition.Get()}) {
+		obs_transition_set_size(transition, 1920, 1080);
+		obs_transition_set_alignment(transition, OBS_ALIGN_CENTER);
+		obs_transition_set_scale_type(transition, OBS_TRANSITION_SCALE_ASPECT);
+		obs_transition_set(transition, obs_scene_get_source(transmissionPresenterScene));
+	}
+	transmissionTransition = transmissionMoveTransition;
 	RegisterTransmissionAudioBridge();
 	transmissionPresenterAudioSource =
 		obs_source_create_private(kTransmissionAudioBridgeId, "OPBS Presenter Audio (Transmission)", nullptr);
@@ -2418,11 +2424,15 @@ void PresenterPanel::Shutdown()
 	for (auto &entry : ndiEntries)
 		entry->source = nullptr;
 	ndiEntries.clear();
-	if (transmissionTransition) {
-		obs_transition_force_stop(transmissionTransition);
-		obs_transition_clear(transmissionTransition);
-	}
 	transmissionTransition = nullptr;
+	for (obs_source_t *transition : {transmissionMoveTransition.Get(), transmissionFadeTransition.Get()}) {
+		if (!transition)
+			continue;
+		obs_transition_force_stop(transition);
+		obs_transition_clear(transition);
+	}
+	transmissionMoveTransition = nullptr;
+	transmissionFadeTransition = nullptr;
 	transmissionBackgroundSource = nullptr;
 	transmissionInputSource = nullptr;
 	transmissionPresenterAudioSource = nullptr;
@@ -3513,6 +3523,7 @@ void PresenterPanel::ShowTransmissionDialog()
 	sections->addItem(tr("📷  Cámaras"));
 	sections->addItem(tr("🎙  Audio"));
 	sections->addItem(tr("▣  Lienzo de ambos"));
+	sections->addItem(tr("↔  Transiciones"));
 	auto *pages = new QStackedWidget(&dialog);
 	pages->setObjectName("opbsSettingsPages");
 	body->addWidget(sections);
@@ -3881,19 +3892,61 @@ void PresenterPanel::ShowTransmissionDialog()
 	backgroundForm->addRow(QString(), backgroundLoop);
 	bothLayout->addWidget(backgroundGroup);
 
-	auto *transitionGroup = new QGroupBox(tr("Transición"), bothPage);
-	auto *transitionForm = new QFormLayout(transitionGroup);
-	auto *transitionName = new QLabel(tr("Move Transition (predeterminada)"), transitionGroup);
-	auto *transitionDuration = new QSpinBox(transitionGroup);
-	transitionDuration->setRange(100, 3000);
-	transitionDuration->setSuffix(tr(" ms"));
-	transitionDuration->setValue(transmissionTransitionDuration);
-	transitionForm->addRow(tr("Tipo"), transitionName);
-	transitionForm->addRow(tr("Duración"), transitionDuration);
-	bothLayout->addWidget(transitionGroup);
 	bothLayout->addStretch();
 	bothScroll->setWidget(bothPage);
 	pages->addWidget(bothScroll);
+
+	auto *transitionsPage = new QWidget(pages);
+	auto *transitionsLayout = new QVBoxLayout(transitionsPage);
+	transitionsLayout->setContentsMargins(18, 18, 18, 18);
+	transitionsLayout->setSpacing(14);
+
+	auto *directTransitionGroup = new QGroupBox(tr("Entre Cámaras y Presentador"), transitionsPage);
+	auto *directTransitionForm = new QFormLayout(directTransitionGroup);
+	auto *directTransitionType = new QComboBox(directTransitionGroup);
+	directTransitionType->addItem(tr("Desvanecimiento"), QStringLiteral("fade"));
+	directTransitionType->addItem(tr("Corte"), QStringLiteral("cut"));
+	directTransitionType->setCurrentIndex(
+		std::max(directTransitionType->findData(transmissionDirectTransitionType), 0));
+	auto *directTransitionDuration = new QSpinBox(directTransitionGroup);
+	directTransitionDuration->setRange(50, 2000);
+	directTransitionDuration->setSingleStep(50);
+	directTransitionDuration->setSuffix(tr(" ms"));
+	directTransitionDuration->setValue(transmissionDirectTransitionDuration);
+	directTransitionForm->addRow(tr("Tipo"), directTransitionType);
+	directTransitionForm->addRow(tr("Duración"), directTransitionDuration);
+	auto *directTransitionHint = new QLabel(
+		tr("Se aplica únicamente al cambiar directamente de Cámaras a Presentador o de Presentador a Cámaras."),
+		directTransitionGroup);
+	directTransitionHint->setWordWrap(true);
+	directTransitionForm->addRow(QString(), directTransitionHint);
+	auto updateDirectTransitionControls = [directTransitionType, directTransitionDuration]() {
+		directTransitionDuration->setEnabled(directTransitionType->currentData().toString() ==
+						     QStringLiteral("fade"));
+	};
+	connect(directTransitionType, qOverload<int>(&QComboBox::currentIndexChanged), &dialog,
+		[updateDirectTransitionControls](int) { updateDirectTransitionControls(); });
+	updateDirectTransitionControls();
+	transitionsLayout->addWidget(directTransitionGroup);
+
+	auto *moveTransitionGroup = new QGroupBox(tr("Cambios que incluyen Ambos"), transitionsPage);
+	auto *moveTransitionForm = new QFormLayout(moveTransitionGroup);
+	auto *moveTransitionName = new QLabel(tr("Move Transition (fija)"), moveTransitionGroup);
+	auto *moveTransitionDuration = new QSpinBox(moveTransitionGroup);
+	moveTransitionDuration->setRange(100, 3000);
+	moveTransitionDuration->setSingleStep(50);
+	moveTransitionDuration->setSuffix(tr(" ms"));
+	moveTransitionDuration->setValue(transmissionMoveTransitionDuration);
+	moveTransitionForm->addRow(tr("Tipo"), moveTransitionName);
+	moveTransitionForm->addRow(tr("Duración"), moveTransitionDuration);
+	auto *moveTransitionHint = new QLabel(
+		tr("Se conserva al entrar o salir de Ambos para mantener la transformación animada de la composición."),
+		moveTransitionGroup);
+	moveTransitionHint->setWordWrap(true);
+	moveTransitionForm->addRow(QString(), moveTransitionHint);
+	transitionsLayout->addWidget(moveTransitionGroup);
+	transitionsLayout->addStretch();
+	pages->addWidget(transitionsPage);
 
 	auto refreshCanvasPreview = [&]() {
 		const int previewWidth = canvasPreview->width();
@@ -4013,7 +4066,9 @@ void PresenterPanel::ShowTransmissionDialog()
 	combinedBackgroundColor = pendingBackgroundColor.name(QColor::HexRgb);
 	combinedBackgroundPath = backgroundPathEdit->text().trimmed();
 	combinedBackgroundLoop = backgroundLoop->isChecked();
-	transmissionTransitionDuration = transitionDuration->value();
+	transmissionDirectTransitionType = directTransitionType->currentData().toString();
+	transmissionDirectTransitionDuration = directTransitionDuration->value();
+	transmissionMoveTransitionDuration = moveTransitionDuration->value();
 	ApplyCombinedBackground();
 	UpdateTransmissionItemBounds();
 	RefreshCameraSource();
@@ -4645,8 +4700,15 @@ void PresenterPanel::LoadSettings()
 	}
 	transmissionView = static_cast<TransmissionView>(
 		std::clamp(settings.value("transmission/view", int(TransmissionView::Presenter)).toInt(), 0, 2));
-	transmissionTransitionDuration =
+	transmissionMoveTransitionDuration =
 		std::clamp(settings.value("transmission/transitionDuration", 600).toInt(), 100, 3000);
+	transmissionDirectTransitionType =
+		settings.value("transmission/directTransitionType", "fade").toString().toLower();
+	if (transmissionDirectTransitionType != QStringLiteral("cut") &&
+	    transmissionDirectTransitionType != QStringLiteral("fade"))
+		transmissionDirectTransitionType = QStringLiteral("fade");
+	transmissionDirectTransitionDuration =
+		std::clamp(settings.value("transmission/directTransitionDuration", 250).toInt(), 50, 2000);
 	combinedBackgroundType = settings.value("transmission/both/backgroundType", "color").toString();
 	combinedBackgroundColor = settings.value("transmission/both/backgroundColor", "#000000").toString();
 	combinedBackgroundPath = settings.value("transmission/both/backgroundPath").toString();
@@ -4943,7 +5005,9 @@ void PresenterPanel::SaveSettings()
 	settings.setValue("transmission/audioBitrate", streamAudioBitrate);
 	settings.setValue("transmission/recordingPath", recordingPath);
 	settings.setValue("transmission/view", int(transmissionView));
-	settings.setValue("transmission/transitionDuration", transmissionTransitionDuration);
+	settings.setValue("transmission/transitionDuration", transmissionMoveTransitionDuration);
+	settings.setValue("transmission/directTransitionType", transmissionDirectTransitionType);
+	settings.setValue("transmission/directTransitionDuration", transmissionDirectTransitionDuration);
 	settings.setValue("transmission/both/backgroundType", combinedBackgroundType);
 	settings.setValue("transmission/both/backgroundColor", combinedBackgroundColor);
 	settings.setValue("transmission/both/backgroundPath", combinedBackgroundPath);
@@ -5132,16 +5196,44 @@ void PresenterPanel::ApplyCombinedBackground()
 
 void PresenterPanel::ApplyTransmissionView(TransmissionView view, bool save)
 {
-	transmissionView = view;
-	UpdateTransmissionItemBounds();
+	const TransmissionView previousView = transmissionView;
+	obs_source_t *previousTarget = TransmissionSceneSource(previousView);
 	obs_source_t *target = TransmissionSceneSource(view);
-	if (transmissionTransition && target) {
-		if (save)
-			obs_transition_start(transmissionTransition, OBS_TRANSITION_MODE_AUTO,
-					     uint32_t(transmissionTransitionDuration), target);
-		else
-			obs_transition_set(transmissionTransition, target);
+	const bool directCameraPresenter =
+		(previousView == TransmissionView::Cameras && view == TransmissionView::Presenter) ||
+		(previousView == TransmissionView::Presenter && view == TransmissionView::Cameras);
+
+	UpdateTransmissionItemBounds();
+	if (target && transmissionMoveTransition && transmissionFadeTransition) {
+		if (!save || previousView == view) {
+			obs_transition_force_stop(transmissionMoveTransition);
+			obs_transition_force_stop(transmissionFadeTransition);
+			obs_transition_set(transmissionMoveTransition, target);
+			obs_transition_set(transmissionFadeTransition, target);
+		} else {
+			/* Ambas transiciones parten de la misma imagen actual. Cambiar la
+			 * fuente de salida no produce un corte antes de iniciar el efecto. */
+			obs_transition_force_stop(transmissionMoveTransition);
+			obs_transition_force_stop(transmissionFadeTransition);
+			obs_transition_set(transmissionMoveTransition, previousTarget);
+			obs_transition_set(transmissionFadeTransition, previousTarget);
+
+			transmissionTransition =
+				directCameraPresenter ? transmissionFadeTransition : transmissionMoveTransition;
+			if (initialized)
+				obs_set_output_source(0, transmissionTransition);
+
+			if (directCameraPresenter && transmissionDirectTransitionType == QStringLiteral("cut")) {
+				obs_transition_set(transmissionTransition, target);
+			} else {
+				const int duration = directCameraPresenter ? transmissionDirectTransitionDuration
+									 : transmissionMoveTransitionDuration;
+				obs_transition_start(transmissionTransition, OBS_TRANSITION_MODE_AUTO,
+						     uint32_t(duration), target);
+			}
+		}
 	}
+	transmissionView = view;
 	if (camerasViewButton)
 		camerasViewButton->setChecked(view == TransmissionView::Cameras);
 	if (presenterViewButton)

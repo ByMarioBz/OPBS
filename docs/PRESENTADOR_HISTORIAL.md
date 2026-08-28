@@ -410,6 +410,15 @@ elegirla una vez, cambiar entre video y dos canciones sin volver a abrir `Sonido
 - `Build-Presenter.cmd`, `Package-Presenter.cmd` y `Build-OPBS-Installer.cmd` terminaron correctamente. El paquete se
   abrió mediante `wscript.exe` y el nuevo lanzador en aproximadamente 1.14 segundos, permaneció respondiendo y alcanzó
   `Startup complete`; la prueba final separada con `Run-Presenter.cmd -SafeMode` obtuvo el mismo resultado.
+- La interfaz principal de 0.1.7 queda fijada como base visual. La lógica de transmisión separa ahora dos recorridos:
+  Cámaras ↔ Presentador usa Corte o Desvanecimiento con duración configurable, mientras todo cambio que incluye Ambos
+  conserva Move Transition y su duración independiente.
+- La configuración de Move salió de `Lienzo de ambos` y vive en la nueva página `Transiciones`, junto al selector del
+  cambio directo. Ambos efectos se sincronizan con la escena visible antes de intercambiar la fuente de salida para no
+  introducir un corte o fotograma negro entre ellos.
+- `Build-Presenter.cmd` y `Package-Presenter.cmd` terminaron correctamente. La revisión visual confirmó la página
+  independiente con Desvanecimiento 250 ms y Move 600 ms, y ejecutó sin bloqueo los recorridos Presentador → Cámaras,
+  Cámaras → Ambos y Ambos → Presentador. La aplicación alcanzó `Startup complete` y quedó abierta para prueba manual.
 
 ## Próximos límites conocidos
 

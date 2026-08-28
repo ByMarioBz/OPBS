@@ -106,6 +106,8 @@ class PresenterPanel : public QWidget {
 	OBSSource retiringSource;
 	OBSSource cameraSource;
 	OBSSource transmissionTransition;
+	OBSSource transmissionMoveTransition;
+	OBSSource transmissionFadeTransition;
 	OBSSource transmissionBackgroundSource;
 	OBSSource transmissionPresenterAudioSource;
 	OBSSource transmissionInputSource;
@@ -238,7 +240,9 @@ class PresenterPanel : public QWidget {
 	int bibleFontSize = 96;
 	int streamVideoBitrate = 6000;
 	int streamAudioBitrate = 160;
-	int transmissionTransitionDuration = 600;
+	int transmissionMoveTransitionDuration = 600;
+	int transmissionDirectTransitionDuration = 250;
+	QString transmissionDirectTransitionType = "fade";
 	double transmissionPresenterDb = 0.0;
 	double transmissionInputDb = 0.0;
 	double combinedCameraX = 3.5;
