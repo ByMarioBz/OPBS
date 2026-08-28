@@ -15,6 +15,10 @@ abrir la presentación importada, el usuario la selecciona explícitamente en la
 numeran desde `1` hasta la última diapositiva y conservan el orden del archivo original. Al seleccionar una tarjeta, la
 imagen se envía a la misma escena privada que alimenta la vista previa y el escenario.
 
+Después de seleccionar cualquier diapositiva, `←` y `→` permiten retroceder o avanzar sin volver a usar el ratón. Las
+flechas se detienen en la primera y última diapositiva; no recorren en bucle. El atajo pertenece exclusivamente a la
+cuadrícula enfocada, por lo que no modifica presentaciones mientras se escribe en otro control.
+
 ## Historial y activación
 
 Solo hay una presentación cargada en el panel a la vez, pero se recuerdan hasta cuatro importaciones. La conversión
@@ -56,3 +60,5 @@ rasteriza como PNG con ancho de 1920 píxeles, conservando su proporción origin
 6. Importar cinco presentaciones mientras la más antigua está cargada y comprobar que sus diapositivas siguen
    disponibles; debe retirarse otra importación no activa.
 7. Cerrar y abrir la aplicación para confirmar que las imágenes convertidas siguen disponibles.
+8. Seleccionar la primera diapositiva y recorrer toda la presentación con `→`; volver con `←` y confirmar que no existe
+   un cuadro negro entre páginas ni navegación circular en los extremos.

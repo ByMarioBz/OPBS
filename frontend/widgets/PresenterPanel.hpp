@@ -93,6 +93,7 @@ class PresenterPanel : public QWidget {
 	OBSScene transmissionCameraScene;
 	OBSScene transmissionPresenterScene;
 	obs_sceneitem_t *activeItem = nullptr;
+	obs_sceneitem_t *retiringItem = nullptr;
 	obs_sceneitem_t *transmissionPresenterItem = nullptr;
 	obs_sceneitem_t *transmissionCameraItem = nullptr;
 	obs_sceneitem_t *transmissionPresenterOnlyItem = nullptr;
@@ -102,6 +103,7 @@ class PresenterPanel : public QWidget {
 	obs_sceneitem_t *bibleVerseItem = nullptr;
 	obs_sceneitem_t *bibleReferenceItem = nullptr;
 	OBSSource activeSource;
+	OBSSource retiringSource;
 	OBSSource cameraSource;
 	OBSSource transmissionTransition;
 	OBSSource transmissionBackgroundSource;
@@ -297,7 +299,8 @@ class PresenterPanel : public QWidget {
 	bool EnsureSource(MediaEntry *entry);
 	void ReleaseSource(MediaEntry *entry);
 	void ActivateMedia(MediaEntry *entry);
-	void ClearActiveMedia(MediaEntry *keepEntry = nullptr);
+	void ClearActiveMedia(MediaEntry *keepEntry = nullptr, bool retainVisual = false);
+	void FinishStageHandover(obs_source_t *expectedTarget = nullptr);
 	void ClearBiblePresentation();
 	void ProjectBibleVerse(const QString &text, const QString &reference);
 	void RemoveMediaEntry(MediaEntry *entry);
@@ -350,6 +353,7 @@ class PresenterPanel : public QWidget {
 	void StopMedia();
 	void NextMedia();
 	void PreviousMedia();
+	void NavigatePresentationSlide(int offset);
 	void ReorderEntriesFromList();
 	void ReorderFoldersFromList();
 	void ApplyLibraryFilter();

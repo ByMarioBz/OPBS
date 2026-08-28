@@ -1393,6 +1393,7 @@ void PresenterPanel::BuildInterface()
 	presentationMediaList->setGridSize(QSize(kThumbnailWidth + 24, kThumbnailHeight + 58));
 	presentationMediaList->setSpacing(8);
 	presentationMediaList->setSelectionMode(QAbstractItemView::SingleSelection);
+	presentationMediaList->setToolTip(tr("Selecciona una diapositiva y usa ← o → para navegar"));
 	presentationMediaList->hide();
 	connect(presentationMediaList, &QListWidget::itemClicked, this, [this](QListWidgetItem *item) {
 		for (const auto &entry : entries) {
@@ -1404,6 +1405,14 @@ void PresenterPanel::BuildInterface()
 	});
 	connect(presentationMediaList->verticalScrollBar(), &QScrollBar::valueChanged, this,
 		[this]() { QTimer::singleShot(0, this, &PresenterPanel::LoadVisibleThumbnails); });
+	auto *previousSlideShortcut = new QShortcut(QKeySequence(Qt::Key_Left), presentationMediaList);
+	previousSlideShortcut->setContext(Qt::WidgetWithChildrenShortcut);
+	connect(previousSlideShortcut, &QShortcut::activated, this,
+		[this]() { NavigatePresentationSlide(-1); });
+	auto *nextSlideShortcut = new QShortcut(QKeySequence(Qt::Key_Right), presentationMediaList);
+	nextSlideShortcut->setContext(Qt::WidgetWithChildrenShortcut);
+	connect(nextSlideShortcut, &QShortcut::activated, this,
+		[this]() { NavigatePresentationSlide(1); });
 	toolsContentLayout->addWidget(presentationMediaList, 1);
 	toolsEmptyState = new QLabel(tr("Selecciona una herramienta"), toolsContentTarget);
 	toolsEmptyState->setObjectName("presenterEmpty");
@@ -2087,24 +2096,28 @@ void PresenterPanel::ActivateCaptureSource(obs_source_t *source, const QString &
 {
 	if (!source || !stageScene)
 		return;
-	ClearBiblePresentation();
-	activeBibleText.clear();
-	activeBibleReference.clear();
-	ClearActiveMedia();
-	activeSource = source;
-	activeItem = obs_scene_add(stageScene, activeSource);
-	if (!activeItem) {
-		activeSource = nullptr;
+	obs_sceneitem_t *nextItem = obs_scene_add(stageScene, source);
+	if (!nextItem)
 		return;
-	}
-	obs_sceneitem_set_bounds_alignment(activeItem, OBS_ALIGN_CENTER);
-	obs_sceneitem_set_alignment(activeItem, OBS_ALIGN_CENTER);
+	obs_sceneitem_set_bounds_alignment(nextItem, OBS_ALIGN_CENTER);
+	obs_sceneitem_set_alignment(nextItem, OBS_ALIGN_CENTER);
 	const struct vec2 size = {(float)obs_source_get_width(obs_scene_get_source(stageScene)),
 				  (float)obs_source_get_height(obs_scene_get_source(stageScene))};
 	const struct vec2 position = {size.x / 2.0f, size.y / 2.0f};
-	obs_sceneitem_set_bounds_type(activeItem, OBS_BOUNDS_SCALE_INNER);
-	obs_sceneitem_set_bounds(activeItem, &size);
-	obs_sceneitem_set_pos(activeItem, &position);
+	obs_sceneitem_set_bounds_type(nextItem, OBS_BOUNDS_SCALE_INNER);
+	obs_sceneitem_set_bounds(nextItem, &size);
+	obs_sceneitem_set_pos(nextItem, &position);
+	ClearBiblePresentation();
+	activeBibleText.clear();
+	activeBibleReference.clear();
+	ClearActiveMedia(nullptr, true);
+	activeSource = source;
+	activeItem = nextItem;
+	OBSSource target = activeSource;
+	QTimer::singleShot(200, this, [this, target]() {
+		if (obs_source_get_width(target) > 0 && obs_source_get_height(target) > 0)
+			FinishStageHandover(target);
+	});
 	if (captureList && item)
 		captureList->setCurrentItem(item);
 	currentMedia->setText(name);
@@ -2725,8 +2738,28 @@ void PresenterPanel::ReleaseSource(MediaEntry *entry)
 	entry->source = nullptr;
 }
 
-void PresenterPanel::ClearActiveMedia(MediaEntry *keepEntry)
+void PresenterPanel::FinishStageHandover(obs_source_t *expectedTarget)
 {
+	if (expectedTarget && activeSource.Get() != expectedTarget)
+		return;
+	if (retiringItem) {
+		obs_sceneitem_remove(retiringItem);
+		retiringItem = nullptr;
+	}
+	if (retiringSource && retiringSource.Get() != activeSource.Get()) {
+		obs_source_media_stop(retiringSource);
+		obs_source_set_monitoring_type(retiringSource, OBS_MONITORING_TYPE_NONE);
+		for (const auto &entry : entries) {
+			if (entry.get() != activeEntry && entry->source.Get() == retiringSource.Get())
+				ReleaseSource(entry.get());
+		}
+	}
+	retiringSource = nullptr;
+}
+
+void PresenterPanel::ClearActiveMedia(MediaEntry *keepEntry, bool retainVisual)
+{
+	FinishStageHandover();
 	MediaEntry *previousEntry = activeEntry;
 	DetachTransmissionPresenterAudio();
 	if (audioMeter)
@@ -2734,16 +2767,24 @@ void PresenterPanel::ClearActiveMedia(MediaEntry *keepEntry)
 	DetachAudioFilters();
 	if (activeSource) {
 		signal_handler_disconnect(obs_source_get_signal_handler(activeSource), "media_started", MediaStarted, this);
-		obs_source_media_stop(activeSource);
+		if (retainVisual)
+			obs_source_media_play_pause(activeSource, true);
+		else
+			obs_source_media_stop(activeSource);
 		obs_source_set_monitoring_type(activeSource, OBS_MONITORING_TYPE_NONE);
 	}
 	if (activeItem) {
-		obs_sceneitem_remove(activeItem);
+		if (retainVisual) {
+			retiringItem = activeItem;
+			retiringSource = activeSource;
+		} else {
+			obs_sceneitem_remove(activeItem);
+		}
 		activeItem = nullptr;
 	}
 	activeSource = nullptr;
 	activeEntry = nullptr;
-	if (previousEntry && previousEntry != keepEntry)
+	if (!retainVisual && previousEntry && previousEntry != keepEntry)
 		ReleaseSource(previousEntry);
 	cachedDuration = 0;
 	pendingSeekValue = -1;
@@ -2904,12 +2945,24 @@ void PresenterPanel::ActivateMedia(MediaEntry *entry)
 	if (!entry || !stageScene || !EnsureSource(entry))
 		return;
 	LoadThumbnail(entry);
+	obs_sceneitem_t *nextItem = obs_scene_add(stageScene, entry->source);
+	if (!nextItem)
+		return;
+	obs_sceneitem_set_bounds_alignment(nextItem, OBS_ALIGN_CENTER);
+	obs_sceneitem_set_alignment(nextItem, OBS_ALIGN_CENTER);
+	const struct vec2 size = {(float)obs_source_get_width(obs_scene_get_source(stageScene)),
+				  (float)obs_source_get_height(obs_scene_get_source(stageScene))};
+	const struct vec2 position = {size.x / 2.0f, size.y / 2.0f};
+	obs_sceneitem_set_bounds_type(nextItem, OBS_BOUNDS_SCALE_INNER);
+	obs_sceneitem_set_bounds(nextItem, &size);
+	obs_sceneitem_set_pos(nextItem, &position);
 	ClearBiblePresentation();
 	activeBibleText.clear();
 	activeBibleReference.clear();
-	ClearActiveMedia(entry);
+	ClearActiveMedia(entry, true);
 	activeEntry = entry;
 	activeSource = entry->source;
+	activeItem = nextItem;
 	loopCurrent = entry->loop;
 	if (loopButton) {
 		QSignalBlocker blocker(loopButton);
@@ -2922,15 +2975,6 @@ void PresenterPanel::ActivateMedia(MediaEntry *entry)
 	AttachTransmissionPresenterAudio();
 	cachedDuration = 0;
 	pendingSeekValue = -1;
-	activeItem = obs_scene_add(stageScene, activeSource);
-	if (!activeItem)
-		return;
-	obs_sceneitem_set_bounds_alignment(activeItem, OBS_ALIGN_CENTER);
-	obs_sceneitem_set_alignment(activeItem, OBS_ALIGN_CENTER);
-	const struct vec2 size = {(float)obs_source_get_width(obs_scene_get_source(stageScene)), (float)obs_source_get_height(obs_scene_get_source(stageScene))};
-	const struct vec2 position = {size.x / 2.0f, size.y / 2.0f};
-	obs_sceneitem_set_bounds(activeItem, &size);
-	obs_sceneitem_set_pos(activeItem, &position);
 	ApplyActiveItemBounds();
 	if (loopButton)
 		loopButton->setEnabled(!entry->isImage);
@@ -2940,6 +2984,18 @@ void PresenterPanel::ActivateMedia(MediaEntry *entry)
 	signal_handler_disconnect(obs_source_get_signal_handler(activeSource), "media_started", MediaStarted, this);
 	signal_handler_connect(obs_source_get_signal_handler(activeSource), "media_started", MediaStarted, this);
 	obs_source_media_restart(activeSource);
+	OBSSource handoverTarget = activeSource;
+	const QString suffix = QFileInfo(entry->path).suffix().toLower();
+	if (entry->isImage || audioExtensions.contains(suffix))
+		QTimer::singleShot(50, this,
+				   [this, handoverTarget]() { FinishStageHandover(handoverTarget); });
+	else
+		QTimer::singleShot(2000, this,
+				   [this, handoverTarget]() {
+					   if (obs_source_get_width(handoverTarget) > 0 &&
+					       obs_source_get_height(handoverTarget) > 0)
+						   FinishStageHandover(handoverTarget);
+				   });
 	RebuildAudioMonitor(true);
 	OBSSource monitoredSource = activeSource;
 	QTimer::singleShot(500, this, [this, monitoredSource]() {
@@ -3183,12 +3239,28 @@ void PresenterPanel::RebuildAudioMonitor(bool resetDevice)
 	obs_reset_audio_monitoring();
 }
 
-void PresenterPanel::MediaStarted(void *data, calldata_t *)
+void PresenterPanel::MediaStarted(void *data, calldata_t *calldata)
 {
 	auto *panel = static_cast<PresenterPanel *>(data);
 	if (!panel)
 		return;
-	QMetaObject::invokeMethod(panel, [panel]() { panel->RebuildAudioMonitor(); }, Qt::QueuedConnection);
+	OBSSource startedSource(static_cast<obs_source_t *>(calldata_ptr(calldata, "source")));
+	QMetaObject::invokeMethod(
+		panel,
+		[panel, startedSource]() {
+			if (panel->activeSource.Get() != startedSource.Get())
+				return;
+			panel->RebuildAudioMonitor();
+			/* media_started confirma el inicio del decodificador, pero puede
+			 * adelantarse al primer cuadro entregado. Conservar brevemente el
+			 * fotograma anterior evita revelar el lienzo negro en esa carrera. */
+			QTimer::singleShot(100, panel, [panel, startedSource]() {
+				if (obs_source_get_width(startedSource) > 0 &&
+				    obs_source_get_height(startedSource) > 0)
+					panel->FinishStageHandover(startedSource);
+			});
+		},
+		Qt::QueuedConnection);
 }
 
 void PresenterPanel::TogglePlayPause()
@@ -3269,6 +3341,30 @@ void PresenterPanel::PreviousMedia()
 	QListWidgetItem *item = visible[previous];
 	for (const auto &entry : entries) {
 		if (entry->item == item) {
+			ActivateMedia(entry.get());
+			return;
+		}
+	}
+}
+
+void PresenterPanel::NavigatePresentationSlide(int offset)
+{
+	if (!presentationMediaList || !presentationMediaList->isVisible() ||
+	    currentFolderId != QString::fromLatin1(kPresentationsFolderId) || !activeEntry ||
+	    activeEntry->folderId != QString::fromLatin1(kPresentationsFolderId) || offset == 0)
+		return;
+	const int currentRow = presentationMediaList->row(activeEntry->item);
+	if (currentRow < 0)
+		return;
+	const int targetRow = currentRow + offset;
+	if (targetRow < 0 || targetRow >= presentationMediaList->count())
+		return;
+	QListWidgetItem *targetItem = presentationMediaList->item(targetRow);
+	if (!targetItem || targetItem->isHidden())
+		return;
+	for (const auto &entry : entries) {
+		if (entry->item == targetItem) {
+			presentationMediaList->setCurrentItem(targetItem);
 			ActivateMedia(entry.get());
 			return;
 		}

@@ -394,6 +394,13 @@ elegirla una vez, cambiar entre video y dos canciones sin volver a abrir `Sonido
   cargada para que sus diapositivas sigan disponibles durante una presentación en vivo.
 - `Build-Presenter.cmd` y `Package-Presenter.cmd` terminaron correctamente con esta corrección. La copia empaquetada de
   Presenter Broadcast Studio 0.1.7 inició en modo seguro, permaneció respondiendo y registró `Startup complete`.
+- El relevo del escenario inserta la nueva fuente antes de retirar la anterior y conserva temporalmente el último
+  fotograma válido. Las diapositivas, imágenes, videos y capturas dejan así de mostrar el destello negro causado por una
+  escena vacía entre ambas activaciones.
+- La cuadrícula de Presentación incorpora navegación exclusiva con `←` y `→`, sin bucle y sin atajos globales que puedan
+  interferir con buscadores, formularios, Multimedia, Captura o NDI.
+- La compilación, el empaquetado y el arranque seguro terminaron correctamente con el relevo nuevo. Presenter Broadcast
+  Studio 0.1.7 permaneció respondiendo y el registro alcanzó `Startup complete`.
 
 ## Próximos límites conocidos
 

@@ -27,8 +27,10 @@ Escena privada con un solo elemento activo
         +-- monitor de audio seleccionado
 ```
 
-La vista previa y el escenario renderizan la misma escena. Cambiar de tarjeta detiene y retira la fuente anterior antes
-de insertar la nueva; no deben existir dos contenidos superpuestos.
+La vista previa y el escenario renderizan la misma escena. Al cambiar de tarjeta, la fuente entrante se coloca primero
+sobre la anterior. El último fotograma válido permanece debajo hasta que la imagen está cargada o la fuente multimedia
+notifica que comenzó; entonces se retira la anterior. Esta superposición transitoria evita cuadros negros, pero al
+terminar el relevo vuelve a existir una sola fuente multimedia activa.
 
 ## Componentes modificados
 

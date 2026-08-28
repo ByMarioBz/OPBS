@@ -42,6 +42,10 @@ integrar funciones de forma gradual.
 - Cada video o audio de Multimedia conserva su propio estado de repetición; el menú muestra una marca junto al archivo
   activado y el ajuste no se propaga al resto de la biblioteca.
 - Tarjetas multimedia con nombre y miniatura estática; una selección sustituye inmediatamente al contenido anterior.
+- El cambio entre imágenes, diapositivas, video y capturas conserva el último fotograma válido debajo de la fuente
+  entrante hasta que esta se encuentra lista, evitando un destello negro entre contenidos.
+- Dentro de una presentación, las flechas izquierda y derecha recorren sus diapositivas en orden. El atajo solo existe
+  mientras la cuadrícula de diapositivas mantiene el foco y no interfiere con búsquedas, formularios u otras herramientas.
 - Vista previa local y escenario a pantalla completa sobre un monitor elegido.
 - Interruptor rápido para activar o apagar la salida de escenario.
 - Controles anterior, reproducir/pausar, detener, siguiente y repetición continua del archivo actual, más teclas
