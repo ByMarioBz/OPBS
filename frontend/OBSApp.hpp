@@ -274,8 +274,8 @@ inline const char *Str(const char *lookup)
 inline QString QTStr(const char *lookupVal)
 {
 	QString text = QString::fromUtf8(Str(lookupVal));
-	text.replace(QStringLiteral("OBS Studio"), QStringLiteral("OPBS"));
-	text.replace(QStringLiteral("OBS"), QStringLiteral("OPBS"));
+	text.replace(QStringLiteral("OBS Studio"), QStringLiteral("Presenter Broadcast Studio"));
+	text.replace(QStringLiteral("OBS"), QStringLiteral("Presenter Broadcast Studio"));
 	return text;
 }
 

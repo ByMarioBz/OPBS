@@ -359,6 +359,28 @@ elegirla una vez, cambiar entre video y dos canciones sin volver a abrir `Sonido
   de AJA/DeckLink sin hardware y una ruta multimedia antigua inexistente son opcionales o datos del perfil de prueba y
   no impidieron el arranque.
 
+## 2026-08-27 - Inicio de OPBS 0.1.7 e identidad instalada
+
+- La versión de desarrollo avanza a `0.1.7` sin cambiar el repositorio `ByMarioBz/OPBS`, las etiquetas `opbs-v`, los
+  artefactos `OPBS-Setup-x64.exe`, el directorio técnico de instalación ni los datos existentes.
+- La identidad visible instalada pasa a llamarse `Presenter Broadcast Studio`: título de ventana, nombre mostrado por
+  Windows, instalador, accesos directos y mensajes del actualizador. Así se diferencia de OBS sin romper el canal de
+  actualizaciones de las instalaciones 0.1.6.
+- El instalador retira durante la actualización los accesos directos antiguos llamados `OPBS` y crea los nuevos sin
+  modificar la biblioteca ni las preferencias.
+- El ejecutable instalado pasa a llamarse `Presenter Broadcast Studio.exe`. El instalador elimina el antiguo
+  `OPBS.exe` después de conservar los datos, y el lanzador y actualizador aceptan temporalmente ambos nombres para
+  completar con seguridad una actualización desde 0.1.6 o anterior.
+- Se inició un concepto de icono original de cámara con cuerpo de cristal y fondo de gradiente difuminado. El archivo
+  maestro de Blender y la copia editable de Affinity permanecen como propuesta local hasta su aprobación visual; el
+  icono distribuido todavía no se reemplaza.
+- `Build-Presenter.cmd`, `Package-Presenter.cmd` y `Build-OPBS-Installer.cmd` terminaron correctamente después del
+  cambio final de nombre. El paquete contiene únicamente `Presenter Broadcast Studio.exe`: sus metadatos visibles son
+  `Presenter Broadcast Studio`, su `OriginalFilename` coincide con el nombre instalado y su `InternalName` permanece
+  como `OPBS`. La aplicación abrió como `Versión 0.1.7 - Presenter Broadcast Studio` y permaneció respondiendo.
+- La prueba local del actualizador reconoció una instalación `0.1.6`, encontró `0.1.7` y resolvió correctamente el
+  instalador `OPBS-Setup-x64.exe`. El payload no contiene el antiguo `OPBS.exe`; no se creó etiqueta ni Release público.
+
 ## Próximos límites conocidos
 
 - La monitorización depende de que Windows mantenga válido el identificador del dispositivo elegido.

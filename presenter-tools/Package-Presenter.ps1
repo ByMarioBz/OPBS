@@ -34,11 +34,12 @@ foreach ($DirectoryName in @('bin', 'data', 'obs-plugins')) {
 
 $BinaryDirectory = Join-Path $Destination 'bin/64bit'
 $CopiedObsExecutable = Join-Path $BinaryDirectory 'obs64.exe'
-$OpbsExecutable = Join-Path $BinaryDirectory 'OPBS.exe'
-if (Test-Path -LiteralPath $OpbsExecutable) {
-    Remove-Item -LiteralPath $OpbsExecutable -Force
+$InstalledExecutableName = 'Presenter Broadcast Studio.exe'
+$InstalledExecutable = Join-Path $BinaryDirectory $InstalledExecutableName
+if (Test-Path -LiteralPath $InstalledExecutable) {
+    Remove-Item -LiteralPath $InstalledExecutable -Force
 }
-Rename-Item -LiteralPath $CopiedObsExecutable -NewName 'OPBS.exe'
+Rename-Item -LiteralPath $CopiedObsExecutable -NewName $InstalledExecutableName
 Set-Content -LiteralPath (Join-Path $BinaryDirectory 'disable_updater.txt') `
     -Value 'OPBS utiliza exclusivamente su actualizador de GitHub Releases.' -Encoding ASCII
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'runtime/OPBS-Updater.ps1') -Destination $BinaryDirectory -Force
@@ -49,7 +50,7 @@ Copy-Item -LiteralPath $ReleaseConfigurationPath -Destination (Join-Path $Binary
 $Launcher = @'
 @echo off
 cd /d "%~dp0bin\64bit"
-start "OPBS" OPBS.exe --portable --disable-updater
+start "Presenter Broadcast Studio" "Presenter Broadcast Studio.exe" --portable --disable-updater
 '@
 Set-Content -LiteralPath (Join-Path $Destination 'INICIAR_OPBS.bat') -Value $Launcher -Encoding ASCII
 

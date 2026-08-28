@@ -4,8 +4,10 @@ Esta guía describe el proceso reproducible para compilar, probar, empaquetar y 
 
 ## Identidad del producto
 
-- Producto: `OPBS`.
-- Significado: OBS con Presentador integrado.
+- Producto técnico y nombre en GitHub: `OPBS`.
+- Nombre visible instalado desde 0.1.7: `Presenter Broadcast Studio`.
+- El ejecutable, repositorio, etiquetas, artefactos, carpeta de instalación y canal de actualizaciones conservan `OPBS`
+  para no romper instalaciones ni actualizaciones existentes.
 - Rama de producto: `feature/media-presenter`.
 - Base histórica inmutable: `obs-original`.
 - Código oficial de OBS: remoto de solo lectura `obs-public`.
@@ -80,7 +82,7 @@ La carpeta `release` no se versiona.
 
 - Ejecutar `git diff --check`.
 - Completar la compilación sin errores.
-- Iniciar `dist/OPBS/bin/64bit/OPBS.exe`.
+- Iniciar `dist/OPBS/bin/64bit/Presenter Broadcast Studio.exe`.
 - Comprobar nombre y versión.
 - Probar imagen, video, audio y cambio repetido entre medios.
 - Probar línea de tiempo y salida de audio.
@@ -90,7 +92,8 @@ La carpeta `release` no se versiona.
 - Probar instalación, accesos directos y desinstalación.
 - Confirmar que el instalador no contiene Biblias, configuración, rutas privadas ni símbolos.
 - Probar la comparación de versiones del actualizador.
-- Instalar la versión anterior, crear datos de prueba, actualizar y confirmar que los datos sobreviven y OPBS se abre.
+- Instalar la versión anterior, crear datos de prueba, actualizar y confirmar que los datos sobreviven y Presenter
+  Broadcast Studio se abre con el nuevo nombre visible.
 
 Registrar los resultados en `PRESENTADOR_HISTORIAL.md`.
 
@@ -117,5 +120,5 @@ Studio y que el código modificado está disponible bajo GPL-2.0.
 ## Firma de código
 
 El instalador funciona sin certificado, pero Windows puede mostrar SmartScreen. Para una distribución amplia se deben
-firmar `OPBS.exe` y `OPBS-Setup-x64.exe` con un certificado y marca de tiempo. La clave privada nunca debe guardarse en
+firmar `Presenter Broadcast Studio.exe` y `OPBS-Setup-x64.exe` con un certificado y marca de tiempo. La clave privada nunca debe guardarse en
 Git ni dentro de los artefactos.

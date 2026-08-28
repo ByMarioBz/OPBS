@@ -14,7 +14,7 @@ El repositorio Git contiene el código y su historial. Estas carpetas locales so
 | `.tools` | CMake portátil usado en este equipo | No | No, si CMake está instalado |
 | `build_x64` | resultados intermedios | No | No; se regenera |
 | `dist/OPBS` | aplicación portátil compilada | No | Solo para ejecutar sin compilar |
-| `portable` | copia limpia para compartir, con `OPBS.exe` | No | Para pruebas en otra PC |
+| `portable` | copia limpia para diagnóstico, con `Presenter Broadcast Studio.exe` | No | Para pruebas en otra PC |
 | `release/<versión>` | instalador y SHA-256 | No | Solo para publicar el Release |
 | medios del usuario | imágenes, videos y canciones | No | Solo si se quieren conservar |
 
@@ -109,8 +109,9 @@ reutilizar un `CMakeCache.txt` creado en otra ruta o computadora.
 .\presenter-tools\Run-Presenter.cmd
 ```
 
-El empaquetado copia el contenido ejecutable de `build_x64/rundir/RelWithDebInfo` a `dist/OPBS`, renombra el ejecutable
-a `OPBS.exe` y conserva la configuración de desarrollo dentro de esa carpeta por `--portable`.
+El empaquetado copia el contenido ejecutable de `build_x64/rundir/RelWithDebInfo` a `dist/OPBS`, conserva `OPBS` como
+identidad técnica y renombra el ejecutable visible a `Presenter Broadcast Studio.exe`. La configuración de desarrollo
+permanece dentro de esa carpeta por `--portable`.
 
 Para crear una copia limpia destinada a otra persona:
 
@@ -118,7 +119,7 @@ Para crear una copia limpia destinada a otra persona:
 .\presenter-tools\Create-Portable.cmd
 ```
 
-El resultado queda en `portable`. El ejecutable es `portable/bin/64bit/OPBS.exe`; también puede iniciarse desde
+El resultado queda en `portable`. El ejecutable es `portable/bin/64bit/Presenter Broadcast Studio.exe`; también puede iniciarse desde
 `portable/INICIAR_OPBS.bat`. El marcador `portable/portable_mode.txt` conserva la configuración dentro del
 paquete aun al abrir directamente el EXE. El generador no copia Biblias, rutas, preferencias ni la biblioteca
 multimedia personal del equipo de desarrollo.

@@ -2109,7 +2109,7 @@ void PresenterPanel::BuildTopMenu()
 	helpMenu->addSeparator();
 	helpMenu->addAction(tr("Acerca de OPBS"), this, [this]() {
 		QMessageBox::about(main, tr("Acerca de OPBS"),
-				   tr("OPBS %1\nPresentador integrado basado en OBS Studio.")
+				   tr("Presenter Broadcast Studio %1\nNombre técnico y canal de actualizaciones: OPBS.")
 					   .arg(QString::fromLatin1(OPBS_VERSION)));
 	});
 	connect(fitToScreenAction, &QAction::toggled, this, [this](bool enabled) {
@@ -2149,7 +2149,7 @@ void PresenterPanel::LaunchOpbsUpdater(bool silent)
 	const QString applicationDirectory = QCoreApplication::applicationDirPath();
 	const QString updaterPath = QDir(applicationDirectory).filePath(QStringLiteral("OPBS-Updater.ps1"));
 	if (!QFileInfo::exists(updaterPath)) {
-		QMessageBox::critical(main, tr("Actualizaciones de OPBS"),
+		QMessageBox::critical(main, tr("Actualizaciones de Presenter Broadcast Studio"),
 				      tr("No se encontró el componente de actualización de OPBS."));
 		return;
 	}
@@ -2161,11 +2161,11 @@ void PresenterPanel::LaunchOpbsUpdater(bool silent)
 	if (silent)
 		arguments.append(QStringLiteral("-Silent"));
 	if (!QProcess::startDetached(QStringLiteral("powershell.exe"), arguments, applicationDirectory)) {
-		QMessageBox::critical(main, tr("Actualizaciones de OPBS"),
+		QMessageBox::critical(main, tr("Actualizaciones de Presenter Broadcast Studio"),
 				      tr("No fue posible iniciar el comprobador de actualizaciones."));
 	}
 #else
-	QMessageBox::information(main, tr("Actualizaciones de OPBS"),
+	QMessageBox::information(main, tr("Actualizaciones de Presenter Broadcast Studio"),
 				 tr("El actualizador de OPBS está disponible actualmente para Windows."));
 #endif
 }
@@ -2232,7 +2232,8 @@ void PresenterPanel::Initialize()
 		originalCentralWidget->setParent(main);
 	}
 	main->setCentralWidget(this);
-	main->setWindowTitle(tr("OPBS %1 — Presentador integrado").arg(QString::fromLatin1(OPBS_VERSION)));
+	// En Windows, Qt añade applicationDisplayName al título de la ventana.
+	main->setWindowTitle(tr("Versión %1").arg(QString::fromLatin1(OPBS_VERSION)));
 	main->statusBar()->hide();
 	// Esta variante no utiliza el asistente de transmisión/grabación de OBS.
 	config_set_bool(App()->GetUserConfig(), "General", "FirstRun", true);

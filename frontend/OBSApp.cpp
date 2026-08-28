@@ -913,7 +913,7 @@ OBSApp::OBSApp(int &argc, char **argv, profiler_name_store_t *store)
 	  appLaunchUUID_(QUuid::createUuid())
 {
 	setApplicationName(QStringLiteral("OPBS"));
-	setApplicationDisplayName(QStringLiteral("OPBS"));
+	setApplicationDisplayName(QStringLiteral("Presenter Broadcast Studio"));
 	setOrganizationName(QStringLiteral("OPBS"));
 
 	installNativeEventFilter(new OBS::NativeEventFilter);

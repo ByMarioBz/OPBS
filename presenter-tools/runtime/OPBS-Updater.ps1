@@ -16,7 +16,11 @@ Add-Type -AssemblyName System.Drawing
 
 function Start-OPBS {
     if (-not $LaunchApp) { return }
-    $Executable = Join-Path $PSScriptRoot 'OPBS.exe'
+    $Executable = Join-Path $PSScriptRoot 'Presenter Broadcast Studio.exe'
+    if (-not (Test-Path -LiteralPath $Executable)) {
+        # Permite completar una transición desde las versiones cuyo ejecutable visible era OPBS.exe.
+        $Executable = Join-Path $PSScriptRoot 'OPBS.exe'
+    }
     $Arguments = @('--disable-updater')
     if ($SafeMode) { $Arguments += '--safe-mode' }
     Start-Process -FilePath $Executable -ArgumentList $Arguments -WorkingDirectory $PSScriptRoot
@@ -25,13 +29,13 @@ function Start-OPBS {
 function Show-Information([string] $Text) {
     if ($Silent -or $LaunchApp) { return }
     if ($CheckOnly) { Write-Output $Text; return }
-    [void][Windows.Forms.MessageBox]::Show($Text, 'Actualizaciones de OPBS', 'OK', 'Information')
+    [void][Windows.Forms.MessageBox]::Show($Text, 'Actualizaciones de Presenter Broadcast Studio', 'OK', 'Information')
 }
 
 function Show-ErrorMessage([string] $Text) {
     if ($Silent -or $LaunchApp) { return }
     if ($CheckOnly) { Write-Output "ERROR: $Text"; return }
-    [void][Windows.Forms.MessageBox]::Show($Text, 'Actualizaciones de OPBS', 'OK', 'Error')
+    [void][Windows.Forms.MessageBox]::Show($Text, 'Actualizaciones de Presenter Broadcast Studio', 'OK', 'Error')
 }
 
 function ConvertTo-OPBSVersion([Parameter(Mandatory)][string] $Value) {
@@ -45,7 +49,7 @@ function ConvertTo-OPBSVersion([Parameter(Mandatory)][string] $Value) {
 function Show-UpdatePrompt {
     param([version] $AvailableVersion, [string] $ReleaseNotes)
     $Form = New-Object Windows.Forms.Form
-    $Form.Text = "Nueva versión disponible - OPBS $AvailableVersion"
+    $Form.Text = "Nueva versión disponible - Presenter Broadcast Studio $AvailableVersion"
     $Form.StartPosition = 'CenterScreen'
     $Form.Size = New-Object Drawing.Size(780, 660)
     $Form.MinimumSize = New-Object Drawing.Size(640, 500)
@@ -57,7 +61,7 @@ function Show-UpdatePrompt {
     $Header.Dock = 'Top'; $Header.Height = 88
     $Header.Padding = New-Object Windows.Forms.Padding(18, 16, 18, 8)
     $Header.Font = New-Object Drawing.Font('Segoe UI', 12, [Drawing.FontStyle]::Bold)
-    $Header.Text = "OPBS $AvailableVersion está disponible.`r`nLa actualización conservará tu biblioteca y configuración."
+    $Header.Text = "Presenter Broadcast Studio $AvailableVersion está disponible.`r`nLa actualización conservará tu biblioteca y configuración."
     $Form.Controls.Add($Header)
 
     $Notes = New-Object Windows.Forms.RichTextBox
@@ -66,7 +70,7 @@ function Show-UpdatePrompt {
     $Notes.ForeColor = [Drawing.Color]::White
     $Notes.BorderStyle = 'FixedSingle'; $Notes.Font = New-Object Drawing.Font('Segoe UI', 9.5)
     $Notes.Text = if ([string]::IsNullOrWhiteSpace($ReleaseNotes)) {
-        'Consulta las notas completas en el Release de GitHub.'
+        'Consulta las notas completas en el Release de OPBS en GitHub.'
     } else { $ReleaseNotes.Trim() }
     $Form.Controls.Add($Notes); $Notes.BringToFront()
 
@@ -126,7 +130,7 @@ try {
         $ReleaseNotesPath = Join-Path $LocalReleaseDirectory 'release-notes.md'
         $ReleaseNotes = if (Test-Path -LiteralPath $ReleaseNotesPath) {
             Get-Content -Raw -LiteralPath $ReleaseNotesPath
-        } else { "Prueba local de actualización a OPBS $AvailableVersion." }
+        } else { "Prueba local de actualización a Presenter Broadcast Studio $AvailableVersion." }
         $ReleaseUrl = $LocalReleaseDirectory
     } else {
         $Repository = [string]$Configuration.githubRepository
@@ -142,7 +146,7 @@ try {
     }
 
     if ($AvailableVersion -le $CurrentVersion) {
-        Show-Information "OPBS $CurrentVersion ya es la versión más reciente."
+        Show-Information "Presenter Broadcast Studio $CurrentVersion ya es la versión más reciente."
         Start-OPBS
         exit 0
     }

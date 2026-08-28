@@ -55,7 +55,8 @@ foreach ($StaleTarget in $StaleScriptingTargets) {
 
 $PortableBin = Join-Path $Destination 'bin/64bit'
 $CopiedObsExecutable = Join-Path $PortableBin 'obs64.exe'
-Rename-Item -LiteralPath $CopiedObsExecutable -NewName 'OPBS.exe'
+$InstalledExecutableName = 'Presenter Broadcast Studio.exe'
+Rename-Item -LiteralPath $CopiedObsExecutable -NewName $InstalledExecutableName
 Set-Content -LiteralPath (Join-Path $PortableBin 'disable_updater.txt') `
     -Value 'OPBS utiliza exclusivamente su actualizador de GitHub Releases.' -Encoding ASCII
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'runtime/OPBS-Updater.ps1') -Destination $PortableBin -Force
@@ -66,7 +67,7 @@ Copy-Item -LiteralPath $ReleaseConfigurationPath -Destination (Join-Path $Portab
 $Launcher = @'
 @echo off
 cd /d "%~dp0bin\64bit"
-start "OPBS" OPBS.exe --portable --disable-updater
+start "Presenter Broadcast Studio" "Presenter Broadcast Studio.exe" --portable --disable-updater
 '@
 Set-Content -LiteralPath (Join-Path $Destination 'INICIAR_OPBS.bat') -Value $Launcher -Encoding ASCII
 Set-Content -LiteralPath (Join-Path $Destination 'portable_mode.txt') -Value 'OPBS portable' -Encoding ASCII
@@ -75,7 +76,7 @@ $Readme = @"
 OPBS $($ReleaseConfiguration.version)
 
 1. Abre INICIAR_OPBS.bat.
-2. También puedes abrir bin\64bit\OPBS.exe directamente.
+2. También puedes abrir bin\64bit\Presenter Broadcast Studio.exe directamente.
 3. La configuración se guarda dentro de esta carpeta.
 4. Los archivos multimedia importados no se copian; deben seguir disponibles en sus rutas originales.
 5. Las Biblias y preferencias locales no se incluyen en las entregas públicas.
@@ -83,4 +84,4 @@ OPBS $($ReleaseConfiguration.version)
 Set-Content -LiteralPath (Join-Path $Destination 'LEEME.txt') -Value $Readme -Encoding UTF8
 
 Write-Host "OPBS portable creado en: $Destination"
-Write-Host "Ejecutable: $(Join-Path $PortableBin 'OPBS.exe')"
+Write-Host "Ejecutable: $(Join-Path $PortableBin $InstalledExecutableName)"
