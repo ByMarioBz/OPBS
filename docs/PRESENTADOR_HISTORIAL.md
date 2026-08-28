@@ -434,6 +434,10 @@ elegirla una vez, cambiar entre video y dos canciones sin volver a abrir `Sonido
   `Eliminar` mediante el menú contextual de OPBS. La eliminación requiere confirmación; si la presentación está en
   uso se retira de la lista sin interrumpir el escenario y su caché se limpia al cambiar de presentación o reiniciar.
 - `Build-Presenter.cmd` y `Package-Presenter.cmd` finalizaron correctamente con estas correcciones.
+- Eliminar una presentación reciente ahora también limpia de inmediato sus diapositivas cargadas, restablece la vista
+  previa y borra su caché convertida. La entrada no vuelve a aparecer después de reiniciar; la acción mantiene una
+  confirmación explícita y no toca el resto de la biblioteca.
+- `Build-Presenter.cmd` y `Package-Presenter.cmd` finalizaron correctamente con esta corrección de eliminación.
 
 ## Próximos límites conocidos
 

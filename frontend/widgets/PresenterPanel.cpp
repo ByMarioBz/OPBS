@@ -1410,8 +1410,15 @@ void PresenterPanel::BuildInterface()
 			const QString removedId = recentPresentationIds.takeAt(row);
 			if (row < recentPresentationNames.size())
 				recentPresentationNames.removeAt(row);
-			if (removedId != currentPresentationId)
-				QDir(QDir(PresentationsDirectoryPath()).filePath(removedId)).removeRecursively();
+			const bool removingCurrentPresentation = removedId == currentPresentationId;
+			if (removingCurrentPresentation) {
+				ClearPresentationEntries();
+				currentPresentationId.clear();
+				if (currentMedia)
+					currentMedia->setText(tr("Ningún contenido seleccionado"));
+				ApplyLibraryFilter();
+			}
+			QDir(QDir(PresentationsDirectoryPath()).filePath(removedId)).removeRecursively();
 			RefreshRecentPresentations();
 			SaveSettings();
 		}
