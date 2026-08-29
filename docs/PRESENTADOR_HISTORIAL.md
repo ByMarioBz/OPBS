@@ -446,6 +446,10 @@ elegirla una vez, cambiar entre video y dos canciones sin volver a abrir `Sonido
   correctamente y Presenter Broadcast Studio quedó abierto respondiendo.
 - El instalador de `release/0.1.7` no se reemplazó: la política de releases protege artefactos ya generados. Se podrá
   regenerar junto con una nueva versión autorizada sin afectar el canal de actualización.
+- El diálogo `Acerca de OPBS` ahora identifica `Autor/Mod: ByMarioBz` e incluye la nota de que estas versiones son
+  Betas en actualización continua para mejorar la experiencia final del usuario.
+- `Build-Presenter.cmd` y `Package-Presenter.cmd` finalizaron correctamente tras este ajuste; la aplicación 0.1.7 se
+  abrió de nuevo y permanece respondiendo para revisión manual.
 
 ## Próximos límites conocidos
 

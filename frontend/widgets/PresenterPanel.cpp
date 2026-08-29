@@ -2198,11 +2198,14 @@ void PresenterPanel::BuildTopMenu()
 	auto *helpMenu = main->menuBar()->addMenu(tr("Ayuda"));
 	helpMenuAction = helpMenu->menuAction();
 	opbsUpdateAction = helpMenu->addAction(tr("Buscar actualizaciones de OPBS"));
-	helpMenu->addSeparator();
-	helpMenu->addAction(tr("Acerca de OPBS"), this, [this]() {
+		helpMenu->addSeparator();
+		helpMenu->addAction(tr("Acerca de OPBS"), this, [this]() {
 		QMessageBox::about(main, tr("Acerca de OPBS"),
-				   tr("Presenter Broadcast Studio %1\nNombre técnico y canal de actualizaciones: OPBS.")
-					   .arg(QString::fromLatin1(OPBS_VERSION)));
+					   tr("Presenter Broadcast Studio %1\nNombre técnico y canal de actualizaciones: OPBS.\n"
+					      "Autor/Mod: ByMarioBz\n\n"
+					      "Nota: Estas versiones son Betas y se están actualizando para mejorar la "
+					      "experiencia final del usuario.")
+						   .arg(QString::fromLatin1(OPBS_VERSION)));
 	});
 	connect(fitToScreenAction, &QAction::toggled, this, [this](bool enabled) {
 		fitContentToScreen = enabled;
