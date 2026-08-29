@@ -468,6 +468,8 @@ elegirla una vez, cambiar entre video y dos canciones sin volver a abrir `Sonido
 - La compilación, el paquete y la prueba local del actualizador 0.1.7b finalizaron correctamente.
 - Las notas públicas de 0.1.7b se redujeron a sus dos novedades principales: menú contextual de carpetas multimedia
   y nuevo diseño de iconos Glass T2/MGlass.
+- Se corrigió la creación de accesos directos para que incluyan un ICO Glass T2 explícito, se regeneren durante una
+  actualización y no hereden el icono genérico del lanzador oculto. La comprobación portable confirmó el recurso.
 
 ## Próximos límites conocidos
 

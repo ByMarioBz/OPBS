@@ -65,14 +65,15 @@ preinstall_migration_ok:
 
   ; Una actualización desde 0.1.6 o anterior reemplaza los accesos con el nombre visible anterior.
   Delete "$DESKTOP\OPBS.lnk"
+  Delete "$DESKTOP\Presenter Broadcast Studio.lnk"
   Delete "$SMPROGRAMS\OPBS\OPBS.lnk"
   Delete "$SMPROGRAMS\OPBS\Desinstalar OPBS.lnk"
   RMDir "$SMPROGRAMS\OPBS"
 
   CreateDirectory "$SMPROGRAMS\Presenter Broadcast Studio"
-  CreateShortcut "$SMPROGRAMS\Presenter Broadcast Studio\Presenter Broadcast Studio.lnk" "$SYSDIR\wscript.exe" '"$INSTDIR\bin\64bit\OPBS-Launcher.vbs"' "$INSTDIR\bin\64bit\Presenter Broadcast Studio.exe" 0 SW_SHOWNORMAL
+  CreateShortcut "$SMPROGRAMS\Presenter Broadcast Studio\Presenter Broadcast Studio.lnk" "$SYSDIR\wscript.exe" '"$INSTDIR\bin\64bit\OPBS-Launcher.vbs"' "$INSTDIR\bin\64bit\PresenterBroadcastStudio.ico" 0 SW_SHOWNORMAL
   CreateShortcut "$SMPROGRAMS\Presenter Broadcast Studio\Desinstalar Presenter Broadcast Studio.lnk" "$INSTDIR\Uninstall.exe"
-  CreateShortcut "$DESKTOP\Presenter Broadcast Studio.lnk" "$SYSDIR\wscript.exe" '"$INSTDIR\bin\64bit\OPBS-Launcher.vbs"' "$INSTDIR\bin\64bit\Presenter Broadcast Studio.exe" 0 SW_SHOWNORMAL
+  CreateShortcut "$DESKTOP\Presenter Broadcast Studio.lnk" "$SYSDIR\wscript.exe" '"$INSTDIR\bin\64bit\OPBS-Launcher.vbs"' "$INSTDIR\bin\64bit\PresenterBroadcastStudio.ico" 0 SW_SHOWNORMAL
 
   ; Tanto una instalación nueva como una actualización vuelven a abrir Presenter Broadcast Studio.
   Exec '"$SYSDIR\wscript.exe" "$INSTDIR\bin\64bit\OPBS-Launcher.vbs"'

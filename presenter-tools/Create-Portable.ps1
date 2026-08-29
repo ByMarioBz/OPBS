@@ -57,6 +57,8 @@ $PortableBin = Join-Path $Destination 'bin/64bit'
 $CopiedObsExecutable = Join-Path $PortableBin 'obs64.exe'
 $InstalledExecutableName = 'Presenter Broadcast Studio.exe'
 Rename-Item -LiteralPath $CopiedObsExecutable -NewName $InstalledExecutableName
+Copy-Item -LiteralPath (Join-Path $ProjectRoot 'frontend/cmake/windows/obs-studio.ico') `
+    -Destination (Join-Path $PortableBin 'PresenterBroadcastStudio.ico') -Force
 Set-Content -LiteralPath (Join-Path $PortableBin 'disable_updater.txt') `
     -Value 'OPBS utiliza exclusivamente su actualizador de GitHub Releases.' -Encoding ASCII
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'runtime/OPBS-Updater.ps1') -Destination $PortableBin -Force
