@@ -466,6 +466,8 @@ elegirla una vez, cambiar entre video y dos canciones sin volver a abrir `Sonido
 - Se amplió el reconocimiento de versiones beta a `0.1.7b`, incluyendo comparación del actualizador y metadatos
   numéricos compatibles con Windows.
 - La compilación, el paquete y la prueba local del actualizador 0.1.7b finalizaron correctamente.
+- Las notas públicas de 0.1.7b se redujeron a sus dos novedades principales: menú contextual de carpetas multimedia
+  y nuevo diseño de iconos Glass T2/MGlass.
 
 ## Próximos límites conocidos
 
