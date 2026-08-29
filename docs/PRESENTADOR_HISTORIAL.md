@@ -438,6 +438,14 @@ elegirla una vez, cambiar entre video y dos canciones sin volver a abrir `Sonido
   previa y borra su caché convertida. La entrada no vuelve a aparecer después de reiniciar; la acción mantiene una
   confirmación explícita y no toca el resto de la biblioteca.
 - `Build-Presenter.cmd` y `Package-Presenter.cmd` finalizaron correctamente con esta corrección de eliminación.
+- Se incorporó la variante aprobada `Glass Icon` como identidad visual de Presenter Broadcast Studio. El PNG original
+  se conserva en `branding/presenter-broadcast-studio/PresenterBroadcastStudio-logo-user-glass-1000.png`; el respaldo
+  de los iconos anteriores permanece fuera del paquete público.
+- `Build-OPBS-Icon.ps1` genera un ICO multiresolución (16–256 px) y actualiza los iconos de ventana, bandeja y estados
+  de la aplicación, además del recurso usado por el actualizador. La compilación y el paquete local 0.1.7 se regeneraron
+  correctamente y Presenter Broadcast Studio quedó abierto respondiendo.
+- El instalador de `release/0.1.7` no se reemplazó: la política de releases protege artefactos ya generados. Se podrá
+  regenerar junto con una nueva versión autorizada sin afectar el canal de actualización.
 
 ## Próximos límites conocidos
 
