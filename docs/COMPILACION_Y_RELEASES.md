@@ -12,6 +12,8 @@ Esta guía describe el proceso reproducible para compilar, probar, empaquetar y 
 - Base histórica inmutable: `obs-original`.
 - Código oficial de OBS: remoto de solo lectura `obs-public`.
 - Distribución de OPBS: repositorio GitHub propio configurado como `origin`.
+- Las compilaciones beta pueden añadir un sufijo identificador al parche, por ejemplo `0.1.7b`; el actualizador lo
+  compara como una revisión posterior del mismo núcleo numérico y Windows conserva metadatos de archivo válidos.
 
 ## Reglas de seguridad
 
