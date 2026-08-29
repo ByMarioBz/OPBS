@@ -450,6 +450,8 @@ elegirla una vez, cambiar entre video y dos canciones sin volver a abrir `Sonido
   Betas en actualización continua para mejorar la experiencia final del usuario.
 - `Build-Presenter.cmd` y `Package-Presenter.cmd` finalizaron correctamente tras este ajuste; la aplicación 0.1.7 se
   abrió de nuevo y permanece respondiendo para revisión manual.
+- Las notas públicas de `OPBS 0.1.7` se simplificaron a tres puntos: bugs corregidos, correcciones y mejoras del UI,
+  y nuevo logo. Se excluyeron de forma intencional el cambio de nombre visible y el contenido del diálogo `Acerca de`.
 
 ## Próximos límites conocidos
 
