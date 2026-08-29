@@ -452,6 +452,8 @@ elegirla una vez, cambiar entre video y dos canciones sin volver a abrir `Sonido
   abrió de nuevo y permanece respondiendo para revisión manual.
 - Las notas públicas de `OPBS 0.1.7` se simplificaron a tres puntos: bugs corregidos, correcciones y mejoras del UI,
   y nuevo logo. Se excluyeron de forma intencional el cambio de nombre visible y el contenido del diálogo `Acerca de`.
+- Con autorización explícita se regeneró el instalador `release/0.1.7/OPBS-Setup-x64.exe` con todos los cambios actuales;
+  su SHA-256 coincide con el archivo publicado junto al instalador.
 
 ## Próximos límites conocidos
 
