@@ -2,7 +2,7 @@
 
 Presenter Broadcast Studio es el nombre visible de la aplicación de escritorio OPBS para organizar y proyectar
 imágenes, videos y audio, construida sobre OBS Studio 32.2.0. `OPBS` permanece como nombre técnico del repositorio,
-ejecutable, canal de actualizaciones y datos compatibles. La versión actual de desarrollo es `0.1.7`.
+ejecutable, canal de actualizaciones y datos compatibles. La versión actual de desarrollo es `0.1.7b`.
 El frontend clásico de OBS está temporalmente oculto, pero su implementación permanece disponible para recuperar e
 integrar funciones de forma gradual.
 

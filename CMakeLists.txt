@@ -8,7 +8,11 @@ set(OPBS_VERSION "0.1.0" CACHE STRING "OPBS product version")
 set(OBS_PRODUCT_NAME "OPBS")
 set(OBS_COMPANY_NAME "OPBS")
 set(OBS_COMMENTS "OPBS multimedia presenter")
-string(REPLACE "." "," OPBS_FILE_VERSION_COMMAS "${OPBS_VERSION}")
+string(REGEX MATCH "^[0-9]+\\.[0-9]+\\.[0-9]+" OPBS_NUMERIC_VERSION "${OPBS_VERSION}")
+if(NOT OPBS_NUMERIC_VERSION)
+  set(OPBS_NUMERIC_VERSION "0.1.0")
+endif()
+string(REPLACE "." "," OPBS_FILE_VERSION_COMMAS "${OPBS_NUMERIC_VERSION}")
 
 if(MSVC)
   # Public OPBS binaries must not expose the local build directory. This is

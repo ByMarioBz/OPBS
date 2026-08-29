@@ -11,8 +11,8 @@ $CurrentBranch = (& git -C $ProjectRoot branch --show-current).Trim()
 if ($LASTEXITCODE -ne 0 -or $CurrentBranch -ne 'feature/media-presenter') {
     throw 'La versión de OPBS solo se cambia desde feature/media-presenter.'
 }
-if ($Version -notmatch '^\d+\.\d+\.\d+$') {
-    throw 'La versión debe usar SemVer mayor.menor.parche, por ejemplo 0.1.0.'
+if ($Version -notmatch '^\d+\.\d+\.\d+(?:[A-Za-z][A-Za-z0-9.-]*)?$') {
+	throw 'La versión debe usar mayor.menor.parche y puede incluir un sufijo beta, por ejemplo 0.1.7b.'
 }
 if ($GitHubRepository -and $GitHubRepository -notmatch '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$') {
     throw 'GitHubRepository debe usar el formato propietario/repositorio.'

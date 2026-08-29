@@ -370,6 +370,7 @@ class PresenterPanel : public QWidget {
 	QString PresentationsDirectoryPath() const;
 	void CreateFolder();
 	void RenameFolder();
+	void DeleteFolder();
 	void MoveMediaToFolder(const QStringList &paths, const QString &folderId);
 	QString SelectedFolderId() const;
 	void LoadSettings();

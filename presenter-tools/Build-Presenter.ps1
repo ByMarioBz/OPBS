@@ -14,7 +14,7 @@ $BuildDirectory = Join-Path $ProjectRoot 'build_x64'
 $ReleaseConfigurationPath = Join-Path $PSScriptRoot 'opbs-release.json'
 $ReleaseConfiguration = Get-Content -Raw -LiteralPath $ReleaseConfigurationPath | ConvertFrom-Json
 $OpbsVersion = [string]$ReleaseConfiguration.version
-if ($OpbsVersion -notmatch '^\d+\.\d+\.\d+$') {
+if ($OpbsVersion -notmatch '^\d+\.\d+\.\d+(?:[A-Za-z][A-Za-z0-9.-]*)?$') {
     throw 'opbs-release.json contiene una versión inválida.'
 }
 

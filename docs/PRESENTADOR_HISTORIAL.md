@@ -455,6 +455,18 @@ elegirla una vez, cambiar entre video y dos canciones sin volver a abrir `Sonido
 - Con autorización explícita se regeneró el instalador `release/0.1.7/OPBS-Setup-x64.exe` con todos los cambios actuales;
   su SHA-256 coincide con el archivo publicado junto al instalador.
 
+## 2026-08-29 - OPBS 0.1.7b: iconos y carpetas multimedia
+
+- `Icon Glass T2` quedó como icono principal de Presenter Broadcast Studio. `Icon MGlass` se reservó para el diálogo
+  `Acerca de`, el instalador y el desinstalador; el diálogo usa una variante ampliada un 10 %.
+- El instalador mantiene accesos directos de escritorio y menú Inicio con el lanzador oculto, sin crear un acceso
+  adicional de barra de tareas; el identificador de aplicación de Windows conserva la agrupación de una sola ventana.
+- Las carpetas multimedia creadas por el usuario ahora ofrecen `Cambiar nombre…` y `Eliminar carpeta` en su menú
+  contextual. General queda protegida y los archivos de una carpeta eliminada se trasladan a General.
+- Se amplió el reconocimiento de versiones beta a `0.1.7b`, incluyendo comparación del actualizador y metadatos
+  numéricos compatibles con Windows.
+- La compilación, el paquete y la prueba local del actualizador 0.1.7b finalizaron correctamente.
+
 ## Próximos límites conocidos
 
 - La monitorización depende de que Windows mantenga válido el identificador del dispositivo elegido.

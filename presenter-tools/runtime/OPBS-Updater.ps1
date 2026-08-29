@@ -77,14 +77,17 @@ function Show-ErrorMessage([string] $Text) {
 
 function ConvertTo-OPBSVersion([Parameter(Mandatory)][string] $Value) {
     $Normalized = $Value.Trim() -replace '^opbs-v', '' -replace '^v', ''
-    if ($Normalized -notmatch '^\d+\.\d+\.\d+$') {
-        throw "La versión '$Value' no usa el formato mayor.menor.parche."
+    if ($Normalized -notmatch '^(\d+\.\d+\.\d+)([A-Za-z][A-Za-z0-9.-]*)?$') {
+        throw "La versión '$Value' no usa el formato mayor.menor.parche (con sufijo beta opcional)."
     }
-    return [version]$Normalized
+    $Core = $Matches[1]
+    $Suffix = [string]$Matches[2]
+    $SortVersion = [version]("$Core." + $(if ($Suffix) { '1' } else { '0' }))
+    return [pscustomobject]@{ Text = $Normalized; SortVersion = $SortVersion }
 }
 
 function Show-UpdatePrompt {
-    param([version] $AvailableVersion, [string] $ReleaseNotes)
+    param([string] $AvailableVersion, [string] $ReleaseNotes)
     Initialize-OPBSUpdaterUi
     $Form = New-Object Windows.Forms.Form
     $Form.Text = "Nueva versión disponible - Presenter Broadcast Studio $AvailableVersion"
@@ -150,7 +153,7 @@ try {
 
     $Headers = @{
         Accept = 'application/vnd.github+json'
-        'User-Agent' = "OPBS-Updater/$CurrentVersion"
+        'User-Agent' = "OPBS-Updater/$($CurrentVersion.Text)"
         'X-GitHub-Api-Version' = '2026-03-10'
     }
 
@@ -168,7 +171,7 @@ try {
         $ReleaseNotesPath = Join-Path $LocalReleaseDirectory 'release-notes.md'
         $ReleaseNotes = if (Test-Path -LiteralPath $ReleaseNotesPath) {
             Get-Content -Raw -LiteralPath $ReleaseNotesPath
-        } else { "Prueba local de actualización a Presenter Broadcast Studio $AvailableVersion." }
+        } else { "Prueba local de actualización a Presenter Broadcast Studio $($AvailableVersion.Text)." }
         $ReleaseUrl = $LocalReleaseDirectory
     } else {
         $Repository = [string]$Configuration.githubRepository
@@ -189,30 +192,30 @@ try {
         $ReleaseUrl = [string]$Release.html_url
     }
 
-    if ($AvailableVersion -le $CurrentVersion) {
-        Show-Information "Presenter Broadcast Studio $CurrentVersion ya es la versión más reciente."
+    if ($AvailableVersion.SortVersion -le $CurrentVersion.SortVersion) {
+        Show-Information "Presenter Broadcast Studio $($CurrentVersion.Text) ya es la versión más reciente."
         Start-OPBS
         exit 0
     }
     if (-not $InstallerAsset -or -not $ChecksumAsset) {
-        throw "La versión $AvailableVersion no contiene el instalador y su SHA-256."
+        throw "La versión $($AvailableVersion.Text) no contiene el instalador y su SHA-256."
     }
     if ($CheckOnly) {
         [PSCustomObject]@{
-            currentVersion = $CurrentVersion.ToString(3)
-            availableVersion = $AvailableVersion.ToString(3)
+            currentVersion = $CurrentVersion.Text
+            availableVersion = $AvailableVersion.Text
             installerUrl = $InstallerAsset.browser_download_url
             releaseUrl = $ReleaseUrl
             releaseNotes = $ReleaseNotes
         } | ConvertTo-Json
         exit 0
     }
-    if (-not (Show-UpdatePrompt -AvailableVersion $AvailableVersion -ReleaseNotes $ReleaseNotes)) {
+    if (-not (Show-UpdatePrompt -AvailableVersion $AvailableVersion.Text -ReleaseNotes $ReleaseNotes)) {
         Start-OPBS
         exit 0
     }
 
-    $DownloadDirectory = Join-Path ([IO.Path]::GetTempPath()) "OPBS-Update-$AvailableVersion"
+    $DownloadDirectory = Join-Path ([IO.Path]::GetTempPath()) "OPBS-Update-$($AvailableVersion.Text)"
     New-Item -ItemType Directory -Path $DownloadDirectory -Force | Out-Null
     $InstallerPath = Join-Path $DownloadDirectory ([string]$Configuration.installerAsset)
     $ChecksumPath = Join-Path $DownloadDirectory ([string]$Configuration.checksumAsset)

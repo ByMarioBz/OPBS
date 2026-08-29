@@ -1118,6 +1118,7 @@ void PresenterPanel::BuildInterface()
 	foldersWidget->setObjectName("presenterFolderList");
 	foldersWidget->setAccessibleName(tr("Carpetas multimedia"));
 	foldersWidget->setSelectionMode(QAbstractItemView::SingleSelection);
+	foldersWidget->setContextMenuPolicy(Qt::CustomContextMenu);
 	foldersWidget->setMinimumHeight(160);
 	folderLayout->addWidget(foldersWidget, 1);
 	auto *folderButtons = new QHBoxLayout();
@@ -1308,6 +1309,25 @@ void PresenterPanel::BuildInterface()
 
 	connect(addFolder, &QToolButton::clicked, this, &PresenterPanel::CreateFolder);
 	connect(renameFolder, &QToolButton::clicked, this, &PresenterPanel::RenameFolder);
+	connect(foldersWidget, &QWidget::customContextMenuRequested, this, [this, foldersWidget](const QPoint &position) {
+		QListWidgetItem *item = foldersWidget->itemAt(position);
+		if (!item)
+			return;
+		foldersWidget->setCurrentItem(item);
+		QMenu menu(foldersWidget);
+		PrepareOpbsContextMenu(&menu);
+		QAction *renameAction = menu.addAction(OpbsMenuActionIcon(OpbsMenuIcon::Rename), tr("Cambiar nombre…"));
+		QAction *deleteAction = menu.addAction(OpbsMenuActionIcon(OpbsMenuIcon::Delete, QColor("#FF7B82")),
+							     tr("Eliminar carpeta"));
+		const bool isGeneral = item->data(Qt::UserRole).toString() == QStringLiteral("general");
+		renameAction->setEnabled(!isGeneral);
+		deleteAction->setEnabled(!isGeneral);
+		QAction *chosen = menu.exec(foldersWidget->viewport()->mapToGlobal(position));
+		if (chosen == renameAction)
+			RenameFolder();
+		else if (chosen == deleteAction)
+			DeleteFolder();
+	});
 	connect(foldersWidget, &QListWidget::currentItemChanged, this, [this](QListWidgetItem *current) {
 		if (!current)
 			return;
@@ -2200,13 +2220,18 @@ void PresenterPanel::BuildTopMenu()
 	opbsUpdateAction = helpMenu->addAction(tr("Buscar actualizaciones de OPBS"));
 		helpMenu->addSeparator();
 		helpMenu->addAction(tr("Acerca de OPBS"), this, [this]() {
-		QMessageBox::about(main, tr("Acerca de OPBS"),
-					   tr("Presenter Broadcast Studio %1\nNombre técnico y canal de actualizaciones: OPBS.\n"
-					      "Autor/Mod: ByMarioBz\n\n"
-					      "Nota: Estas versiones son Betas y se están actualizando para mejorar la "
-					      "experiencia final del usuario.")
-						   .arg(QString::fromLatin1(OPBS_VERSION)));
-	});
+			QMessageBox about(main);
+			about.setWindowTitle(tr("Acerca de OPBS"));
+			about.setIconPixmap(QPixmap(QStringLiteral(":/res/images/opbs_about.png"))
+						.scaled(QSize(70, 70), Qt::KeepAspectRatio, Qt::SmoothTransformation));
+			about.setText(tr("Presenter Broadcast Studio %1\nNombre técnico y canal de actualizaciones: OPBS.\n"
+					 "Autor/Mod: ByMarioBz\n\n"
+					 "Nota: Estas versiones son Betas y se están actualizando para mejorar la "
+					 "experiencia final del usuario.")
+					 .arg(QString::fromLatin1(OPBS_VERSION)));
+			about.setStandardButtons(QMessageBox::Ok);
+			about.exec();
+		});
 	connect(fitToScreenAction, &QAction::toggled, this, [this](bool enabled) {
 		fitContentToScreen = enabled;
 		ApplyActiveItemBounds();
@@ -4648,6 +4673,41 @@ void PresenterPanel::RenameFolder()
 {
 	if (folderList && folderList->currentItem())
 		folderList->editItem(folderList->currentItem());
+}
+
+void PresenterPanel::DeleteFolder()
+{
+	if (!folderList || !folderList->currentItem())
+		return;
+	QListWidgetItem *item = folderList->currentItem();
+	const QString folderId = item->data(Qt::UserRole).toString();
+	if (folderId.isEmpty() || folderId == QStringLiteral("general"))
+		return;
+	const QString folderName = item->text();
+	if (QMessageBox::question(main, tr("Eliminar carpeta"),
+					  tr("¿Eliminar la carpeta “%1”? Los archivos se moverán a General.").arg(folderName),
+					  QMessageBox::Yes | QMessageBox::No, QMessageBox::No) != QMessageBox::Yes)
+		return;
+	for (const auto &entry : entries) {
+		if (entry->folderId == folderId)
+			entry->folderId = QStringLiteral("general");
+	}
+	const int row = folderList->row(item);
+	if (row >= 0)
+		delete folderList->takeItem(row);
+	folders.erase(std::remove_if(folders.begin(), folders.end(), [&folderId](const FolderEntry &folder) {
+			return folder.id == folderId;
+		}),
+		      folders.end());
+	currentMultimediaFolderId = QStringLiteral("general");
+	for (int index = 0; index < folderList->count(); ++index) {
+		if (folderList->item(index)->data(Qt::UserRole).toString() == currentMultimediaFolderId) {
+			folderList->setCurrentRow(index);
+			break;
+		}
+	}
+	ApplyLibraryFilter();
+	SaveSettings();
 }
 
 void PresenterPanel::MoveMediaToFolder(const QStringList &paths, const QString &folderId)

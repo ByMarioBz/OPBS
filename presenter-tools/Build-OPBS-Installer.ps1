@@ -8,7 +8,7 @@ $ErrorActionPreference = 'Stop'
 $ProjectRoot = Split-Path -Parent $PSScriptRoot
 $ConfigurationData = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot 'opbs-release.json') | ConvertFrom-Json
 $Version = [string]$ConfigurationData.version
-if ($Version -notmatch '^\d+\.\d+\.\d+$') {
+if ($Version -notmatch '^\d+\.\d+\.\d+(?:[A-Za-z][A-Za-z0-9.-]*)?$') {
     throw 'La versión configurada de OPBS no es válida.'
 }
 
@@ -63,8 +63,8 @@ foreach ($Output in @($InstallerPath, $ChecksumPath)) {
     }
 }
 
-$VersionParts = $Version.Split('.')
-$FileVersion = "$($VersionParts[0]).$($VersionParts[1]).$($VersionParts[2]).0"
+$NumericVersion = if ($Version -match '^(\d+\.\d+\.\d+)') { $Matches[1] } else { throw 'La versión no tiene un núcleo numérico válido.' }
+$FileVersion = "$NumericVersion.0"
 $InstallerScript = Join-Path $ProjectRoot 'installer/OPBS.nsi'
 & $MakeNsis "/DOPBS_VERSION=$Version" "/DOPBS_FILE_VERSION=$FileVersion" `
     "/DPAYLOAD_DIR=$PayloadDirectory" "/DOUTPUT_FILE=$InstallerPath" $InstallerScript
